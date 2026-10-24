@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 4 章　连续时间傅里叶级数（CTFS）｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch04">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第二段 · 傅里叶家族 · 第 4 章</div>
+        <h1>连续时间傅里叶级数（CTFS）</h1>
+        <p class="lede">
+          第 3 章证明了：复指数是 LTI 系统的特征函数，逐项乘一个复数就行。
+          可"任意信号"怎么变成复指数的组合？这一章回答它：<b>只要是周期信号，就能写成一族谐波之和</b>，
+          而每个谐波的系数有一个能直接算的积分公式。这就是傅里叶级数——频域语言的第一套语法。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch03-eigenfunction.html">第 3 章 复指数是特征函数</a>（<span class="mono">a<sub>k</sub> → a<sub>k</sub>H(jkω<sub>0</sub>)</span> 的来源）<br>
+          <a href="ch01-signals.html">第 1 章 信号与系统基本概念</a>（周期、奇偶、复指数）
+        </div>
+        <div class="cell mid"><b>这一站</b><span class="mono">a<sub>k</sub></span> 公式、正交性、收敛与吉布斯、性质表、Parseval</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch06-ctft.html">第 6 章 傅里叶变换</a>（让周期 T→∞ 就得到非周期版本）<br>
+          <a href="ch05-dtfs.html">第 5 章 离散时间傅里叶级数</a>（同一件事在离散时间怎么做）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 这一章要回答的四个问题</a>
+        <a href="#s2">2. 直觉：用 cos / sin 去"量"信号</a>
+        <a href="#s3">3. 两种写法：三角形式与指数形式</a>
+        <a href="#s4">4. 核心推导：a<sub>k</sub> 是怎么被"挑"出来的</a>
+        <a href="#s5">5. 完整算例：方波的谐波系数</a>
+        <a href="#s6">6. 有限项最优与收敛条件</a>
+        <a href="#s7">7. 吉布斯现象：那个不消失的 9%</a>
+        <a href="#s8">8. 实验 1（核心）：谐波数、波形与吉布斯</a>
+        <a href="#s9">9. 性质表与关键性质的证明</a>
+        <a href="#s10">10. Parseval：各谐波功率之和</a>
+        <a href="#s11">11. 方波 1/k 与三角波 1/k²：衰减速度从哪来</a>
+        <a href="#s12">12. 实验 2：让每个谐波各自乘 H(jkω<sub>0</sub>)</a>
+        <a href="#s13">13. 常见坑</a>
+        <a href="#s14">14. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 这一章要回答的四个问题</h2>
+
+      <p>
+        先讲个故事，因为傅里叶级数不是从"信号"里长出来的，而是从<b>热</b>里长出来的。
+        1807 年，傅里叶（Joseph Fourier，1768–1830）向巴黎科学院提交了关于热传播的论文。
+        他研究的问题很具体：一根均匀的金属条，初始温度分布是 <span class="mono">f(x)</span>，
+        温度随时间怎么变？答案满足偏微分方程（热传导方程）
+      </p>
+      <div class="eq center-eq">
+        <span class="frac"><span class="num">∂f</span><span class="den">∂t</span></span>
+        = κ <span class="frac"><span class="num">∂<sup>2</sup>f</span><span class="den">∂x<sup>2</sup></span></span>
+        <span class="lbl">(4-1)</span>
+      </div>
+      <p>
+        κ 是导热系数。对一般的初始分布，这个方程<b>没有解析解</b>。但傅里叶发现：
+        如果初始分布能写成
+      </p>
+      <div class="eq center-eq">
+        f(x) = B<sub>0</sub> + B<sub>1</sub>cos ω<sub>0</sub>x + B<sub>2</sub>cos 2ω<sub>0</sub>x + ⋯ + C<sub>1</sub>sin ω<sub>0</sub>x + C<sub>2</sub>sin 2ω<sub>0</sub>x + ⋯
+      </div>
+      <p>
+        也就是"一族正弦余弦的线性组合"，那么方程立刻可解（每一项按指数衰减，高频衰减得更快）。
+        于是他更进一步提出一个当时被认为很激进的主张：
+        <b>任何一个周期函数都能展成三角函数的无穷级数</b>。这就是
+        <span class="term" data-def="Fourier series，中文含义：傅里叶级数。把一个周期信号写成一族谐波（基频整数倍的复指数或正余弦）之和的表示法。">傅里叶级数</span>
+        （Fourier series）。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">最直观的一眼：方波是被正弦"叠"出来的</span>
+        <p>
+          取一个方波。用 1 个正弦去近似——完全不像；用 2 个——有点意思了；
+          用 4 个、10 个、100 个——它越来越像矩形。
+          只要努力，弯的也可以掰成直的。<b>这个"叠加"过程</b>就是本页实验 1 要让你亲手拖的那根滑块。
+        </p>
+        <p style="margin-bottom:0">
+          当时有三条反对意见，恰好构成本页的主线：
+          ① <b>等号成立吗</b>（收敛性，见第 6、7 节）；
+          ② <b>系数怎么算</b>（计算量，见第 4 节，今天有计算机不成问题）；
+          ③ <b>跳变附近为什么总在抖</b>（吉布斯现象，见第 7 节，它至今仍在提醒你"用有限项表示无限细节"的代价）。
+        </p>
+      </div>
+
+      <p>所以本章要回答四件事：</p>
+      <ol style="padding-left:22px">
+        <li>周期信号怎么拆成一族<span class="term" data-def="harmonic，中文含义：谐波。频率为基波频率整数倍的成分：k=1 是基波，k=2 是二次谐波，依此类推。">谐波</span>（第 3 节）；</li>
+        <li>每个谐波的系数 <span class="mono">a<sub>k</sub></span> 怎么算（第 4 节，一个积分）；</li>
+        <li>这个无穷和真的收敛到原信号吗、跳变处会怎样（第 6、7 节）；</li>
+        <li>拆开之后有什么用（第 9～12 节：性质、功率、滤波）。</li>
+      </ol>
+
+      <h2 id="s2">2. 直觉：用 cos / sin 去"量"信号</h2>
+
+      <p>
+        先别看公式，先想一个更朴素的问题：<b>怎么知道一个信号里"3 倍频"的成分有多少？</b>
+      </p>
+      <p>
+        办法是"拿 3 倍频去量它"：把信号和 <span class="mono">cos(3ω<sub>0</sub>t)</span> <b>逐点相乘</b>，再在一个周期上<b>积分</b>（平均）。
+        如果信号里真的含有 3 倍频成分，两者同号的部分多，乘积的平均值不为 0；
+        如果信号里没有 3 倍频，乘积正负各半，积分恰好抵消成 0。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">和向量投影是同一件事</span>
+        <p>
+          回忆线性代数：想知道向量 <span class="mono">v</span> 在 <span class="mono">e<sub>1</sub></span> 方向上有多少，
+          就做<b>内积</b> <span class="mono">v·e<sub>1</sub></span>。因为基向量互相垂直（正交），
+          所以问 <span class="mono">e<sub>1</sub></span> 方向的分量时，别的方向<b>不会来打扰</b>。
+        </p>
+        <p style="margin-bottom:0">
+          函数也一样。定义两个信号的内积
+          <span class="mono">⟨f,g⟩ = <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span> f(t)g<sup>*</sup>(t)dt</span>，
+          那么"<b>用 g 去量 f</b>"就是算 <span class="mono">⟨f,g⟩</span>。
+          接下来要做的事只有一件：<b>找到一族互相正交的 g</b>，让每次测量只测到一个成分。
+        </p>
+      </div>
+
+      <h3>为什么偏偏选复指数当基</h3>
+      <p>
+        因为它们在任何一个周期上正交。取 <span class="mono">φ<sub>k</sub>(t) = e<sup>jkω<sub>0</sub>t</sup></span>，
+        <span class="mono">ω<sub>0</sub> = 2π/T</span> 叫
+        <span class="term" data-def="fundamental frequency，中文含义：基波角频率。周期信号里最低的那个频率，ω₀=2π/T，单位 rad/s；所有谐波都是它的整数倍。">基波角频率</span>。
+        则对任意整数 <span class="mono">m, n</span>：
+      </p>
+      <div class="eq center-eq">
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+        e<sup>j(m−n)ω<sub>0</sub>t</sup> dt =
+        <span style="font-size:20px">{</span>
+        T &nbsp;(m = n) &nbsp;&nbsp;;&nbsp;&nbsp; 0 &nbsp;(m ≠ n)
+        <span class="lbl">(4-2)</span>
+      </div>
+      <p>
+        这种"自己和自己积不为 0、和别的积为 0"的性质，就叫
+        <span class="term" data-def="orthogonality，中文含义：正交性。任意两个不同的基函数内积为零；它保证"量某个频率"时其它频率不会干扰结果。">正交性</span>
+        （orthogonality）。它的用处是：<b>求哪个系数，就乘哪个基函数再积分，其它项自动消失</b>。
+        第 4 节整个推导就是这句话的执行过程。
+      </p>
+      <p class="small muted">
+        顺带一提：这正是第 3 章那套语言的另一面。第 3 章说"用复指数当输入，系统只乘一个复数"，
+        本章说"用复指数当基，信号能被唯一地拆开"。两件事合起来，频域分析才能成立。
+      </p>
+
+      <h2 id="s3">3. 两种写法：三角形式与指数形式</h2>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">三角形式（傅里叶当年的写法）</h4>
+          <div class="eq" style="font-size:17px">
+            x(t) = B<sub>0</sub> +
+            <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=1</span></span>
+            B<sub>k</sub>cos(kω<sub>0</sub>t) +
+            <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=1</span></span>
+            C<sub>k</sub>sin(kω<sub>0</sub>t)
+          </div>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">B<sub>0</sub></span> 是
+            <span class="term" data-def="DC component，中文含义：直流分量。信号在一个周期内的平均值，也就是不随时间变化的那个成分。">直流分量</span>（平均值）；
+            <span class="mono">B<sub>k</sub>, C<sub>k</sub></span> 都是<b>实数</b>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">指数形式（我们以后一直用这个）</h4>
+          <div class="eq" style="font-size:17px">
+            x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+            a<sub>k</sub> e<sup>jkω<sub>0</sub>t</sup>
+          </div>
+          <p class="small" style="margin-bottom:0">
+            一个和号从 <span class="mono">−∞</span> 到 <span class="mono">∞</span>，把正频率和负频率统一处理；
+            <span class="mono">a<sub>k</sub></span> 一般是<b>复数</b>，叫
+            <span class="term" data-def="spectral coefficients，中文含义：频谱系数（傅里叶系数）。a_k 是复数：模长代表第 k 次谐波的幅度，辐角代表它的初相。">频谱系数</span>。
+          </p>
+        </div>
+      </div>
+
+      <details class="deriv">
+        <summary>推导：两种写法怎么互相换算</summary>
+        <div class="body">
+          <div class="step">
+            <p>从指数形式出发，把第 <span class="mono">k</span> 项和 <span class="mono">−k</span> 项配对写在一起：</p>
+            <div class="eq">
+              a<sub>k</sub>e<sup>jkω<sub>0</sub>t</sup> + a<sub>−k</sub>e<sup>−jkω<sub>0</sub>t</sup>
+            </div>
+            <p class="why">为什么可以这样配对：求和号从 −∞ 到 ∞，正负频率成对出现。当 x(t) 是实信号时，
+              由第 9 节的共轭性质有 <span class="mono">a<sub>−k</sub> = a<sub>k</sub><sup>*</sup></span>，
+              于是这两项互为共轭，加起来等于 <span class="mono">2Re{}</span>。</p>
+          </div>
+          <div class="step">
+            <p>设 <span class="mono">a<sub>k</sub> = (B<sub>k</sub> − jC<sub>k</sub>)/2</span>（<span class="mono">B<sub>k</sub>, C<sub>k</sub></span> 为实数），代入并取实部：</p>
+            <div class="eq">
+              (B<sub>k</sub> − jC<sub>k</sub>)(cos kω<sub>0</sub>t + j sin kω<sub>0</sub>t)
+              = (B<sub>k</sub>cos kω<sub>0</sub>t + C<sub>k</sub>sin kω<sub>0</sub>t) + j(⋯)
+            </div>
+            <p class="why">为什么：把复数的乘法展开，实部正好是 <span class="mono">B<sub>k</sub>cos + C<sub>k</sub>sin</span>。
+              再乘 2 取实部（两项相加），就还原成三角形式的那一项。</p>
+          </div>
+          <div class="step">
+            <p>于是换算关系是：</p>
+            <div class="eq">
+              a<sub>0</sub> = B<sub>0</sub>, &nbsp;&nbsp;
+              a<sub>k</sub> = <span class="frac"><span class="num">B<sub>k</sub> − jC<sub>k</sub></span><span class="den">2</span></span>, &nbsp;&nbsp;
+              a<sub>−k</sub> = <span class="frac"><span class="num">B<sub>k</sub> + jC<sub>k</sub></span><span class="den">2</span></span>
+              &nbsp;&nbsp;(k ≥ 1)
+            </div>
+            <p class="why">为什么 k≥1 的系数要除以 2：三角形式里一个 <span class="mono">cos</span> 项在指数形式里被拆成了两项（<span class="mono">+k</span> 和 <span class="mono">−k</span>），
+              幅度被平分成两半。所以<b>指数形式的系数只有三角形式幅度的一半</b>——这是最容易记错的一个 2 倍（见第 13 节坑 1）。</p>
+          </div>
+          <div class="step">
+            <p>把 <span class="mono">B<sub>k</sub>cos + C<sub>k</sub>sin</span> 合并成"单一余弦"更好读：</p>
+            <div class="eq">
+              B<sub>k</sub>cos θ + C<sub>k</sub>sin θ = A<sub>k</sub> cos(θ + φ<sub>k</sub>),
+              &nbsp;&nbsp; A<sub>k</sub> = √(B<sub>k</sub><sup>2</sup>+C<sub>k</sub><sup>2</sup>) = 2|a<sub>k</sub>|
+            </div>
+            <p class="why">为什么：这是"两个同频正弦合成一个正弦"的三角恒等式（和角公式反过来用）。
+              所以<b>第 k 次谐波的真实振幅是 2|a<sub>k</sub>|</b>：画频谱时若画 |a<sub>k</sub>|，实际波形的振幅要乘 2。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s4">4. 核心推导：a<sub>k</sub> 是怎么被"挑"出来的</h2>
+      <p>
+        现在做本章最重要的一件事。假设周期信号 <span class="mono">x(t)</span>（周期 <span class="mono">T</span>，<span class="mono">ω<sub>0</sub>=2π/T</span>）
+        <b>可以</b>写成一族谐波之和：
+      </p>
+      <div class="eq center-eq">
+        x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+        a<sub>m</sub> e<sup>jmω<sub>0</sub>t</sup>
+        <span class="lbl">(4-3)</span>
+      </div>
+      <p>
+        求和指标故意写成 <span class="mono">m</span>（不写 <span class="mono">k</span>），因为马上要引入一个 <span class="mono">k</span> 来"挑项"。
+        目标：把 <span class="mono">a<sub>k</sub></span> 单独解出来。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：分析式 a<sub>k</sub> = (1/T)∫<sub>T</sub> x(t)e<sup>−jkω<sub>0</sub>t</sup>dt</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：两边同乘 <span class="mono">e<sup>−jkω<sub>0</sub>t</sup></span>。</b></p>
+            <div class="eq">
+              x(t) e<sup>−jkω<sub>0</sub>t</sup> =
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              a<sub>m</sub> e<sup>jmω<sub>0</sub>t</sup> e<sup>−jkω<sub>0</sub>t</sup>
+              =
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              a<sub>m</sub> e<sup>j(m−k)ω<sub>0</sub>t</sup>
+            </div>
+            <p class="why">为什么乘这个：<span class="mono">e<sup>−jkω<sub>0</sub>t</sup></span> 是"针对第 k 次谐波的探针"。
+              乘进去之后，原来指数是 <span class="mono">jmω<sub>0</sub>t</span>，现在变成 <span class="mono">j(m−k)ω<sub>0</sub>t</span>——
+              这一步把"第 k 项"变成了常数项（<span class="mono">m=k</span> 时指数为 0），其余项仍带振荡。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：两边在一个周期上积分</b>（区间取任意长度为 T 的区间，记作 <span class="mono">∫<sub>T</sub></span>）。</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t) e<sup>−jkω<sub>0</sub>t</sup> dt =
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              a<sub>m</sub> e<sup>j(m−k)ω<sub>0</sub>t</sup> dt
+              =
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              a<sub>m</sub>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              e<sup>j(m−k)ω<sub>0</sub>t</sup> dt
+            </div>
+            <p class="why">为什么可以把求和号提到积分号外面（交换次序）：因为对收敛的级数可以逐项积分
+              （级数在周期上一致收敛；你也可以理解为"先取前 N 项的部分和，积分后再让 N→∞"，两种做法极限相同）。
+              这是允许"逐项处理"的合法性依据，不是想当然。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：算那个关键的积分</b>（这就是正交性）。分两种情况。</p>
+            <p>用欧拉公式把它拆成实部和虚部：</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              e<sup>j(m−k)ω<sub>0</sub>t</sup>dt =
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              cos((m−k)ω<sub>0</sub>t) dt + j
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              sin((m−k)ω<sub>0</sub>t) dt
+            </div>
+            <p class="why">为什么用欧拉公式：把复指数变成实三角函数后，"积分为 0"就能用"整周期内正弦余弦的正负面积相消"这个直观事实说清楚，不必依赖复数的几何直觉。</p>
+            <div class="eq">
+              <b>m ≠ k 时</b>：cos((m−k)ω<sub>0</sub>t) 与 sin((m−k)ω<sub>0</sub>t) 的周期是
+              <span class="frac"><span class="num">T</span><span class="den">|m−k|</span></span>，
+              而这个积分区间长度恰好是 T = |m−k| 个整周期
+              &nbsp;⟹&nbsp; 两项积分都是 0（正负面积相消）
+            </div>
+            <div class="eq">
+              <b>m = k 时</b>：指数变成 e<sup>j0</sup> = 1，被积函数恒为 1
+              &nbsp;⟹&nbsp; 积分 = T
+            </div>
+            <p class="why">为什么"整数个周期积分等于 0"：在长度等于周期的区间上，正弦余弦正半周与负半周的面积<b>完全相等</b>，代数和为零。
+              写成一行就是式 (4-2)：<span class="mono">∫<sub>T</sub>e<sup>j(m−k)ω<sub>0</sub>t</sup>dt = T·δ<sub>mk</sub></span>
+              （<span class="mono">δ<sub>mk</sub></span> 是克罗内克 δ：m=k 时为 1，否则为 0）。</p>
+            <p><b>这就是"其它谐波项为 0"的那一步</b>：右边无穷多项里，只有 <span class="mono">m=k</span> 那一项活下来。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：右边只剩一项，解出 <span class="mono">a<sub>k</sub></span>。</b></p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>−jkω<sub>0</sub>t</sup>dt
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              a<sub>m</sub> · T·δ<sub>mk</sub> = T a<sub>k</sub>
+            </div>
+            <div class="eq center-eq">
+              <b>a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t) e<sup>−jkω<sub>0</sub>t</sup> dt</b>
+              <span class="lbl">(4-4)</span>
+            </div>
+            <p class="why">为什么两边可以除以 T，以及为什么积分区间随便取：<span class="mono">T</span> 是正常数，直接除即可。
+              而"任意长度为 T 的区间都行"是因为整个被积函数（<span class="mono">x</span> 与复指数都是周期 T 的）以 T 为周期，
+              把区间左右平移不会改变积分值。实用上就取最方便的那个区间（例如 <span class="mono">−T/2</span> 到 <span class="mono">T/2</span>）。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">结论：傅里叶级数对（周期信号专用）</span>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>综合式</b>　x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              a<sub>k</sub>e<sup>jkω<sub>0</sub>t</sup>
+            </div>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>分析式</b>　a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>−jkω<sub>0</sub>t</sup>dt
+            </div>
+            <p class="small" style="margin-bottom:0">
+              记号：<span class="mono">x(t) <span class="op ft">⟷</span> a<sub>k</sub></span>。
+              "分析"是拆开看清有哪些频率，"综合"是按系数把频率拼回去。
+              <b>两个式子都只用到 <span class="mono">x</span> 在一个周期上的信息</b>——这正是周期信号的特殊之处。
+            </p>
+          </div>
+
+          <div class="step">
+            <p><b>特殊情况 k = 0：</b></p>
+            <div class="eq">
+              a<sub>0</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t) dt = x(t) 在一个周期上的平均值
+            </div>
+            <p class="why">为什么：<span class="mono">e<sup>0</sup>=1</span>，积分退化成"求平均"。所以 <span class="mono">a<sub>0</sub></span> 就是前面说的直流分量，
+              它和 <span class="mono">k≠0</span> 的公式形式一样，只是没有振荡。</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box warn">
+        <span class="tag">这个推导的逻辑方向，别弄反</span>
+        <p style="margin-bottom:0">
+          上面是"<b>假设</b>它能写成级数，<b>那么</b>系数必须等于式 (4-4)"。
+          也就是说，(4-4) 是<b>必要条件</b>。至于"这样算出来的系数代回去真的能还原 <span class="mono">x(t)</span> 吗"，
+          是收敛性问题，第 6 节用狄里赫利条件回答。这个顺序很重要：
+          <b>先有唯一的候选系数，再问它是否收敛到原信号。</b>
+        </p>
+      </div>
+
+      <h2 id="s5">5. 完整算例：方波的谐波系数</h2>
+      <p>
+        方波是傅里叶级数的"Hello World"。它同时是<b>间断信号</b>，所以能顺便把收敛与吉布斯问题一起带出来。
+        定义（周期 T，<span class="mono">ω<sub>0</sub> = 2π/T</span>）：
+      </p>
+      <div class="eq">
+        x(t) = <span style="font-size:20px">{</span>
+        &nbsp;1,&nbsp; |t| &lt; T<sub>1</sub>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        0,&nbsp; T<sub>1</sub> &lt; |t| &lt; T/2
+        &nbsp;&nbsp;&nbsp;（在长度 T 的区间内定义，然后周期延拓）
+      </div>
+      <p>
+        习惯上用<b>占空比</b>
+        <span class="term" data-def="duty cycle，中文含义：占空比。一个周期里信号处于高电平的比例，d = 2T₁/T，取值 0～1。">占空比</span>
+        <span class="mono">d = 2T<sub>1</sub>/T</span> 描述它。<b>下面这个实验台里，方波取 ±1 两个电平</b>（教材常见约定），
+        所以 <span class="mono">a<sub>0</sub> = 2d−1</span>；若改用 0/1 电平，则所有 <span class="mono">a<sub>k</sub></span> 减半、<span class="mono">a<sub>0</sub> = d</span>。
+        这层区别请留意，第 13 节还会再点一次。
+      </p>
+
+      <details class="deriv">
+        <summary>推导：方波的 a<sub>k</sub>（含 a<sub>0</sub>、偶数谐波为 0 的来历）</summary>
+        <div class="body">
+          <div class="step">
+            <p>选对称积分区间 <span class="mono">[−T/2, T/2]</span>，方波在其中只有 <span class="mono">|t|&lt;T<sub>1</sub></span> 处不为 0：</p>
+            <div class="eq">
+              a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+T<sub>1</sub></span><span>−T<sub>1</sub></span></span></span>
+              e<sup>−jkω<sub>0</sub>t</sup>dt
+            </div>
+            <p class="why">为什么可以只积 <span class="mono">[−T<sub>1</sub>,T<sub>1</sub>]</span>：其余区间上被积函数是 0（乘 0 还是 0），积分可分段相加。
+              这就是"选区间要挑方便的那个"的实际用处。</p>
+          </div>
+          <div class="step">
+            <p><b>先算 k = 0：</b></p>
+            <div class="eq">
+              a<sub>0</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+T<sub>1</sub></span><span>−T<sub>1</sub></span></span></span>
+              1·dt = <span class="frac"><span class="num">2T<sub>1</sub></span><span class="den">T</span></span> = d
+            </div>
+            <p class="why">为什么合理：<span class="mono">a<sub>0</sub></span> 是平均值，等于"一个周期里有多长时间等于 1"，正是占空比。
+              （若取 ±1 电平，平均值就是 <span class="mono">d·1 + (1−d)·(−1) = 2d−1</span>。）</p>
+          </div>
+          <div class="step">
+            <p><b>再算 k ≠ 0：</b>直接积指数函数，</p>
+            <div class="eq">
+              a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span style="font-size:20px">[</span>
+              <span class="frac"><span class="num">e<sup>−jkω<sub>0</sub>t</sup></span><span class="den">−jkω<sub>0</sub></span></span>
+              <span style="font-size:20px">]</span><sub>−T<sub>1</sub></sub><sup>+T<sub>1</sub></sup>
+              = <span class="frac"><span class="num">1</span><span class="den">T</span></span> ·
+              <span class="frac"><span class="num">e<sup>jkω<sub>0</sub>T<sub>1</sub></sup> − e<sup>−jkω<sub>0</sub>T<sub>1</sub></sup></span><span class="den">jkω<sub>0</sub></span></span>
+              = <span class="frac"><span class="num">2 sin(kω<sub>0</sub>T<sub>1</sub>)</span><span class="den">T kω<sub>0</sub></span></span>
+            </div>
+            <p class="why">为什么分子会变成 2j·sin：用 <span class="mono">e<sup>jA</sup> − e<sup>−jA</sup> = 2j sin A</span>
+              （欧拉公式两式相减），分母的 <span class="mono">j</span> 正好约掉，
+              所以<b>结果自动是实数</b>——这跟"方波是偶函数、其系数应为实偶"是同一件事（见第 9 节）。</p>
+          </div>
+          <div class="step">
+            <p>再用 <span class="mono">ω<sub>0</sub>T = 2π</span> 与 <span class="mono">ω<sub>0</sub>T<sub>1</sub> = πd</span> 化简：</p>
+            <div class="eq center-eq">
+              a<sub>k</sub> = <span class="frac"><span class="num">sin(kπd)</span><span class="den">kπ</span></span>,
+              &nbsp;&nbsp; k ≠ 0（0/1 电平）；&nbsp;&nbsp;
+              a<sub>k</sub> = <span class="frac"><span class="num">2 sin(kπd)</span><span class="den">kπ</span></span>（±1 电平）
+              <span class="lbl">(4-5)</span>
+            </div>
+            <p class="why">为什么 <span class="mono">ω<sub>0</sub>T<sub>1</sub> = πd</span>：<span class="mono">T<sub>1</sub> = dT/2</span>，
+              所以 <span class="mono">ω<sub>0</sub>T<sub>1</sub> = (2π/T)(dT/2) = πd</span>。</p>
+          </div>
+          <div class="step">
+            <p><b>当 d = 0.5 时</b>（对称方波）：<span class="mono">a<sub>k</sub> = sin(kπ/2)/(kπ)</span>。</p>
+            <p>因为 <span class="mono">sin(kπ/2)</span> 在 k 为偶数时等于 0、在 k 为奇数时等于 <span class="mono">(−1)<sup>(k−1)/2</sup></span>：</p>
+            <div class="eq">
+              a<sub>0</sub> = 0,&nbsp;&nbsp;
+              a<sub>±1</sub> = ±<span class="frac"><span class="num">1</span><span class="den">π</span></span>,&nbsp;&nbsp;
+              a<sub>±3</sub> = ∓<span class="frac"><span class="num">1</span><span class="den">3π</span></span>,&nbsp;&nbsp;
+              a<sub>±5</sub> = ±<span class="frac"><span class="num">1</span><span class="den">5π</span></span>,&nbsp;&nbsp;…
+              &nbsp;&nbsp;（<b>偶次谐波全为 0</b>）
+            </div>
+            <p class="why">为什么偶次谐波为 0：偶次谐波在方波的正半周与负半周上各占半个周期，被积函数正负相消。
+              也可以从式 (4-5) 看出：<span class="mono">sin(kπ/2)=0</span>（k 偶数）。这解释了"方波听起来明亮刺耳"——它只含奇次高频。</p>
+          </div>
+        </div>
+      </details>
+
+      <table class="tbl sm">
+        <thead><tr><th class="c">k</th><th class="c">1</th><th class="c">2</th><th class="c">3</th><th class="c">4</th><th class="c">5</th><th class="c">7</th></tr></thead>
+        <tbody>
+          <tr><td class="c"><b>±1 方波 A<sub>k</sub> = 4sin(kπd)/(kπ)</b></td><td class="c ft">1.2732</td><td class="c ft">0</td><td class="c ft">−0.4244</td><td class="c ft">0</td><td class="c ft">0.2546</td><td class="c ft">0.1819</td></tr>
+          <tr><td class="c"><b>|a<sub>k</sub>|（实验台画的就是它）</b></td><td class="c ft">0.6366</td><td class="c ft">0</td><td class="c ft">0.2122</td><td class="c ft">0</td><td class="c ft">0.1273</td><td class="c ft">0.0909</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">
+        表里的数字可以自己验：<span class="mono">1/π = 0.3183</span>，乘 4 得 1.2732（±1 方波的振幅 <span class="mono">A<sub>1</sub></span>），
+        除以 2 得 0.6366（指数形式的 <span class="mono">|a<sub>1</sub>|</span>）。教材里这个 2 倍差是重灾区，务必记牢。
+      </p>
+
+      <h2 id="s6">6. 有限项最优与收敛条件</h2>
+      <p>
+        实用上只能取有限项：<span class="mono">x<sub>N</sub>(t) = Σ<sub>k=−N</sub><sup>N</sup> c<sub>k</sub>e<sup>jkω<sub>0</sub>t</sup></span>。
+        系数 <span class="mono">c<sub>k</sub></span> 怎么选最好？答案出人意料地干脆：<b>就取傅里叶系数</b>。
+      </p>
+
+      <details class="deriv">
+        <summary>推导：为什么"截断的傅里叶级数"是能量意义下最佳的 N 项近似</summary>
+        <div class="body">
+          <div class="step">
+            <p>定义误差能量（在一个周期上）：</p>
+            <div class="eq">
+              E<sub>N</sub> =
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              |x(t) − x<sub>N</sub>(t)|<sup>2</sup> dt
+            </div>
+            <p class="why">为什么用"能量"当误差标准而不是"逐点最大误差"：逐点最大误差在跳变点附近无法压到 0（第 7 节的吉布斯）。
+              而能量是物理上真正有意义的量（第 1 章），并且能量意义下误差确实能趋于 0。这是"最小二乘"思想在函数上的版本。</p>
+          </div>
+          <div class="step">
+            <p>把被积函数展开成四项并逐项积分：</p>
+            <div class="eq">
+              |x − x<sub>N</sub>|<sup>2</sup> = |x|<sup>2</sup> − x x<sub>N</sub><sup>*</sup> − x<sup>*</sup> x<sub>N</sub> + |x<sub>N</sub>|<sup>2</sup>
+            </div>
+            <p class="why">为什么：<span class="mono">|z|² = zz<sup>*</sup></span>，把 <span class="mono">z = x − x<sub>N</sub></span> 代进去展开即可。</p>
+          </div>
+          <div class="step">
+            <p>用正交性算交叉项（这又是"其它项为 0"）：</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x x<sub>N</sub><sup>*</sup> dt =
+              <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=−N</span></span>
+              a<sub>k</sub> c<sub>k</sub><sup>*</sup> · T,
+              &nbsp;&nbsp;&nbsp;
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              |x<sub>N</sub>|<sup>2</sup> dt =
+              <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=−N</span></span>
+              |c<sub>k</sub>|<sup>2</sup> · T
+            </div>
+            <p class="why">为什么每一项只剩同名项：把 <span class="mono">x = Σ<sub>m</sub>a<sub>m</sub>e<sup>jmω<sub>0</sub>t</sup></span> 与
+              <span class="mono">x<sub>N</sub><sup>*</sup> = Σ<sub>k</sub>c<sub>k</sub><sup>*</sup>e<sup>−jkω<sub>0</sub>t</sup></span> 相乘，
+              只有 <span class="mono">m=k</span> 的那一项积分不为 0（式 4-2），其余全部消失。</p>
+          </div>
+          <div class="step">
+            <p>于是误差能量可以"配方"成一个完全平方：</p>
+            <div class="eq">
+              E<sub>N</sub> =
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>|x|<sup>2</sup>dt
+              − T<span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=−N</span></span>|a<sub>k</sub>|<sup>2</sup>
+              + T<span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=−N</span></span>|c<sub>k</sub> − a<sub>k</sub>|<sup>2</sup>
+            </div>
+            <p class="why">为什么可以这样配：把上一步的两式代回，得到
+              <span class="mono">∫|x|²dt − TΣ(a<sub>k</sub>c<sub>k</sub><sup>*</sup>+a<sub>k</sub><sup>*</sup>c<sub>k</sub>) + TΣ|c<sub>k</sub>|²</span>，
+              再在中间加减 <span class="mono">TΣ|a<sub>k</sub>|²</span>，
+              利用 <span class="mono">|c<sub>k</sub>−a<sub>k</sub>|² = |c<sub>k</sub>|² − c<sub>k</sub>a<sub>k</sub><sup>*</sup> − c<sub>k</sub><sup>*</sup>a<sub>k</sub> + |a<sub>k</sub>|²</span> 合并同类项。</p>
+          </div>
+          <div class="step">
+            <p>第三项是"平方和"，恒 ≥ 0，最小值 0 当且仅当每一项都为 0：</p>
+            <div class="eq center-eq">
+              c<sub>k</sub> = a<sub>k</sub> &nbsp;⟹&nbsp; E<sub>N</sub> 取最小
+            </div>
+            <p class="why">为什么这个结论重要：它把"求级数系数"变成了"做投影"——
+              <b>任何其他系数选择都不会更好</b>。这也顺便给出了 Bessel 不等式
+              <span class="mono">TΣ<sub>|k|≤N</sub>|a<sub>k</sub>|² ≤ ∫<sub>T</sub>|x|²dt</span>，
+              令 <span class="mono">N→∞</span> 取等号就是第 10 节的 Parseval 等式。</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box warn">
+        <span class="tag">收敛的保证：狄里赫利条件</span>
+        <p>
+          只要信号在一个周期内满足下面三条（实际工程信号几乎都满足），傅里叶级数就收敛：
+        </p>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>条件 1</b>：绝对可积，<span class="mono">∫<sub>T</sub>|x(t)|dt &lt; ∞</span>（保证每个 <span class="mono">a<sub>k</sub></span> 有限）；</li>
+          <li><b>条件 2</b>：在任何有限区间内，极大值与极小值的个数有限（不许无穷次振荡）；</li>
+          <li><b>条件 3</b>：在任何有限区间内，间断点个数有限，且每个间断处的取值是有限的。</li>
+        </ul>
+        <p style="margin-top:6px">
+          这叫
+          <span class="term" data-def="Dirichlet conditions，中文含义：狄里赫利条件。保证傅里叶级数收敛的三条充分条件：绝对可积、极值个数有限、间断点个数有限且值为有限。">狄里赫利条件</span>（Dirichlet conditions）。
+        </p>
+        <p style="margin-bottom:0">
+          <b>收敛的三层含义，别混：</b>
+          ① 在 <span class="mono">x(t)</span> 连续的点上，级数逐点收敛到 <span class="mono">x(t)</span>；
+          ② 在间断点处，级数收敛到左右极限的<b>平均值</b>（方波的跳变点收敛到 0，正是 ±1 的平均）；
+          ③ 无论有没有间断点，<b>误差能量</b> <span class="mono">E<sub>N</sub> → 0</span>（均方收敛）——
+          所以从 LTI 系统（只对能量敏感）的角度看，两者没有区别。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 吉布斯现象：那个不消失的 9%</h2>
+      <p>
+        1898 年，美国物理学家迈克尔逊（Albert Michelson）造了一台"谐波分析仪"，能对任意周期信号算出前 80 项的部分和。
+        他试了很多函数，结果都和预期一致。<b>但试到方波时，他看到了怪事</b>：
+        部分和在跳变点附近上下抖动，而且增加项数时，抖动的<b>高度竟然不变</b>。
+        他以为仪器坏了，写信给数学家吉布斯（Josiah Gibbs），后者在 1899 年给出了解释。
+      </p>
+      <div class="box trap">
+        <span class="tag">吉布斯现象（Gibbs phenomenon）</span>
+        <p>
+          用截断的傅里叶级数去逼近有跳变的信号时，在跳变点附近必然出现过冲（overshoot）与振铃（ripple）。
+          对于<b>高度为 1 的跳变</b>，部分和的最大值约为 <b>1.09</b>，
+          也就是<b>过冲约为跳变高度的 9%</b>，而且<b>与项数 N 无关</b>——
+          N 增大只是把波纹压缩到离跳变点更近的地方。
+        </p>
+        <p style="margin-bottom:0">
+          <b>怎么理解（这是本节最该带走的一句话）</b>：
+          跳变意味着信号在该点"无限快"地变化，要精确表示它需要无穷多的高频成分。
+          你砍掉 <span class="mono">|k|&gt;N</span> 之后，缺的正是"把尖角磨平"的能力，
+          于是波形只能"冲过头再拉回来"。N 越大，这个"冲过头"发生的位置离跳变点越近，但幅度不变。
+          <b>注意这不与第 6 节矛盾</b>：误差能量仍然 <span class="mono">→0</span>（过冲占的宽度在变窄），
+          只是"逐点最大误差"不会趋于 0。
+        </p>
+      </div>
+
+      <h2 id="s8">8. 实验 1（核心）：谐波数、波形与吉布斯</h2>
+      <p>
+        这个实验台把第 5 节算出来的系数真的加起来画出来。左边是时域部分和，右边是它对应的离散线谱。
+        读数栏里的"实测过冲"是把一个周期扫一遍取最大值算出来的——不是写死的数字。
+      </p>
+
+      <div id="lab-harm"></div>
+
+      <div class="box intuition">
+        <span class="tag">建议这样玩（每一步都对应一个知识点）</span>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>方波，N 从 1 拖到 61</b>：看跳变处的过冲读数怎么稳定在 <b>8.9% 左右再也不降</b>——这就是吉布斯。</li>
+          <li><b>切到三角波</b>：读数里过冲变成 0%，而且几条谐波就能贴得很紧——因为它没有跳变（第 11 节解释 1/k²）。</li>
+          <li><b>切到锯齿波，再切回方波</b>：比较线谱衰减（锯齿每根都有、方波只有奇次）。</li>
+          <li><b>方波，改占空比 d</b>：线谱的零点位置移动，偶次谐波不再为 0——这正是 <span class="mono">sin(kπd)</span> 的零点在跑。</li>
+        </ul>
+        <p style="margin-bottom:0">
+          线谱画的是 <span class="mono">|a<sub>k</sub>|</span>（指数形式系数）。要还原波形振幅需乘 2，
+          所以图上 <span class="mono">|a<sub>1</sub>| = 0.637</span> 对应波形里振幅 1.27 的基波。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 性质表与关键性质的证明</h2>
+      <p>先给表。记号：<span class="mono">x(t) <span class="op ft">⟷</span> a<sub>k</sub></span>，<span class="mono">y(t) <span class="op ft">⟷</span> b<sub>k</sub></span>，两者同周期 <span class="mono">T</span>。</p>
+
+      <table class="tbl sm">
+        <thead><tr><th>性质</th><th class="c">周期信号</th><th class="c">系数</th><th>一句话理解</th></tr></thead>
+        <tbody>
+          <tr><td>线性</td><td class="c ft">Ax(t)+By(t)</td><td class="c ft">Aa<sub>k</sub>+Bb<sub>k</sub></td><td>拆开再拼回，与线性组合可交换。</td></tr>
+          <tr><td><b>时移</b></td><td class="c ft">x(t−t<sub>0</sub>)</td><td class="c ft">e<sup>−jkω<sub>0</sub>t<sub>0</sub></sup>a<sub>k</sub></td><td>只改相位、不改幅度：<span class="mono">|b<sub>k</sub>|=|a<sub>k</sub>|</span>。整体推迟不改变"好听不好听"。</td></tr>
+          <tr><td>频移</td><td class="c ft">e<sup>jMω<sub>0</sub>t</sup>x(t)</td><td class="c ft">a<sub>k−M</sub></td><td>谱线整体搬 M 格。</td></tr>
+          <tr><td>共轭</td><td class="c ft">x<sup>*</sup>(t)</td><td class="c ft">a<sup>*</sup><sub>−k</sub></td><td>共轭 + 反转。</td></tr>
+          <tr><td>时间反转</td><td class="c ft">x(−t)</td><td class="c ft">a<sub>−k</sub></td><td>谱线左右翻转。</td></tr>
+          <tr><td>时间尺度</td><td class="c ft">x(at), a&gt;0（周期变 T/a）</td><td class="c ft">a<sub>k</sub>（系数不变！）</td><td>压缩时间轴只改变基频 <span class="mono">ω<sub>0</sub>→aω<sub>0</sub></span>，系数本身不动。</td></tr>
+          <tr><td>周期卷积</td><td class="c ft">∫<sub>T</sub>x(τ)y(t−τ)dτ</td><td class="c ft">T a<sub>k</sub>b<sub>k</sub></td><td>一个周期内的卷积 → 频域相乘。</td></tr>
+          <tr><td>相乘</td><td class="c ft">x(t)y(t)</td><td class="c ft"><span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">l</span></span>a<sub>l</sub>b<sub>k−l</sub></td><td>时域相乘 → 系数做离散卷积。</td></tr>
+          <tr><td>微分</td><td class="c ft">dx/dt</td><td class="c ft">jkω<sub>0</sub>a<sub>k</sub></td><td>高频被放大（∝k），所以微分突出快速变化。</td></tr>
+          <tr><td>积分</td><td class="c ft">∫<sup>t</sup>x(τ)dτ</td><td class="c ft">a<sub>k</sub>/(jkω<sub>0</sub>)（k≠0）</td><td>低频被放大；要求 <span class="mono">a<sub>0</sub>=0</span>，否则积分后不再周期。</td></tr>
+          <tr><td>实信号共轭对称</td><td class="c ft">x(t) 实</td><td class="c ft">a<sub>−k</sub> = a<sub>k</sub><sup>*</sup></td><td>幅度谱偶对称、相位谱奇对称；只看 k≥0 也够。</td></tr>
+          <tr><td>实偶 / 实奇</td><td class="c ft">x 实且偶 / 实且奇</td><td class="c ft">a<sub>k</sub> 实且偶 / 纯虚且奇</td><td>方波（实偶）的系数是实数；锯齿（实奇）的系数是纯虚数。</td></tr>
+          <tr><td>偶奇分解</td><td class="c ft">Ev{x} / Od{x}</td><td class="c ft">Re{a<sub>k</sub>} / j·Im{a<sub>k</sub>}</td><td>一个信号的偶部与奇部，分别由系数的实部与虚部承担。</td></tr>
+          <tr><td><b>Parseval</b></td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">T</span></span>∫<sub>T</sub>|x|<sup>2</sup>dt</td><td class="c ft"><span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k</span></span>|a<sub>k</sub>|<sup>2</sup></td><td>平均功率 = 各谐波功率之和。守恒。</td></tr>
+        </tbody>
+      </table>
+
+      <details class="deriv">
+        <summary>关键性质的证明（时移 / 频移 / 微分 / 相乘 / 共轭对称）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>(a) 时移：x(t−t<sub>0</sub>) ⟷ e<sup>−jkω<sub>0</sub>t<sub>0</sub></sup>a<sub>k</sub></b></p>
+            <div class="eq">
+              b<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t−t<sub>0</sub>)e<sup>−jkω<sub>0</sub>t</sup>dt
+              &nbsp;<span style="color:var(--accent);font-size:14px">令 τ = t − t<sub>0</sub>，dt = dτ</span>&nbsp;
+              = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(τ)e<sup>−jkω<sub>0</sub>(τ+t<sub>0</sub>)</sup>dτ
+            </div>
+            <div class="eq">
+              = e<sup>−jkω<sub>0</sub>t<sub>0</sub></sup> ·
+              <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(τ)e<sup>−jkω<sub>0</sub>τ</sup>dτ = e<sup>−jkω<sub>0</sub>t<sub>0</sub></sup>a<sub>k</sub>
+            </div>
+            <p class="why">为什么换元后积分区间长度还是 T：<span class="mono">t</span> 跑遍任意长度 T 的区间，<span class="mono">τ=t−t<sub>0</sub></span> 也跑遍一个长度 T 的区间；
+              而被积函数以 T 为周期，所以换成哪个长度 T 的区间都一样。<span class="mono">e<sup>−jkω<sub>0</sub>t<sub>0</sub></sup></span> 与 <span class="mono">τ</span> 无关，可以提出。
+              取模长得 <span class="mono">|b<sub>k</sub>|=|a<sub>k</sub>|</span>：<b>时移不改幅度谱</b>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(b) 频移：e<sup>jMω<sub>0</sub>t</sup>x(t) ⟷ a<sub>k−M</sub></b></p>
+            <div class="eq">
+              b<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>jMω<sub>0</sub>t</sup>e<sup>−jkω<sub>0</sub>t</sup>dt
+              = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>−j(k−M)ω<sub>0</sub>t</sup>dt = a<sub>k−M</sub>
+            </div>
+            <p class="why">为什么：两个指数合并成 <span class="mono">e<sup>−j(k−M)ω<sub>0</sub>t</sup></span>，
+              而按定义 <span class="mono">a</span> 的下标就是指数里的那个整数，所以结果是 <span class="mono">a<sub>k−M</sub></span>——
+              等于把整条线谱向右搬 M 格。这是调制（第 11 章）的数学根源。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(c) 微分：dx/dt ⟷ jkω<sub>0</sub>a<sub>k</sub></b>（用分部积分）</p>
+            <div class="eq">
+              b<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x′(t)e<sup>−jkω<sub>0</sub>t</sup>dt
+              = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span style="font-size:20px">[</span>x(t)e<sup>−jkω<sub>0</sub>t</sup><span style="font-size:20px">]</span><sub>T</sub>
+              + <span class="frac"><span class="num">jkω<sub>0</sub></span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>−jkω<sub>0</sub>t</sup>dt
+            </div>
+            <p class="why">为什么边界项 <span class="mono">[x e<sup>−jkω<sub>0</sub>t</sup>]<sub>T</sub> = 0</span>：
+              积分区间取一个完整周期，<span class="mono">x</span> 是周期 T 的、<span class="mono">e<sup>−jkω<sub>0</sub>t</sup></span> 也是周期 T 的，
+              所以上下限处的值完全相等，相减为 0。剩下第二项正是 <span class="mono">jkω<sub>0</sub>a<sub>k</sub></span>。</p>
+            <p class="why">读法：<span class="mono">|jkω<sub>0</sub>| = kω<sub>0</sub></span> 随 k 线性增长，
+              所以微分对高频"加权"——这就是图像处理里用微分算子增强边缘、以及方波微分后会出现尖脉冲的原因。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(d) 相乘：x(t)y(t) ⟷ h<sub>k</sub> = Σ<sub>l</sub> a<sub>l</sub>b<sub>k−l</sub></b></p>
+            <p>把两个级数直接相乘，再按频率归类：</p>
+            <div class="eq">
+              x(t)y(t) = <span class="big">(</span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">l</span></span>
+              a<sub>l</sub>e<sup>jlω<sub>0</sub>t</sup><span class="big">)</span>
+              <span class="big">(</span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">m</span></span>
+              b<sub>m</sub>e<sup>jmω<sub>0</sub>t</sup><span class="big">)</span>
+              =
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k</span></span>
+              <span class="big">(</span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">l</span></span>
+              a<sub>l</sub>b<sub>k−l</sub><span class="big">)</span>e<sup>jkω<sub>0</sub>t</sup>
+            </div>
+            <p class="why">为什么按 <span class="mono">l+m=k</span> 归类：两个指数相乘时指数相加，<span class="mono">e<sup>jlω<sub>0</sub>t</sup>e<sup>jmω<sub>0</sub>t</sup> = e<sup>j(l+m)ω<sub>0</sub>t</sup></span>。
+              令 <span class="mono">m = k−l</span>，把所有产生同一频率 <span class="mono">kω<sub>0</sub></span> 的项加起来即可。
+              右边的求和形式正是<b>离散卷积</b>（第 2 章的求和是"翻转平移相乘"，这里完全一样），
+              所以"时域相乘 ↔ 频域（系数序列）卷积"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(e) 共轭对称：x 为实信号时 a<sub>−k</sub> = a<sub>k</sub><sup>*</sup></b></p>
+            <div class="eq">
+              a<sub>−k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>+jkω<sub>0</sub>t</sup>dt
+              = <span style="font-size:22px">[</span>
+              <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>−jkω<sub>0</sub>t</sup>dt
+              <span style="font-size:22px">]</span><sup>*</sup> = a<sub>k</sub><sup>*</sup>
+            </div>
+            <p class="why">为什么能这样取共轭：因为 <span class="mono">x(t)</span> 是实函数，<span class="mono">x = x<sup>*</sup></span>，
+              所以对积分整体取共轭时，只有复指数被共轭（指数上的符号翻转）。
+              推论：<span class="mono">|a<sub>−k</sub>|=|a<sub>k</sub>|</span>（幅度谱偶对称）、<span class="mono">∠a<sub>−k</sub>=−∠a<sub>k</sub></span>（相位谱奇对称）。
+              <b>再结合时间反转性质</b>：若 <span class="mono">x</span> 还是偶函数，则 <span class="mono">a<sub>k</sub>=a<sub>−k</sub>=a<sub>k</sub><sup>*</sup></span>，
+              即系数为<b>实数</b>——这就是方波系数全是实数的原因。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s10">10. Parseval：各谐波功率之和</h2>
+      <details class="deriv">
+        <summary>推导：平均功率 = Σ|a<sub>k</sub>|<sup>2</sup></summary>
+        <div class="body">
+          <div class="step">
+            <p>从定义出发（周期信号的平均功率，第 1 章）：</p>
+            <div class="eq">
+              P = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              |x(t)|<sup>2</sup>dt
+              = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)x<sup>*</sup>(t)dt
+            </div>
+            <p class="why">为什么写成 <span class="mono">xx<sup>*</sup></span>：<span class="mono">|z|² = zz<sup>*</sup></span>，这样就能把两个级数代进去相乘了。</p>
+          </div>
+          <div class="step">
+            <p>把 <span class="mono">x = Σ<sub>m</sub>a<sub>m</sub>e<sup>jmω<sub>0</sub>t</sup></span> 与
+              <span class="mono">x<sup>*</sup> = Σ<sub>k</sub>a<sub>k</sub><sup>*</sup>e<sup>−jkω<sub>0</sub>t</sup></span> 代进去：</p>
+            <div class="eq">
+              P = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">m</span></span>
+              a<sub>m</sub>a<sub>k</sub><sup>*</sup>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              e<sup>j(m−k)ω<sub>0</sub>t</sup>dt
+            </div>
+            <p class="why">为什么可以把两个求和号都提到积分外：与第 4 节第 2 步同样的理由——级数可逐项积分。</p>
+          </div>
+          <div class="step">
+            <p>积分又是正交性：只有 <span class="mono">m=k</span> 时为 T，其余为 0。于是</p>
+            <div class="eq center-eq">
+              P = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k</span></span>
+              |a<sub>k</sub>|<sup>2</sup> · T =
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              |a<sub>k</sub>|<sup>2</sup>
+              <span class="lbl">(4-6)</span>
+            </div>
+            <p class="why">为什么 <span class="mono">|a<sub>k</sub>|<sup>2</sup></span> 就叫"第 k 次谐波的平均功率"：
+              单个复指数成分 <span class="mono">a<sub>k</sub>e<sup>jkω<sub>0</sub>t</sup></span> 的模长恒为 <span class="mono">|a<sub>k</sub>|</span>，
+              所以它的功率（模平方的平均）就是 <span class="mono">|a<sub>k</sub>|<sup>2</sup></span>。
+              Parseval 说的就是：<b>总功率等于各次谐波功率之和</b>，一块钱都没丢。</p>
+          </div>
+          <div class="step">
+            <p><b>三个可以自己验的例子</b>（±1 电平）：</p>
+            <ul style="padding-left:20px;margin:6px 0">
+              <li>方波 <span class="mono">d=0.5</span>：每点都等于 ±1，所以 <span class="mono">P = 1</span>；而
+                <span class="mono">Σ|a<sub>k</sub>|<sup>2</sup> = 2Σ<sub>k 奇</sub>(2/(kπ))<sup>2</sup> = 8/π<sup>2</sup> · π<sup>2</sup>/8 = 1</span> ✓
+                （用了 <span class="mono">Σ<sub>k 奇</sub>1/k<sup>2</sup> = π<sup>2</sup>/8</span>）。</li>
+              <li>三角波（峰值 ±1）：<span class="mono">P = (1/T)∫(1−4|t|/T)<sup>2</sup>dt = 1/3</span>；
+                而 <span class="mono">Σ|a<sub>k</sub>|<sup>2</sup> = 2Σ<sub>k 奇</sub>(4/(π<sup>2</sup>k<sup>2</sup>))<sup>2</sup> = 1/3</span> ✓
+                （用了 <span class="mono">Σ<sub>k 奇</sub>1/k<sup>4</sup> = π<sup>4</sup>/96</span>）。</li>
+              <li>锯齿波（峰值 ±1）：<span class="mono">P = 1/3</span>，<span class="mono">Σ|a<sub>k</sub>|<sup>2</sup> = 2Σ<sub>k≥1</sub>(1/(kπ))<sup>2</sup> = 1/3</span> ✓
+                （用了 <span class="mono">Σ1/k<sup>2</sup> = π<sup>2</sup>/6</span>）。</li>
+            </ul>
+            <p class="why">为什么这些级数和要对得上：它们本身就是 Parseval 等式的两种算法。
+              实验 1 里切换波形时看到的"线谱总面积"其实就是这个功率；你也可以把 N 加大，看部分和往 1 或 1/3 靠。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s11">11. 方波 1/k 与三角波 1/k²：衰减速度从哪来</h2>
+      <p>
+        第 5 节得到方波的 <span class="mono">|a<sub>k</sub>| ∝ 1/k</span>；实验里切到三角波你会发现它掉得快得多，是
+        <span class="mono">1/k<sup>2</sup></span>。这不是巧合，而是"<b>信号越光滑，高频越少</b>"这条普遍规律的第一个例子。
+      </p>
+
+      <details class="deriv">
+        <summary>推导：为什么"连续但导数有跳变"意味着 1/k²</summary>
+        <div class="body">
+          <div class="step">
+            <p>对方波的系数公式做分部积分（把导数"移"过去）：</p>
+            <div class="eq">
+              a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x(t)e<sup>−jkω<sub>0</sub>t</sup>dt
+              = <span class="frac"><span class="num">1</span><span class="den">jkω<sub>0</sub>T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x′(t)e<sup>−jkω<sub>0</sub>t</sup>dt
+              &nbsp;&nbsp;（当 x 连续且周期时）
+            </div>
+            <p class="why">为什么这一步成立：这就是第 9 节性质 (c) 的<b>反用</b>——把 <span class="mono">b<sub>k</sub>=jkω<sub>0</sub>a<sub>k</sub></span> 里的
+              <span class="mono">b</span> 换成"导数信号的系数"即可。前提是那一步的边界项为 0，也就是 <b>x 本身连续（没有跳变）</b>。</p>
+          </div>
+          <div class="step">
+            <p>所以：</p>
+            <ul style="padding-left:20px;margin:6px 0">
+              <li><b>若 x 有跳变</b>：上式的分部积分产生一个不为 0 的边界项，它正比于<span class="mono">1/(kω<sub>0</sub>)</span>，
+                所以 <span class="mono">a<sub>k</sub> ∝ 1/k</span>（方波、锯齿波都属这一类）。</li>
+              <li><b>若 x 连续、但 x′ 有跳变</b>：第一次分部积分边界项为 0，得到 <span class="mono">a<sub>k</sub> = b<sub>k</sub>/(jkω<sub>0</sub>)</span>，
+                而 <span class="mono">b<sub>k</sub> ∝ 1/k</span>，于是 <span class="mono">a<sub>k</sub> ∝ 1/k<sup>2</sup></span>（三角波）。</li>
+              <li>类推：每"多一阶连续"就多一个 <span class="mono">1/k</span>。极端的例子是 <span class="mono">cos</span> 本身——无穷光滑，于是只有一个 <span class="mono">k=1</span> 的系数非零，其余全为 0。</li>
+            </ul>
+            <p class="why">为什么这件事重要：它给出了一条"看波形猜带宽"的捷径。
+              同样要求误差能量降到 1%，方波要留的谐波数远多于三角波；工程上"信号有多难传"直接取决于它的光滑程度。</p>
+          </div>
+          <div class="step">
+            <p><b>用实验台的数字对照</b>（±1 电平，第 k 次谐波的真实振幅 <span class="mono">A<sub>k</sub> = 2|a<sub>k</sub>|</span>）：</p>
+          </div>
+        </div>
+      </details>
+
+      <table class="tbl sm">
+        <thead><tr><th>波形</th><th class="c">跳变情况</th><th class="c">振幅衰减</th><th class="c">A<sub>1</sub></th><th class="c">A<sub>3</sub></th><th class="c">A<sub>5</sub></th><th>要逼近到"看不出差别"需要</th></tr></thead>
+        <tbody>
+          <tr><td><b>方波</b></td><td class="c">有跳变（高度 2）</td><td class="c ft">∝ 1/k（仅奇次）</td><td class="c ft">1.273</td><td class="c ft">0.424</td><td class="c ft">0.255</td><td>很多项，且跳变处永远有 9% 过冲</td></tr>
+          <tr><td><b>锯齿波</b></td><td class="c">有跳变（高度 2）</td><td class="c ft">∝ 1/k（全部 k）</td><td class="c ft">0.637</td><td class="c ft">0.212</td><td class="c ft">0.127</td><td>很多项；与方波同速衰减，只是奇偶都占</td></tr>
+          <tr><td><b>三角波</b></td><td class="c">连续，导数跳变</td><td class="c ft">∝ 1/k<sup>2</sup>（仅奇次）</td><td class="c ft">0.811</td><td class="c ft">0.090</td><td class="c ft">0.032</td><td>少数几项就很像；没有过冲</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">
+        数字来源：方波 <span class="mono">A<sub>k</sub>=4/(kπ)</span>（奇 k）；锯齿 <span class="mono">A<sub>k</sub>=2/(kπ)</span>；
+        三角 <span class="mono">A<sub>k</sub>=8/(π<sup>2</sup>k<sup>2</sup>)</span>（奇 k）。把它们代进去就能自己复核。
+      </p>
+
+      <h2 id="s12">12. 实验 2：让每个谐波各自乘 H(jkω<sub>0</sub>)</h2>
+      <p>
+        第 3 章的核心结论在这里兑现：<b>LTI 系统对每个谐波单独动手</b>——
+        输入的 <span class="mono">a<sub>k</sub></span> 变成 <span class="mono">a<sub>k</sub>H(jkω<sub>0</sub>)</span>，
+        谐波之间互不干扰。所以"滤波"在频域里就是"逐条谱线乘一个复数"。
+      </p>
+      <div class="eq center-eq">
+        x(t) = a<sub>0</sub> + <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=1</span></span>
+        A<sub>k</sub>cos(kω<sub>0</sub>t + φ<sub>k</sub>)
+        &nbsp;<span class="op">⟶</span>&nbsp;
+        y(t) = a<sub>0</sub>H(0) + <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=1</span></span>
+        A<sub>k</sub>|H(jkω<sub>0</sub>)| cos(kω<sub>0</sub>t + φ<sub>k</sub> + ∠H(jkω<sub>0</sub>))
+      </div>
+
+      <div id="lab-filter"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p style="margin-bottom:0">
+          把截止频率压低：高次谐波被清掉，方波的"角"变圆——这正是音频里把高音调低的效果。
+          切换成微分器：每条谱线被乘上 <span class="mono">jkω<sub>0</sub></span>，高频被放大，
+          方波变成一串尖脉冲（跳变处导数最大）。
+          读数栏的"输出功率占比"用 Parseval 算出来：<span class="mono">Σ|a<sub>k</sub>H<sub>k</sub>|<sup>2</sup> / Σ|a<sub>k</sub>|<sup>2</sup></span>。
+        </p>
+      </div>
+
+      <h2 id="s13">13. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：三角形式与指数形式的系数差 2 倍</h4>
+          <p class="small">
+            <span class="mono">A<sub>k</sub> = 2|a<sub>k</sub>|</span>（k ≥ 1），而 <span class="mono">B<sub>0</sub> = a<sub>0</sub></span> 不乘 2。
+            原因：指数形式把每个余弦拆成正负两个频率，幅度被平分。抄公式前先确认书里用的是哪种形式。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：忘掉分析式前面的 1/T</h4>
+          <p class="small">
+            综合式没有系数，<b>分析式有 1/T</b>。漏掉它，所有谱线都会被放大 T 倍，Parseval 也对不上。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：把 ω<sub>0</sub> 和 T 搞混</h4>
+          <p class="small">
+            <span class="mono">ω<sub>0</sub> = 2π/T</span>。周期越长，<b>基频越小、谱线越密</b>。
+            把 <span class="mono">T</span> 拉大时线谱会挤在一起——第 6 章正是从这里出发把级数变成变换的。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：以为吉布斯现象说明级数不收敛</h4>
+          <p class="small">
+            它收敛得很规矩：连续点逐点收敛，跳变点收敛到左右极限平均值，误差能量趋于 0。
+            过冲只是"有限项"的代价，与收敛性不矛盾。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：对方波套用 a<sub>k</sub> = sin(kπd)/(kπ)</h4>
+          <p class="small">
+            这要看电平定义：0/1 方波用 <span class="mono">sin(kπd)/(kπ)</span>、<span class="mono">a<sub>0</sub>=d</span>；
+            ±1 方波用 <span class="mono">2sin(kπd)/(kπ)</span>、<span class="mono">a<sub>0</sub>=2d−1</span>。
+            本页实验台用 ±1（与<b>第 6 章</b>的 <span class="mono">SSC.squareCoeff</span> 一致），画的是 <span class="mono">|a<sub>k</sub>|=A<sub>k</sub>/2</span>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：实信号只看正频率就下结论</h4>
+          <p class="small">
+            实信号的系数满足 <span class="mono">a<sub>−k</sub>=a<sub>k</sub><sup>*</sup></span>，负频率那一半是"镜像"，
+            但它在能量（Parseval 求和）与相乘性质里都要算进去。只在"画幅度谱"时才可以只画 <span class="mono">k≥0</span>。
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s14">14. 自测</h2>
+      <p class="small muted">每题都给了"为什么"。卡住了就回到对应小节或者实验台试一下。</p>
+      <div id="quiz4"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 4 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  var PI = Math.PI;
+  var C = SSC.C, cdiv = SSC.cdiv, cabs = SSC.cabs;
+
+  /* ============================================================
+     波形定义（周期 T = 1，ω0 = 2π，幅度 ±1）
+     每个波形用"直流 + 每根谐波的 (B_k cos + C_k sin)"描述
+     ============================================================ */
+  function waveDef(kind, d) {
+    return {
+      label: kind === 'square' ? '方波（±1，占空比 d）' : (kind === 'triangle' ? '三角波（峰值 ±1）' : '锯齿波（峰值 ±1）'),
+      a0: kind === 'square' ? 2 * d - 1 : 0,
+      B: function (k) {
+        if (kind === 'square') return 4 * Math.sin(k * PI * d) / (k * PI);
+        if (kind === 'triangle') return (k % 2 === 1) ? 8 / (PI * PI * k * k) : 0;
+        return 0;
+      },
+      C: function (k) {
+        if (kind === 'sawtooth') return 2 * Math.pow(-1, k + 1) / (k * PI);
+        return 0;
+      },
+      jump: kind === 'triangle' ? 0 : 2,
+      envelope: function (w) {  /* |a_k| 的连续包络（w = kω0） */
+        if (kind === 'square') return w < 1e-9 ? 2 * d : Math.abs(4 * Math.sin(w * PI * d / (2 * PI)) / (w * 1)) ;
+        if (kind === 'triangle') return 16 / (w * w);
+        return 2 / w;
+      }
+    };
+  }
+  function idealWave(kind, d, t) {
+    var u = ((t % 1) + 1) % 1, x = u < 0.5 ? u : u - 1;
+    if (kind === 'square') return (u < d / 2 || u > 1 - d / 2) ? 1 : -1;
+    if (kind === 'triangle') return 1 - 4 * Math.abs(x);
+    return 2 * x;
+  }
+  function partialSum(kind, d, t, N) {
+    /* 方波直接调用内核的 SSC.squarePartial（周期 T = 1、±1 电平、取前 N 次谐波） */
+    if (kind === 'square') return SSC.squarePartial(t, N, 1, d);
+    var w = waveDef(kind, d), s = w.a0, k;
+    for (k = 1; k <= N; k++) s += w.B(k) * Math.cos(2 * PI * k * t) + w.C(k) * Math.sin(2 * PI * k * t);
+    return s;
+  }
+  function coeffMag(kind, d, k) {  /* |a_k|, k>=1 */
+    /* 方波：内核 SSC.squareCoeff 给的是 ±1 波形的余弦振幅 A_k = 4sin(kπd)/(kπ) = 2|a_k| */
+    if (kind === 'square') return Math.abs(SSC.squareCoeff(k, d)) / 2;
+    var w = waveDef(kind, d);
+    return Math.hypot(w.B(k), w.C(k)) / 2;
+  }
+  /* 一个周期内的相对误差能量（用中点法避开间断点） */
+  function relError(kind, d, N) {
+    var M = 1200, num = 0, den = 0, i, t, e, x;
+    for (i = 0; i < M; i++) {
+      t = -0.5 + (i + 0.5) / M;      /* 中点：永不落在 t=±0.25 这类间断点上 */
+      x = idealWave(kind, d, t);
+      e = x - partialSum(kind, d, t, N);
+      num += e * e; den += x * x;
+    }
+    return Math.sqrt(num / den) * 100;
+  }
+  function overshootPct(kind, d, N) {
+    var w = waveDef(kind, d);
+    if (w.jump === 0) return null;   /* 无跳变 → 不谈过冲 */
+    var M = 1600, mx = -Infinity, i;
+    for (i = 0; i <= M; i++) { var t = -0.5 + i / M; var v = partialSum(kind, d, t, N); if (v > mx) mx = v; }
+    return (mx - 1) * 100 / w.jump;   /* 过冲占"跳变高度"的百分比（跳变高度 = 2） */
+  }
+
+  /* ============================================================
+     实验 1（核心）：谐波数 N + 波形 + 占空比
+     ============================================================ */
+  SSC.lab({
+    mount: '#lab-harm',
+    title: '实验 1 · 用 N 个谐波合成波形，并看它的线谱',
+    hint: '拖 N 看时域逼近与过冲读数；换波形比较线谱衰减；方波可拖占空比',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：N 项部分和（蓝）与理想波形（灰虚线）', height: 210 },
+      { id: 'spec', label: '线谱：|a_k|（stem）与连续包络（虚线）', height: 210 }
+    ],
+    controls: [
+      { id: 'kind', label: '波形', options: [
+        { v: 'square', t: '方波（有跳变）' },
+        { v: 'triangle', t: '三角波（连续）' },
+        { v: 'sawtooth', t: '锯齿波（有跳变）' }
+      ], value: 'square' },
+      { id: 'N', label: '谐波个数 N', min: 1, max: 61, step: 1, value: 9 },
+      { id: 'duty', label: '占空比 d（仅方波有效）', min: 0.1, max: 0.9, step: 0.02, value: 0.5 }
+    ],
+    buttons: [
+      { label: 'N = 41（看吉布斯稳定）', onClick: function (v, api) { api.set('N', 41); } },
+      { label: 'N = 3（看粗糙近似）', onClick: function (v, api) { api.set('N', 3); } }
+    ],
+    draw: function (cv, v, api) {
+      var kind = v.kind, d = v.duty, N = Math.round(v.N);
+      var wd = waveDef(kind, d);
+
+      SSC.plot(cv.time, {
+        xmin: -1.1, xmax: 1.1, ymin: -1.6, ymax: 1.6,
+        xlabel: 't（周期 T = 1 s）', ylabel: 'x(t)',
+        curves: [
+          { f: function (t) { return partialSum(kind, d, t, N); }, color: '#4338ca', width: 2.4, samples: 1400, label: 'N 项部分和 x_N(t)' },
+          { f: function (t) { return idealWave(kind, d, t); }, color: '#c3ccdd', width: 1.6, dash: [5, 4], samples: 1400, label: '理想波形 x(t)' }
+        ],
+        legend: true
+      });
+
+      var xs = [], ys = [], kmax = Math.max(10, N);
+      for (var k = 1; k <= kmax; k++) { xs.push(k); ys.push(coeffMag(kind, d, k)); }
+      var envMax = 0;
+      for (var i = 0; i < xs.length; i++) envMax = Math.max(envMax, ys[i]);
+      SSC.plot(cv.spec, {
+        xmin: 0, xmax: kmax + 0.5, ymin: -0.2, ymax: Math.max(0.5, envMax * 1.25),
+        xlabel: 'k（谐波序号）', ylabel: '|a_k|（指数形式系数）',
+        stems: [{ xs: xs, ys: ys, color: '#dc2626', label: '|a_k|' }],
+        curves: [{ f: function (k) { return Math.abs(wd.envelope(2 * PI * k)); }, color: '#0e7490', width: 1.6, dash: [6, 4], samples: 500, label: '连续包络' }],
+        hlines: [{ y: wd.a0, color: '#7c3aed', label: 'a₀（直流）= ' + SSC.fmt(wd.a0, 2) }],
+        legend: true
+      });
+
+      var ov = overshootPct(kind, d, N), re = relError(kind, d, N);
+      var nz = 0;
+      for (var k2 = 1; k2 <= N; k2++) if (coeffMag(kind, d, k2) > 1e-6) nz++;
+      api.readout(
+        '<div class="stat"><div class="k">实测过冲</div><div class="v" style="color:' +
+        (ov == null ? '#7b879c' : (ov > 5 ? '#b91c1c' : '#15803d')) + '">' +
+        (ov == null ? '无跳变' : ov.toFixed(2) + '%') + '</div></div>' +
+        '<div class="stat"><div class="k">相对误差能量 √(E_N/E_x)</div><div class="v">' + re.toFixed(1) + '%</div></div>' +
+        '<div class="stat"><div class="k">|a₁|（= A₁/2）</div><div class="v">' + SSC.fmt(coeffMag(kind, d, 1), 4) + '</div></div>' +
+        '<div class="stat"><div class="k">非零谐波数 / N</div><div class="v">' + nz + ' / ' + N + '</div></div>' +
+        '<div class="stat"><div class="k">a₀（直流）</div><div class="v">' + SSC.fmt(wd.a0, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">基波频率 ω₀ = 2π/T</div><div class="v">' + SSC.fmt(2 * PI, 2) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var kind = v.kind, d = v.duty, N = Math.round(v.N);
+      var s = '当前：<b>' + waveDef(kind, d).label + '</b>，N = ' + N + '。';
+      if (kind === 'square') {
+        s += '方波有高度 2 的跳变（从 −1 跳到 +1），所以跳变附近永远有约 <b>9%</b> 的过冲（吉布斯现象）：' +
+          '把 N 拉到 40 以上，过冲读数会稳定在 <b>8.9% 左右</b>不再下降，而 N 很小时读数反而更大（N=1 时只有一根"正弦"，谈不上逼近）。';
+        if (Math.abs(d - 0.5) < 0.001) s += '<br>d = 0.5 时偶次谐波全为 0（线谱只在奇数 k 上有值），这就是 <span class="mono">sin(kπ/2)</span> 的零点。';
+        else s += '<br>d = ' + SSC.fmt(d, 2) + '：偶次谐波不再为 0，包络（青虚线）的零点移到了新的位置。' +
+          '注意一个容易误会的事实：<b>d 与 1−d 的幅度谱在整数 k 上完全相同</b>（因为 sin(kπ(1−d)) 与 sin(kπd) 在整数 k 处只差一个符号），' +
+          '所以把占空比从 0.3 拖到 0.7，谱线高度看起来没变——真正的差别在<b>直流分量 a₀ 的正负</b>（紫线上下移动）与波形的宽窄上。';
+      } else if (kind === 'triangle') {
+        s += '三角波<b>连续</b>（没有跳变），它的系数按 <b>1/k²</b> 衰减（比如 A₁=0.811、A₃=0.090、A₅=0.032，掉得极快），' +
+          '所以几条谐波就能贴得很近，而且<b>没有过冲</b>——这三种波形的对比正好说明"跳变是高频的来源"。';
+      } else {
+        s += '锯齿波也有跳变，系数按 <b>1/k</b> 衰减，但<b>每一根谐波都存在</b>（不像方波只有奇次）。' +
+          '过冲同样趋向 9%。把 <span class="mono">|a_k|</span> 的包络和方波的比一比：锯齿是 2/(kπ)，方波只保留了奇数项。';
+      }
+      return s;
+    }
+  });
+
+  /* ============================================================
+     实验 2：LTI 系统逐谐波作用 a_k → a_k H(jkω0)
+     ============================================================ */
+  function sysH(sys, k, v) {
+    var w = 2 * PI * k;                       /* ω0 = 2π（T = 1） */
+    if (sys === 'ilp') return C(w < v.wc ? 1 : 0, 0);
+    if (sys === 'rc') return cdiv(C(1, 0), C(1, w * v.rc));
+    if (sys === 'diff') return C(0, w / (2 * PI));   /* 按 ω0 归一化，基波增益为 1 */
+    return C(Math.cos(-w * v.t0), Math.sin(-w * v.t0));  /* 理想时移 */
+  }
+  SSC.lab({
+    mount: '#lab-filter',
+    title: '实验 2 · 滤波就是"逐条谱线乘一个复数"',
+    hint: '换系统、调参数，看时域波形怎么变、线谱怎么被逐条乘掉',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：输入方波（灰虚线）与系统输出（蓝）', height: 210 },
+      { id: 'spec', label: '线谱对比：输入 |a_k|（灰）与输出 |a_k·H(jkω₀)|（红）', height: 210 }
+    ],
+    controls: [
+      { id: 'sys', label: '系统', options: [
+        { v: 'ilp', t: '理想低通（截止 ω_c）' },
+        { v: 'rc', t: '一阶 RC 低通' },
+        { v: 'diff', t: '微分器（按 ω₀ 归一化）' },
+        { v: 'delay', t: '理想时移（全通）' }
+      ], value: 'ilp' },
+      { id: 'wc', label: '截止频率 ω_c（理想低通用）', min: 1, max: 40, step: 0.5, value: 12, unit: ' rad/s' },
+      { id: 'rc', label: '时间常数 RC（RC 用）', min: 0.02, max: 1, step: 0.01, value: 0.08, unit: ' s' },
+      { id: 't0', label: '时移量 t₀（时移用）', min: 0, max: 0.5, step: 0.01, value: 0.12, unit: ' s' },
+      { id: 'N', label: '输入方波谐波数 N', min: 3, max: 61, step: 2, value: 41 },
+      { id: 'duty', label: '占空比 d', min: 0.2, max: 0.8, step: 0.02, value: 0.5 }
+    ],
+    draw: function (cv, v, api) {
+      var kind = 'square', d = v.duty, N = Math.round(v.N), sys = v.sys;
+      var wd = waveDef(kind, d);
+
+      /* 输出：a0·H(0) + Σ A_k|H|cos(kω0 t + φ_k + ∠H) */
+      var outF = function (t) {
+        var H0 = sysH(sys, 0, v);
+        var s = wd.a0 * H0.re;
+        for (var k = 1; k <= N; k++) {
+          var H = sysH(sys, k, v);
+          var Bk = wd.B(k), Ck = wd.C(k);
+          var Ak = Math.hypot(Bk, Ck);
+          if (Ak < 1e-12) continue;
+          var ph = Math.atan2(-Ck, Bk);
+          s += Ak * cabs(H) * Math.cos(2 * PI * k * t + ph + Math.atan2(H.im, H.re));
+        }
+        return s;
+      };
+
+      /* 纵轴范围：在一个周期上实测输出的最大绝对值（微分器会把输出放大很多，不能被裁切） */
+      var scanMax = 0;
+      for (var kt = 0; kt <= 400; kt++) {
+        var tq = -0.5 + kt / 400;
+        var vq = Math.abs(outF(tq));
+        if (vq > scanMax) scanMax = vq;
+      }
+      var ylim = Math.max(1.3, 1.15 * scanMax);
+
+      SSC.plot(cv.time, {
+        xmin: -1.1, xmax: 1.1, ymin: -ylim, ymax: ylim,
+        xlabel: 't（周期 T = 1 s）', ylabel: '幅度',
+        curves: [
+          { f: function (t) { return partialSum(kind, d, t, N); }, color: '#c3ccdd', width: 1.6, dash: [5, 4], samples: 1200, label: '输入（N 项方波）' },
+          { f: outF, color: '#4338ca', width: 2.4, samples: 1400, label: '输出 y(t)' }
+        ],
+        legend: true
+      });
+
+      var xs = [], inS = [], outS = [], kept = 0, pIn = 0, pOut = 0;
+      for (var k = 1; k <= N; k++) {
+        var a = coeffMag(kind, d, k), H = sysH(sys, k, v), g = cabs(H);
+        xs.push(k); inS.push(a); outS.push(a * g);
+        pIn += a * a; pOut += a * a * g * g;
+        if (g > 0.5) kept++;
+      }
+      pIn += wd.a0 * wd.a0; pOut += Math.pow(wd.a0 * sysH(sys, 0, v).re, 2);
+      var ymax = Math.max(0.35, Math.max.apply(null, inS.concat(outS)) * 1.25);
+      SSC.plot(cv.spec, {
+        xmin: 0, xmax: N + 0.5, ymin: 0, ymax: ymax,
+        xlabel: 'k（谐波序号）', ylabel: '|a_k| 与 |a_k·H|',
+        stems: [
+          { xs: xs, ys: inS, color: '#c3ccdd', width: 1.4, r: 2.2, label: '输入 |a_k|' },
+          { xs: xs, ys: outS, color: '#dc2626', width: 1.6, r: 2.8, label: '输出 |a_k H(jkω₀)|' }
+        ],
+        legend: true
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">输出/输入 平均功率（Parseval）</div><div class="v">' +
+        (pIn > 0 ? (pOut / pIn * 100).toFixed(1) + '%' : '—') + '</div></div>' +
+        '<div class="stat"><div class="k">基本通过的谐波数（增益&gt;0.5）</div><div class="v">' + kept + ' / ' + N + '</div></div>' +
+        '<div class="stat"><div class="k">输入平均功率</div><div class="v">' + SSC.fmt(pIn, 4) + '</div></div>' +
+        '<div class="stat"><div class="k">输出平均功率</div><div class="v">' + SSC.fmt(pOut, 4) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var sys = v.sys, d = v.duty, N = Math.round(v.N);
+      var head = '输出 = 把输入每条谱线 <b>a<sub>k</sub> 乘上 H(jkω<sub>0</sub>)</b> 再拼回去（第 3 章的结论）。';
+      if (sys === 'ilp') {
+        head += '理想低通把 <span class="mono">|ω|&lt;ω_c</span> 的谐波原样通过、其余清 0：' +
+          '现在保留到第 <b>' + Math.floor(v.wc / (2 * PI)) + '</b> 次谐波。把 ω_c 调到 6.3 左右（只留基波）方波会变成正弦，调到 40 就几乎看不出失真。';
+      } else if (sys === 'rc') {
+        head += 'RC 低通的 <span class="mono">H(jω)=1/(1+jωRC)</span> 是<b>渐进</b>衰减：转折频率 <span class="mono">1/RC = ' + SSC.fmt(1 / v.rc, 2) + ' rad/s</span>。' +
+          '比理想低通"温和"，输出不会被硬生生截断，但高频仍被压小、相位也被拖后。' +
+          '用"逐频率乘 H"和"直接解微分方程"两条路算出的输出是一致的（第 3 章实验 2 已经当场演示过）。';
+      } else if (sys === 'diff') {
+        head += '微分器 <span class="mono">H(jω)=jω</span>（这里按 ω₀ 归一化成 <span class="mono">jω/ω₀</span>，便于观察）：每条谱线被乘上 <b>k</b>，' +
+          '所以高次谐波被抬得比基波高得多——输出的线谱是往上翘的，时域上跳变处变成尖峰（那里变化最快）。';
+      } else {
+        head += '理想时移 <span class="mono">H(jω)=e<sup>−jωt<sub>0</sub></sup></span>：模长恒为 1，' +
+          '红灰两组线谱<b>完全重合</b>（幅度一点没变），只有相位被加上一个与 ω 成正比的量——所以波形只是整体平移、形状不变。';
+      }
+      head += '<br>别忘了：这里的输入是截断到 N = ' + N + ' 项的方波，占空比 d = ' + SSC.fmt(d, 2) +
+        '；把 N 调大，输入本身会越来越像理想方波（但跳变处仍有约 9% 过冲）。';
+      return head;
+    }
+  });
+
+  /* ============================================================
+     自测
+     ============================================================ */
+  SSC.quiz('#quiz4', [
+    {
+      q: '求 a_k 时，为什么要"两边乘 e^{−jkω₀t} 再在一个周期上积分"？',
+      opts: [
+        '因为复指数在周期上正交：这样乘完只有第 k 项留下，其它项积分为 0',
+        '因为这样能消掉 1/T 这个系数',
+        '因为 e^{−jkω₀t} 的模长是 1，不会改变信号的能量',
+        '因为只有这样才能让积分收敛'
+      ],
+      a: 0,
+      why: '乘 e^{−jkω₀t} 后，第 m 项的指数变成 e^{j(m−k)ω₀t}；只有 m=k 时它恒为 1、积分为 T，其余都是整周期的正弦/余弦、积分为 0。于是无穷和里只剩 T·a_k，除以 T 就解出 a_k。这就是正交性的全部用处。',
+      tag: '核心推导'
+    },
+    {
+      q: '对称方波（±1 电平，d = 0.5）的傅里叶级数里，哪几次谐波一定为 0？',
+      opts: ['偶次谐波（k = 2, 4, 6, …）', '奇次谐波', '只有 k = 0', '没有谐波为 0'],
+      a: 0,
+      why: 'a_k = 2sin(kπd)/(kπ)，d=0.5 时是 2sin(kπ/2)/(kπ)：k 为偶数时 sin(kπ/2)=0。直观上，偶次谐波在方波的正半周与负半周上各占半周期，被积函数正负抵消。所以方波只含奇次谐波，波形听起来明亮刺耳。',
+      tag: '计算'
+    },
+    {
+      q: '三角形式的谐波振幅 A_k 与指数形式系数 a_k（k ≥ 1）的关系是？',
+      opts: ['A_k = 2|a_k|', 'A_k = |a_k|', 'A_k = |a_k|/2', 'A_k = |a_k|²'],
+      a: 0,
+      why: '一个 cos 项在指数形式里被拆成 +k 和 −k 两项，幅度被平分，所以 |a_k| 只有实际振幅的一半，A_k = 2|a_k|（而直流项 a₀ = B₀ 不乘 2）。本页实验台画的是 |a_k|，所以 |a₁| = 0.637 对应波形振幅 1.273。',
+      tag: '易错'
+    },
+    {
+      q: '用截断的傅里叶级数逼近方波，把 N 从 10 增加到 1000，跳变点附近的过冲会怎样？',
+      opts: [
+        '高度基本不变，稳定在跳变高度约 9% 处，只是波纹被压得更靠近跳变点',
+        '过冲逐渐消失，最终完全没有抖动',
+        '过冲随 N 线性减小到 0',
+        '过冲会越来越大'
+      ],
+      a: 0,
+      why: '这是吉布斯现象：跳变需要无穷多高频成分，砍掉 |k|>N 就注定"冲过头"。对单位高度的跳变，部分和最大值约 1.09（过冲约 9%），与 N 无关。但误差能量仍趋于 0——因为过冲占的宽度在变窄，所以这与"级数收敛"不矛盾。',
+      tag: '吉布斯'
+    },
+    {
+      q: '已知 x(t) ⟷ a_k。若把信号延迟 t₀ 得到 y(t)=x(t−t₀)，则 y 的系数是？',
+      opts: [
+        'b_k = e^{−jkω₀t₀}a_k，且 |b_k| = |a_k|',
+        'b_k = a_k，只是时间原点变了',
+        'b_k = e^{−jkω₀t₀}，与 a_k 无关',
+        'b_k = a_k + kω₀t₀'
+      ],
+      a: 0,
+      why: '换元 τ=t−t₀ 后，指数里多出一个 e^{−jkω₀t₀}，与 τ 无关可以提出，剩下正是 a_k。取模长得 |b_k|=|a_k|：时移只改相位谱（线性斜坡）、不改幅度谱。这就是"推迟播放不改变音色"的数学表述。',
+      tag: '性质'
+    },
+    {
+      q: '方波的系数按 1/k 衰减，而三角波按 1/k² 衰减。根本原因是？',
+      opts: [
+        '三角波连续（没有跳变），而方波有跳变；分部积分时跳变会留下一个 ∝1/k 的边界项',
+        '三角波的周期是方波的两倍',
+        '三角波只含奇次谐波，方波含所有谐波',
+        '因为三角波的能量比方波小'
+      ],
+      a: 0,
+      why: '对 a_k 的积分做分部积分，边界项正比于"跳变大小/(jkω₀)"。方波有跳变，边界项不为 0，于是 a_k ∝ 1/k；三角波连续（跳变在导数上），第一次分部积分的边界项为 0，得到 a_k = b_k/(jkω₀)（b_k 是导数的系数，∝1/k），于是 a_k ∝ 1/k²。信号越光滑，高频越少。',
+      tag: '衰减速度'
+    }
+  ], '第 4 章自测 · 6 题');
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+});
+</script>
+</body>
+</html>

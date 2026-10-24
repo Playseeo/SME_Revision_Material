@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 5 章　离散时间傅里叶级数（DTFS）｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch05">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第二段 · 傅里叶家族 · 第 5 章</div>
+        <h1>离散时间傅里叶级数（DTFS）</h1>
+        <p class="lede">
+          第 4 章里，连续时间的周期信号要用<b>无穷多</b>条谱线才拼得出来。换成离散时间，情况突然变了：
+          一个周期为 <span class="mono">N</span> 的序列只有 <b><span class="mono">N</span> 个</b>真正独立的谐波，
+          第 <span class="mono">N+1</span> 条就是第 <span class="mono">1</span> 条的复制品。
+          这一章就做一件事：<b>把"为什么只有 N 个"讲透</b>，并给出 <span class="mono">c<sub>k</sub></span> 的计算公式和它的性质。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch04-ctfs.html">第 4 章 连续时间傅里叶级数</a>（要会用 <span class="mono">a<sub>k</sub></span> 和正交性）<br>
+          <a href="ch01-signals.html">第 1 章 信号与系统基本概念</a>（离散周期条件 <span class="mono">ω<sub>0</sub>/2π</span> 是有理数）
+        </div>
+        <div class="cell mid"><b>这一站</b>DTFS 的定义、N 个独立谐波、性质、与 DFT 的关系</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch07-dtft.html">第 7 章 离散时间傅里叶变换</a>（让 N→∞，级数变成 DTFT）<br>
+          <a href="ch08-dft.html">第 8 章 DFT 与 FFT</a>（计算机怎么真的把这 N 个系数算出来）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 这一章在回答什么问题</a>
+        <a href="#s2">2. 灵魂：离散周期信号只有 N 个独立谐波</a>
+        <a href="#s3">3. 定义对与符号表</a>
+        <a href="#s4">4. 推导：c_k 是怎么被"量"出来的</a>
+        <a href="#s5">5. 动手：改 N，看"独立谐波个数 = N"</a>
+        <a href="#s6">6. 与连续时间傅里叶级数的对照</a>
+        <a href="#s7">7. 性质表与五条关键推导</a>
+        <a href="#s8">8. 实信号的对称性</a>
+        <a href="#s9">9. 动手：N 项谐波就能精确重建（没有吉布斯）</a>
+        <a href="#s10">10. 动手：时移改相位、频移搬谱线</a>
+        <a href="#s11">11. DTFS 与 DFT、DTFT 是什么关系</a>
+        <a href="#s12">12. 常见坑</a>
+        <a href="#s13">13. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 这一章在回答什么问题</h2>
+
+      <p>
+        第 4 章我们给连续时间的周期信号找到了"原子"：复指数 <span class="mono">e<sup>jkω<sub>0</sub>t</sup></span>。
+        任何周期信号都能写成这些原子的加权和，权重就是
+        <span class="term" data-def="Fourier series coefficients，中文含义：傅里叶级数系数。周期信号里每个谐波成分的复权重：模长=该谐波的强度，辐角=该谐波的相位。">傅里叶级数系数</span>。
+        这一章对<b>离散时间</b>的周期信号做同一件事，但你会看到两处根本差别：
+      </p>
+      <ul style="padding-left:22px">
+        <li><b>时间轴只剩整数点</b>：<span class="mono">n = 0, ±1, ±2, …</span>，中间没有"半个点"可踩。</li>
+        <li><b>频率轴卷起来了</b>：在离散时间里，<span class="mono">ω</span> 与 <span class="mono">ω+2π</span> 代表<b>同一个</b>振荡
+          （因为 <span class="mono">e<sup>j(ω+2π)n</sup> = e<sup>jωn</sup>·e<sup>j2πn</sup> = e<sup>jωn</sup></span>，而 <span class="mono">n</span> 是整数）。
+          频率不是一条无限长的直线，而是"绕圈"的角度。</li>
+      </ul>
+
+      <div class="box intuition">
+        <span class="tag">先把结论说出来</span>
+        <p style="margin-bottom:0">
+          这两点合在一起，逼出一个漂亮的结果：周期为 <span class="mono">N</span> 的离散信号，
+          它的"原子集合" <span class="mono">e<sup>jk(2π/N)n</sup></span> 里<b>只有 <span class="mono">N</span> 个是互不相同的</b>。
+          所以 DTFS 是一个<b>有限项</b>的级数——这和第 4 章的无穷级数形成鲜明对照，也顺手消灭了收敛问题和吉布斯现象。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 灵魂：离散周期信号只有 N 个独立谐波</h2>
+
+      <p>
+        设 <span class="mono">x[n] = x[n+N]</span>，最小的正整数 <span class="mono">N</span> 叫
+        <span class="term" data-def="fundamental period，中文含义：基波周期。使 x[n]=x[n+N] 成立的最小正整数 N。">基波周期</span>
+        （fundamental period），而
+        <span class="mono">ω<sub>0</sub> = 2π/N</span> 是
+        <span class="term" data-def="fundamental frequency，中文含义：基波角频率（离散）。单位是 rad/样本，表示"每个样本转过多少弧度"。ω₀=2π/N，所有谐波频率都是它的整数倍。">基波角频率</span>
+        （fundamental frequency，单位是 <b>rad/样本</b>，不是 rad/s）。
+        我们想用的"原子"是这些：
+      </p>
+      <div class="eq center-eq">
+        φ<sub>k</sub>[n] = e<sup>jkω<sub>0</sub>n</sup> = e<sup>jk(2π/N)n</sup>, &nbsp;&nbsp; k = 0, ±1, ±2, …
+      </div>
+      <p>
+        每个 <span class="mono">φ<sub>k</sub>[n]</span> 都是一个周期为 <span class="mono">N</span> 的序列，
+        它们就是离散时间的
+        <span class="term" data-def="harmonic，中文含义：谐波。频率是基频整数倍的成分；k=±1 叫基波，k=±2 叫二次谐波。在离散时间里只存在 N 个互不相同的谐波。">谐波</span>
+        （harmonic）。
+        <b>关键问题是：这无穷多个 <span class="mono">k</span> 里，有多少个是不同的序列？</b>
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：为什么只剩 N 个，以及 k 与 k+N 的关系</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：把 k 换成 k+N，直接算一算。</b></p>
+            <div class="eq">
+              φ<sub>k+N</sub>[n] = e<sup>j(k+N)(2π/N)n</sup>
+              = e<sup>jk(2π/N)n</sup> · e<sup>jN(2π/N)n</sup>
+              = e<sup>jk(2π/N)n</sup> · e<sup>j2πn</sup>
+            </div>
+            <p class="why">为什么：指数相加可以拆成两个指数相乘（<span class="mono">e<sup>A+B</sup> = e<sup>A</sup>e<sup>B</sup></span>）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：认出 <span class="mono">e<sup>j2πn</sup> = 1</span>。</b></p>
+            <div class="eq">
+              e<sup>j2πn</sup> = cos(2πn) + j·sin(2πn) = 1 + j·0 = 1 &nbsp;&nbsp;（n 是整数）
+            </div>
+            <p class="why">为什么这里必须强调"n 是整数"：<span class="mono">cos</span> 的周期是 <span class="mono">2π</span>，
+              只有在自变量是 <span class="mono">2π</span> 的整数倍时它才等于 1。连续时间里 <span class="mono">e<sup>j2πt</sup></span>
+              随 <span class="mono">t</span> 连续变化，永远消不掉；离散时间里 <span class="mono">n</span> 只能取整数，它<b>必然</b>等于 1。
+              这就是"离散"两个字的全部威力。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：得出结论——第 k 个和第 k+N 个谐波是同一个序列。</b></p>
+            <div class="eq center-eq">
+              φ<sub>k+N</sub>[n] = φ<sub>k</sub>[n] &nbsp;&nbsp;(对所有 n 成立)
+            </div>
+            <p class="why">为什么这条这么重要：它说明 <span class="mono">k</span> 只在<b>模 N</b> 的意义下有意义。
+              于是 <span class="mono">k = 0, 1, …, N−1</span> 这 N 个值就已经穷尽了所有不同的谐波；
+              <span class="mono">k = N</span> 与 <span class="mono">k = 0</span> 是同一个，
+              <span class="mono">k = N+1</span> 与 <span class="mono">k = 1</span> 是同一个，依此类推。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：系数也跟着周期重复。</b></p>
+            <p>由分析式（下一节给出），把 <span class="mono">k</span> 换成 <span class="mono">k+N</span>：</p>
+            <div class="eq">
+              c<sub>k+N</sub> = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] e<sup>−j(k+N)(2π/N)n</sup>
+              = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] e<sup>−jk(2π/N)n</sup> · e<sup>−j2πn</sup> = c<sub>k</sub>
+            </div>
+            <p class="why">为什么：又是 <span class="mono">e<sup>−j2πn</sup> = 1</span>。这一条你可以立刻在下面的实验台里亲眼验证：
+              一个周期内那 N 根谱线，会在 <span class="mono">k</span> 轴上<b>每 N 个点</b>一模一样地重复一遍。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">本页最重要的一句话</span>
+            <p style="margin-bottom:0">
+              <b>周期为 N 的离散周期信号，只有 N 个独立谐波；DTFS 是 N 项的有限和，而不是无穷级数。</b>
+              因此它没有第 4 章那种收敛讨论，也不会有吉布斯过冲（第 9 节会用实验证明这一点）。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box intuition">
+        <span class="tag">几何直觉：频率是"圆上的刻度"</span>
+        <p>
+          把复指数想成<b>在单位圆上以每步 <span class="mono">ω<sub>0</sub> = 2π/N</span> 的角度往前走</b>的点。
+          走 N 步正好回到出发点（转满一圈）。
+          所以"每步 2π/N"和"每步 2π/N + 2π"是同一件事，只是你多绕了一圈；
+          频率轴于是卷成了一个周长 <span class="mono">2π</span> 的圆。
+        </p>
+        <p style="margin-bottom:0">
+          圆上均匀刻 N 个刻度，走 <span class="mono">k</span> 步和走 <span class="mono">k+N</span> 步落在<b>同一个刻度</b>上——
+          这就是 <span class="mono">φ<sub>k+N</sub> = φ<sub>k</sub></span> 的几何版本。
+          记住这个圆，第 7 章"频谱以 2π 为周期"就是它的直接后果。
+        </p>
+      </div>
+
+      <h2 id="s3">3. 定义对与符号表</h2>
+
+      <p>
+        把 <span class="mono">x[n]</span> 写成 N 个谐波的加权和，权重记作 <span class="mono">c<sub>k</sub></span>，
+        就得到离散时间傅里叶级数的<b>一对公式</b>：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">DTFS 定义对（<span class="term" data-def="discrete-time Fourier series，中文含义：离散时间傅里叶级数。把周期为 N 的序列写成 N 个谐波 e^{jk(2π/N)n} 的加权和，权重 c_k 由分析式算出。">离散时间傅里叶级数</span>，discrete-time Fourier series）</span>
+        <div class="eq center-eq" style="margin:8px 0">
+          <b>综合式（合成）</b>&nbsp;&nbsp; x[n] =
+          <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+          c<sub>k</sub> e<sup>jk(2π/N)n</sup>
+          <span class="lbl">(5-1)</span>
+        </div>
+        <div class="eq center-eq" style="margin:8px 0">
+          <b>分析式（求系数）</b>&nbsp;&nbsp; c<sub>k</sub> =
+          <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+          <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+          x[n] e<sup>−jk(2π/N)n</sup>
+          <span class="lbl">(5-2)</span>
+        </div>
+        <p style="margin-bottom:0" class="small">
+          记号 <span class="mono">&lt;N&gt;</span> 读作"任意连续的 N 个整数"。
+          可以取 <span class="mono">k = 0, 1, …, N−1</span>，也可以取 <span class="mono">k = 3, 4, …, N+2</span>——
+          因为谐波和系数都以 N 为周期，取哪一段都一样（这是离散时间独有的方便）。
+        </p>
+      </div>
+
+      <p>
+        这里的 <span class="mono">c<sub>k</sub></span> 叫
+        <span class="term" data-def="spectral coefficients，中文含义：频谱系数。即 DTFS 系数 c_k，是复数；它描述 x[n] 中第 k 次谐波的复振幅。">频谱系数</span>
+        （spectral coefficients），复数，把它的<b>模长</b>和<b>辐角</b>分开看就是两张图：
+      </p>
+      <ul style="padding-left:22px">
+        <li><span class="mono">|c<sub>k</sub>|</span> 叫
+          <span class="term" data-def="magnitude spectrum，中文含义：幅度谱。各次谐波强度的分布。">幅度谱</span>（magnitude spectrum）：哪次谐波强、哪次弱；</li>
+        <li><span class="mono">∠c<sub>k</sub></span> 叫
+          <span class="term" data-def="phase spectrum，中文含义：相位谱。各次谐波相对时间原点的相位。">相位谱</span>（phase spectrum）：每次谐波被推迟了多少。</li>
+      </ul>
+
+      <table class="tbl sm">
+        <thead><tr><th>符号</th><th>中文名 / 含义</th><th>直观理解</th></tr></thead>
+        <tbody>
+          <tr><td class="ft">n</td><td>离散时间序号</td><td>只能取整数：第几个样本。</td></tr>
+          <tr><td class="ft">N</td><td><span class="term" data-def="period，中文含义：周期（离散）。使 x[n]=x[n+N] 成立的最小正整数。">周期</span>（period）</td><td>波形每 N 个样本重复一次。</td></tr>
+          <tr><td class="ft">ω<sub>0</sub> = 2π/N</td><td>基波角频率</td><td>单位 <b>rad/样本</b>；每个样本上相位前进的角度。</td></tr>
+          <tr><td class="ft">k</td><td><span class="term" data-def="harmonic index，中文含义：谐波序号。第 k 次谐波；在离散时间里只在模 N 的意义下不同。">谐波序号</span>（harmonic index）</td><td>第几号谐波。<b>只有 N 个不同的值</b>。</td></tr>
+          <tr><td class="ft">&lt;N&gt;</td><td>任意连续 N 个整数</td><td>"取一个周期那么长"的求和范围。</td></tr>
+          <tr><td class="ft">c<sub>k</sub></td><td>频谱系数（复数）</td><td>第 k 次谐波的复振幅：模=强度，角=相位。</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">两个 1/N 的位置别记反</span>
+        <p style="margin-bottom:0">
+          分析式（求 <span class="mono">c<sub>k</sub></span>）带 <span class="mono">1/N</span>，综合式<b>不带</b>。
+          这和 CTFS 的习惯一致（那里分析式带 <span class="mono">1/T</span>），但和 DFT 的习惯相反
+          （第 11 节会说清 DFT 差在哪里）。记法：<b>"量"信号的一方要平均一下，所以要除以长度。</b>
+        </p>
+      </div>
+
+      <h2 id="s4">4. 推导：c<sub>k</sub> 是怎么被"量"出来的</h2>
+      <p>
+        为什么式 (5-2) 能正确地把第 <span class="mono">k</span> 次谐波的权重抠出来？靠的是谐波之间的
+        <span class="term" data-def="orthogonality，中文含义：正交性。不同的谐波在一个周期内"互相抵消"：把它们的乘积在一个周期上求和得 0，只有同频率的才剩下 N。">正交性</span>
+        （orthogonality）。先证明一条引理，再套公式。
+      </p>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：正交性引理 + c_k 公式的完整来历</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步（正交性引理）：对一个周期求和，不同谐波互相抵消。</b></p>
+            <div class="eq center-eq">
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              e<sup>jq(2π/N)n</sup> =
+              <span style="font-size:15px">｛</span> N，若 q 是 N 的整数倍；&nbsp; 0，其它情况 <span style="font-size:15px">｝</span>
+            </div>
+            <p class="why">为什么：若 <span class="mono">q</span> 是 N 的整数倍，则每一项 <span class="mono">e<sup>jq2πn/N</sup> = 1</span>，
+              N 项相加得 N。若不然，令 <span class="mono">r = e<sup>jq(2π/N)</sup> ≠ 1</span>，
+              这是一个等比数列，公比 <span class="mono">r</span>，所以
+              <span class="mono">Σ<sub>n=0</sub><sup>N−1</sup> r<sup>n</sup> = (1−r<sup>N</sup>)/(1−r)</span>，
+              而 <span class="mono">r<sup>N</sup> = e<sup>jq2π</sup> = 1</span>，分子为 0，故和为 0。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：在综合式两边乘上"探针" <span class="mono">e<sup>−jr(2π/N)n</sup></span>，再对 n 求和。</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] e<sup>−jr(2π/N)n</sup>
+              =
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              c<sub>k</sub> e<sup>jk(2π/N)n</sup>
+              <span style="font-size:20px">]</span> e<sup>−jr(2π/N)n</sup>
+            </div>
+            <p class="why">为什么这么做：这就像用"频率为 r 的筛子"去筛信号。若 <span class="mono">x[n]</span> 里含有频率 r 的成分，
+              它会在这一步被留下；其它频率会被筛掉（下一步就看到了）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：交换两个求和的次序，把指数合并。</b></p>
+            <div class="eq">
+              =
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              c<sub>k</sub>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              e<sup>j(k−r)(2π/N)n</sup>
+            </div>
+            <p class="why">为什么可以换次序：两边都是<b>有限</b>和（各 N 项），有限项的求和随便交换都不会出问题——
+              这一点比连续时间省心得多，那里要靠绝对收敛才能交换积分次序。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：用第 1 步的引理，内层和只在 <span class="mono">k = r</span>（模 N）时非零。</b></p>
+            <div class="eq center-eq">
+              左边 = N · c<sub>r</sub> &nbsp;&nbsp;（其它 k 的项全被筛掉，剩下 c<sub>r</sub> 乘以 N）
+            </div>
+            <p class="why">为什么剩下的是 <span class="mono">c<sub>r</sub></span>：把引理里的 <span class="mono">q</span> 换成 <span class="mono">k−r</span>，
+              只有当 <span class="mono">k−r</span> 是 N 的整数倍时内层和才等于 N。而在 <span class="mono">k</span> 的一个周期范围内，
+              满足这个条件的 <span class="mono">k</span> 只有一个，就是 <span class="mono">k = r</span>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 5 步：两边除以 N，得到分析式。</b></p>
+            <div class="eq center-eq">
+              c<sub>r</sub> =
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] e<sup>−jr(2π/N)n</sup>
+            </div>
+            <p class="why">为什么除以 N 而不是别的数：因为引理给出的是 N，我们要的是"平均一个样本贡献了多少"，
+              所以要除掉长度 N。<b>这个 1/N 就是"平均"两个字的来源。</b></p>
+          </div>
+
+          <div class="step">
+            <p><b>第 6 步（顺带一个结论）：N 个系数唯一确定 N 个样本值。</b></p>
+            <p>
+              把综合式在 <span class="mono">n = 0, 1, …, N−1</span> 上写出来，就得到 N 个方程、N 个未知数
+              <span class="mono">c<sub>0</sub>, …, c<sub>N−1</sub></span> 的线性方程组；由正交性可以证明这组方程线性无关，
+              因此<b>有且仅有一组解</b>。
+            </p>
+            <p class="why">为什么这条决定了"没有吉布斯现象"：一个周期里只有 N 个数字要记，
+              傅里叶级数把这 N 个数字换成另外 N 个数字，<b>信息量完全相等</b>，不存在"永远逼近不到"的问题。
+              第 9 节的实验会让你看到：取满 N 项之后误差是机器精度的 0。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s5">5. 动手：改 N，看"独立谐波个数 = N"</h2>
+      <p>
+        下面这张实验台是本页的核心。<b>左图</b>是周期序列（画了三个周期，深色带是一个基波周期），
+        <b>右图</b>是它的幅度谱 <span class="mono">|c<sub>k</sub>|</span>：红色是"基础周期内"的 N 根谱线，
+        灰色是它们在 <span class="mono">k</span> 轴上每 N 个点重复一次的样子。
+      </p>
+      <p class="small muted">
+        怎么玩：先把 N 在 3 和 16 之间来回拖，盯住红线的<b>根数</b>；再比对任意一对
+        <span class="mono">k</span> 与 <span class="mono">k+N</span> 的高度（读数栏里直接给了数值）。
+      </p>
+
+      <div id="lab-dtfs"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p style="margin-bottom:0">
+          灰色谱线不是"另一批谐波"，它们<b>就是</b>红色的那 N 根，只是被搬到了每隔 N 个格子的位置上。
+          换句话说：给出 <span class="mono">k = 0, 1, …, N−1</span> 这 N 个数，你就知道了全部；
+          <span class="mono">c<sub>k+N</sub> = c<sub>k</sub></span> 对任何整数 <span class="mono">k</span> 都成立。
+          把波形换成单脉冲 <span class="mono">δ[n]</span> 还会有个惊喜：所有 <span class="mono">|c<sub>k</sub>|</span> 一样高，
+          是一条水平线——这和第 6 章"冲激的频谱是常数"是同一件事的离散版本。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 与连续时间傅里叶级数的对照</h2>
+      <p>
+        这一节把第 4 章和本章并排放。表格里每一行的差别，根子都在
+        <span class="mono">e<sup>−j2πn</sup> = 1</span>（<span class="mono">n</span> 是整数）这一条上。
+      </p>
+
+      <table class="tbl">
+        <thead><tr><th>对比项</th><th>连续时间（CTFS，第 4 章）</th><th>离散时间（DTFS，本章）</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>原子（谐波）</td>
+            <td class="ft">e<sup>jkω<sub>0</sub>t</sup>，k 取遍所有整数，<b>每个都不同</b></td>
+            <td class="ft">e<sup>jk(2π/N)n</sup>，<b>只有 N 个不同</b>（k 模 N）</td>
+          </tr>
+          <tr>
+            <td>谐波个数</td>
+            <td>无穷多</td>
+            <td><b>N 个</b></td>
+          </tr>
+          <tr>
+            <td>级数形式</td>
+            <td>无穷级数 <span class="ft">Σ<sub>k=−∞</sub><sup>∞</sup></span></td>
+            <td>有限和 <span class="ft">Σ<sub>k=&lt;N&gt;</sub></span>（恰好 N 项）</td>
+          </tr>
+          <tr>
+            <td>系数的周期</td>
+            <td>没有周期性</td>
+            <td class="ft">c<sub>k+N</sub> = c<sub>k</sub></td>
+          </tr>
+          <tr>
+            <td>分析式</td>
+            <td class="ft">a<sub>k</sub> = (1/T) ∫<sub>T</sub> x(t)e<sup>−jkω<sub>0</sub>t</sup>dt</td>
+            <td class="ft">c<sub>k</sub> = (1/N) Σ<sub>n=&lt;N&gt;</sub> x[n]e<sup>−jk(2π/N)n</sup></td>
+          </tr>
+          <tr>
+            <td>正交性的样子</td>
+            <td>∫<sub>T</sub> 上积分为 0（或 T）</td>
+            <td>Σ<sub>n=&lt;N&gt;</sub> 求和为 0（或 N）</td>
+          </tr>
+          <tr>
+            <td>收敛与吉布斯</td>
+            <td>需要收敛条件；跳变处有约 9% <span class="term" data-def="Gibbs phenomenon，中文含义：吉布斯现象。用有限项傅里叶级数逼近带跳变的周期信号时，跳变附近出现过冲（约 9%），且不随项数增加而减小，只是被压缩到跳变附近。">吉布斯过冲</span></td>
+            <td><b>没有收敛问题，也没有过冲</b>（N 项即精确）</td>
+          </tr>
+          <tr>
+            <td>Parseval（功率）</td>
+            <td class="ft">(1/T)∫<sub>T</sub>|x|²dt = Σ<sub>k</sub>|a<sub>k</sub>|²</td>
+            <td class="ft">(1/N)Σ<sub>n=&lt;N&gt;</sub>|x[n]|² = Σ<sub>k=&lt;N&gt;</sub>|c<sub>k</sub>|²</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box trap">
+        <span class="tag">最容易搞错的一点</span>
+        <p style="margin-bottom:0">
+          "只有 N 个独立谐波"≠"<span class="mono">c<sub>k</sub></span> 只有 N 个值"。
+          <span class="mono">c<sub>k</sub></span> 对<b>任意</b>整数 <span class="mono">k</span> 都有定义，
+          只不过第 <span class="mono">k+N</span> 个和第 <span class="mono">k</span> 个必然相等。
+          写综合式时只取其中 N 个（取哪一段都行，不能重复取）。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 性质表与五条关键推导</h2>
+      <p>
+        下表把 DTFS 的性质列全。设 <span class="mono">x[n]</span> 与 <span class="mono">y[n]</span> 都以 N 为周期，
+        系数分别是 <span class="mono">c<sub>k</sub></span> 与 <span class="mono">d<sub>k</sub></span>。
+      </p>
+
+      <table class="tbl sm">
+        <thead><tr><th>性质</th><th class="c">时域（周期 N）</th><th class="c">系数（周期 N）</th><th>一句话理解</th></tr></thead>
+        <tbody>
+          <tr><td>线性</td><td class="c ft">A x[n] + B y[n]</td><td class="c ft">A c<sub>k</sub> + B d<sub>k</sub></td><td>变换对加法与数乘都"放行"。</td></tr>
+          <tr><td>时移</td><td class="c ft">x[n − n<sub>0</sub>]</td><td class="c ft">c<sub>k</sub> e<sup>−jk(2π/N)n<sub>0</sub></sup></td><td>幅度谱不变，相位谱加一条线性斜坡。</td></tr>
+          <tr><td>频移</td><td class="c ft">e<sup>jM(2π/N)n</sup> x[n]</td><td class="c ft">c<sub>k−M</sub></td><td>乘复指数 = 系数整体循环平移 M 格。</td></tr>
+          <tr><td>共轭</td><td class="c ft">x*[n]</td><td class="c ft">c*<sub>−k</sub></td><td>——</td></tr>
+          <tr><td>时间反转</td><td class="c ft">x[−n]</td><td class="c ft">c<sub>−k</sub></td><td>时间倒放 = 谱线左右翻转。</td></tr>
+          <tr><td><b>周期卷积</b></td><td class="c ft">Σ<sub>r=&lt;N&gt;</sub> x[r] y[n−r]</td><td class="c ft">N c<sub>k</sub> d<sub>k</sub></td><td>时域"循环卷积" = 频域相乘（注意多出的 N）。</td></tr>
+          <tr><td>相乘</td><td class="c ft">x[n] y[n]</td><td class="c ft">Σ<sub>l=&lt;N&gt;</sub> c<sub>l</sub> d<sub>k−l</sub></td><td>时域相乘 = 系数做<b>周期卷积</b>（离散特有的对偶）。</td></tr>
+          <tr><td>一阶差分</td><td class="c ft">x[n] − x[n−1]</td><td class="c ft">(1 − e<sup>−jk(2π/N)</sup>) c<sub>k</sub></td><td>差分 = 乘上一个与 k 有关的因子（离散版的"微分乘 jω"）。</td></tr>
+          <tr><td>累加</td><td class="c ft">Σ<sub>m=−∞</sub><sup>n</sup> x[m]</td><td class="c ft">c<sub>k</sub> / (1 − e<sup>−jk(2π/N)</sup>)</td><td>只在 <span class="ft">c<sub>0</sub> = 0</span> 且序列有界时成立；否则还要加冲激串。</td></tr>
+          <tr><td>实信号的共轭对称</td><td class="c ft">x[n] 为实数</td><td class="c ft">c<sub>−k</sub> = c*<sub>k</sub></td><td>模偶对称、相位奇对称（见第 8 节）。</td></tr>
+          <tr><td>实偶 / 实奇</td><td class="c ft">实且偶 / 实且奇</td><td class="c ft">c<sub>k</sub> 实且偶 / c<sub>k</sub> 纯虚且奇</td><td>对称性可以从时域直接"读"出来。</td></tr>
+          <tr><td>帕塞瓦尔</td><td class="c ft">(1/N)Σ<sub>n=&lt;N&gt;</sub>|x[n]|²</td><td class="c ft">Σ<sub>k=&lt;N&gt;</sub>|c<sub>k</sub>|²</td><td>平均功率守恒。</td></tr>
+        </tbody>
+      </table>
+
+      <details class="deriv">
+        <summary>五条关键性质的推导（时移 / 频移 / 周期卷积 / 相乘 / 帕塞瓦尔）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>(a) 时移：x[n − n<sub>0</sub>] ⟷ c<sub>k</sub> e<sup>−jk(2π/N)n<sub>0</sub></sup></b></p>
+            <p>把 <span class="mono">x[n−n<sub>0</sub>]</span> 代进分析式：</p>
+            <div class="eq">
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n−n<sub>0</sub>] e<sup>−jk(2π/N)n</sup>
+              &nbsp;<span style="color:var(--accent);font-size:14px">令 m = n − n<sub>0</sub>，则 n = m + n<sub>0</sub></span>&nbsp;
+              = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">m=&lt;N&gt;</span></span>
+              x[m] e<sup>−jk(2π/N)(m+n<sub>0</sub>)</sup>
+            </div>
+            <div class="eq">
+              = e<sup>−jk(2π/N)n<sub>0</sub></sup> ·
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">m=&lt;N&gt;</span></span>
+              x[m] e<sup>−jk(2π/N)m</sup>
+              = c<sub>k</sub> e<sup>−jk(2π/N)n<sub>0</sub></sup>
+            </div>
+            <p class="why">为什么求和范围不变：<span class="mono">n</span> 走一个周期时 <span class="mono">m = n−n<sub>0</sub></span>
+              也正好走一个周期（只是起点挪了），而被求和的东西本身以 N 为周期，所以换起点不影响结果。
+              指数里的 <span class="mono">n<sub>0</sub></span> 是常数，可以提出求和号外。
+              由此立刻看出：<span class="mono">|e<sup>−jk(2π/N)n<sub>0</sub></sup>| = 1</span>，
+              所以<b>时移完全不改幅度谱</b>，只给相位谱加一条随 k 线性增长的斜坡。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(b) 频移：e<sup>jM(2π/N)n</sup> x[n] ⟷ c<sub>k−M</sub></b></p>
+            <div class="eq">
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              e<sup>jM(2π/N)n</sup> x[n] e<sup>−jk(2π/N)n</sup>
+              = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] e<sup>−j(k−M)(2π/N)n</sup> = c<sub>k−M</sub>
+            </div>
+            <p class="why">为什么：两个指数合并后，剩下的正好是"把分析式里的 k 换成 k−M"。
+              注意这里的平移是<b>循环</b>的：<span class="mono">k−M</span> 按模 N 取，
+              搬出边界的谱线会从另一头绕回来——这正是"频率轴卷成圆"的又一个后果。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(c) 周期卷积：Σ<sub>r=&lt;N&gt;</sub> x[r] y[n−r] ⟷ N c<sub>k</sub> d<sub>k</sub></b></p>
+            <p>记 <span class="mono">w[n] = Σ<sub>r=&lt;N&gt;</sub> x[r]y[n−r]</span>，直接算它的系数：</p>
+            <div class="eq">
+              W<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">r=&lt;N&gt;</span></span>
+              x[r] y[n−r]
+              <span style="font-size:20px">]</span> e<sup>−jk(2π/N)n</sup>
+              =
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">r=&lt;N&gt;</span></span>
+              x[r]
+              <span style="font-size:20px">[</span>
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              y[n−r] e<sup>−jk(2π/N)n</sup>
+              <span style="font-size:20px">]</span>
+            </div>
+            <p class="why">为什么能交换次序：两个都只是各 N 项的有限和，再次强调——<b>有限和随便换</b>。</p>
+            <div class="eq">
+              = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">r=&lt;N&gt;</span></span>
+              x[r] · d<sub>k</sub> e<sup>−jk(2π/N)r</sup>
+              = d<sub>k</sub> ·
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">r=&lt;N&gt;</span></span>
+              x[r] e<sup>−jk(2π/N)r</sup>
+              = N c<sub>k</sub> d<sub>k</sub>
+            </div>
+            <p class="why">为什么方括号里等于 <span class="mono">d<sub>k</sub>e<sup>−jk(2π/N)r</sup></span>：这正是刚证过的
+              <b>时移性质</b>（把 <span class="mono">n<sub>0</sub></span> 换成 <span class="mono">r</span>）。
+              最后一步注意：<span class="mono">Σ x[r]e<sup>−jk(2π/N)r</sup> = N c<sub>k</sub></span>（分析式两边乘 N）。
+              <b>那个 N 就是这样冒出来的</b>，别漏。</p>
+            <p class="small muted">这就是
+              <span class="term" data-def="periodic convolution，中文含义：周期卷积（也译循环卷积）。两个周期为 N 的序列做卷积时，求和只在一个周期 N 项上进行，结果仍以 N 为周期；超出边界的部分会绕回来，所以叫"循环"。">周期卷积</span>
+              （periodic convolution / circular convolution）。第 8 章讲 DFT 时它会以"循环卷积"的名字再出现一次，
+              并与普通卷积的差别成为考试重点。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(d) 相乘：x[n] y[n] ⟷ Σ<sub>l=&lt;N&gt;</sub> c<sub>l</sub> d<sub>k−l</sub></b></p>
+            <p>把 <span class="mono">y[n]</span> 用综合式写开，再交换求和次序：</p>
+            <div class="eq">
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] y[n] e<sup>−jk(2π/N)n</sup>
+              = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n]
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">l=&lt;N&gt;</span></span>
+              d<sub>l</sub> e<sup>jl(2π/N)n</sup>
+              <span style="font-size:20px">]</span> e<sup>−jk(2π/N)n</sup>
+            </div>
+            <div class="eq">
+              = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">l=&lt;N&gt;</span></span>
+              d<sub>l</sub>
+              <span style="font-size:20px">[</span>
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] e<sup>−j(k−l)(2π/N)n</sup>
+              <span style="font-size:20px">]</span>
+              = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">l=&lt;N&gt;</span></span>
+              d<sub>l</sub> c<sub>k−l</sub>
+            </div>
+            <p class="why">为什么是"系数做卷积"：方括号里就是 <span class="mono">c<sub>k−l</sub></span>（分析式）。
+              于是时域的逐点相乘，变成频域里两个系数序列的周期卷积。
+              <b>注意这里的对偶方向和连续时间相反</b>：连续时间里"时域相乘 ⟷ 频域（非周期）卷积"，
+              离散时间里频域的卷积是<b>周期</b>卷积——因为系数本身就周期。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(e) 帕塞瓦尔：(1/N)Σ<sub>n=&lt;N&gt;</sub>|x[n]|² = Σ<sub>k=&lt;N&gt;</sub>|c<sub>k</sub>|²</b></p>
+            <div class="eq">
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              |x[n]|²
+              =
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n]
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              c<sub>k</sub> e<sup>jk(2π/N)n</sup>
+              <span style="font-size:20px">]</span><sup>*</sup>
+            </div>
+            <p class="why">为什么可以取共轭：<span class="mono">|x[n]|² = x[n]x*[n]</span>，
+              而 <span class="mono">x*[n]</span> 就是综合式两边取共轭，指数上的符号翻过来。</p>
+            <div class="eq">
+              = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              c*<sub>k</sub>
+              <span style="font-size:20px">[</span>
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x[n] e<sup>−jk(2π/N)n</sup>
+              <span style="font-size:20px">]</span>
+              = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              |c<sub>k</sub>|²
+            </div>
+            <p class="why">为什么有意义：左边是
+              <span class="term" data-def="average power，中文含义：平均功率。周期信号在一个周期内的平均能量，离散情形为 (1/N)Σ|x[n]|²。">平均功率</span>
+              （一个周期内的平均能量），右边是各次谐波功率之和。功率守恒：
+              <b>时域算还是频域算，结果一样</b>。这也是把 <span class="mono">|c<sub>k</sub>|²</span> 解释为
+              "第 k 次谐波贡献的平均功率"的依据。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s8">8. 实信号的对称性</h2>
+      <p>
+        若 <span class="mono">x[n]</span> 是<b>实序列</b>（工程中绝大多数情况），由共轭性质
+        <span class="mono">x*[n] ⟷ c*<sub>−k</sub></span> 配合 <span class="mono">x*[n] = x[n]</span> 可得：
+      </p>
+      <div class="eq center-eq">
+        c<sub>−k</sub> = c*<sub>k</sub>
+      </div>
+      <p>把它翻译成两张图上的话：</p>
+      <ul style="padding-left:22px">
+        <li><b>幅度谱偶对称</b>：<span class="mono">|c<sub>−k</sub>| = |c<sub>k</sub>|</span>；</li>
+        <li><b>相位谱奇对称</b>：<span class="mono">∠c<sub>−k</sub> = −∠c<sub>k</sub></span>；</li>
+        <li>进一步：实且<b>偶</b>的序列 ⟹ <span class="mono">c<sub>k</sub></span> 是<b>实</b>且偶的；
+          实且<b>奇</b>的序列 ⟹ <span class="mono">c<sub>k</sub></span> 是<b>纯虚</b>且奇的。</li>
+      </ul>
+      <div class="box warn">
+        <span class="tag">小心 <span class="mono">−k</span> 在离散时间里的意思</span>
+        <p style="margin-bottom:0">
+          因为 <span class="mono">c<sub>k</sub></span> 以 N 为周期，<span class="mono">c<sub>−k</sub></span>
+          其实就是 <span class="mono">c<sub>N−k</sub></span>（对 <span class="mono">k = 1, …, N−1</span>）。
+          所以在画"一个周期内的 N 根谱线"时，负频率那半边被折到了 <span class="mono">k</span> 轴的高端。
+          换句话说：<b>第 1 根和第 N−1 根是一对（±1 次谐波），第 2 根和第 N−2 根是一对</b>，
+          而 <span class="mono">k = 0</span>（直流）自成一类。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 动手：N 项谐波就能精确重建（没有吉布斯）</h2>
+      <p>
+        取一个 <span class="mono">±1</span> 的对称方波，只用 <span class="mono">k = −M, …, M</span>
+        这些谐波把它拼回去。改动 M，看误差怎么变。
+      </p>
+
+      <div id="lab-recon"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          当 <span class="mono">M</span> 加到 <span class="mono">(N−1)/2</span> 时，你正好用满
+          <span class="mono">2M+1 = N</span> 个谐波，重建误差立刻变成 <b>0</b>（读数栏显示的是 1e−15 上下，那是浮点误差，不是真实偏差）。
+          这不是"近似得足够好"，而是<b>完全相等</b>：N 个谐波携带的信息量和 N 个样本值一模一样。
+        </p>
+        <p style="margin-bottom:0">
+          把这件事和第 4 章的方波对比一下：连续时间的方波不管用多少项，跳变处永远有约 9% 的过冲（吉布斯现象）；
+          离散时间<b>根本不会出现</b>这种过冲，因为它的级数是有限的，压根没有"项数不够多"这种事。
+        </p>
+      </div>
+
+      <h2 id="s10">10. 动手：时移改相位、频移搬谱线</h2>
+      <p>
+        性质表里的"时移"和"频移"两条，用图看最清楚。设基准波形是一个对称的衰减脉冲串
+        <span class="mono">x[n] = a<sup>d(n)</sup></span>（<span class="mono">d(n)</span> 是 <span class="mono">n</span> 到 0 的环形距离，<span class="mono">a = 0.7</span>），
+        它的系数恰好都是<b>正实数</b>，所以相位谱看起来最干净。
+      </p>
+
+      <div id="lab-shift"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          <b>时移 <span class="mono">n<sub>0</sub></span></b>：幅度谱两根曲线完全重合（读数栏里"时移前后 |c<sub>k</sub>| 最大差"在 1e−16 ~ 1e−15 之间），
+          而相位谱变成一条斜率 <span class="mono">−2πn<sub>0</sub>/N</span> 的直线——只是被折进了
+          <span class="mono">(−π, π]</span> 这个区间，所以看起来是锯齿状。这就是"时移 ⟹ 线性相位"的本来面目。
+        </p>
+        <p style="margin-bottom:0">
+          <b>频移 <span class="mono">M</span></b>：幅度谱整体沿着 <span class="mono">k</span> 轴循环平移 M 格，
+          搬出右端的谱线从左端绕回来。因为离散频率是"圆上的刻度"，平移天然是循环的。
+        </p>
+      </div>
+
+      <h2 id="s11">11. DTFS 与 DFT、DTFT 是什么关系</h2>
+      <p>
+        你以后在 MATLAB / Python 里敲的 <span class="mono">fft</span>，算出来的正是本章的 <span class="mono">c<sub>k</sub></span>，
+        只差一个 <span class="mono">1/N</span> 和写法：
+      </p>
+      <div class="eq center-eq">
+        X[k] = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+        x[n] e<sup>−j2πkn/N</sup> = N · c<sub>k</sub> &nbsp;&nbsp;&nbsp;
+        ⟹ &nbsp;&nbsp;&nbsp; c<sub>k</sub> = X[k] / N
+      </div>
+      <p>
+        也就是说，<span class="mono">c<sub>k</sub></span> 和
+        <span class="term" data-def="discrete Fourier transform，中文含义：离散傅里叶变换。计算机上的傅里叶变换：把 N 个样本变成 N 个频域系数，对应 DTFS 系数乘以 N。">DFT</span>
+        （Discrete Fourier Transform）是同一批数字，只是"归一化位置"不同：
+        DTFS 把 <span class="mono">1/N</span> 放在分析式里（数学家的写法），DFT 把它省在正变换里、放在反变换里（工程师的写法）。
+        第 8 章会专门讲 DFT，以及让计算量从 <span class="mono">N²</span> 降到 <span class="mono">N log N</span> 的 FFT 算法。
+      </p>
+
+      <div class="box ok">
+        <span class="tag">通往下两章的桥</span>
+        <p>
+          <b>与 DTFT（第 7 章）</b>：如果把一个有限长序列以 N 为周期延拓，那么它的 DTFS 系数满足
+          <span class="mono">c<sub>k</sub> = (1/N)·X(e<sup>jk2π/N</sup>)</span>——
+          <b>DTFS 系数就是 DTFT 在等间隔频率点上的采样</b>，采样间隔 <span class="mono">2π/N</span>。
+          N 越大，采样点越密，N→∞ 时离散的 <span class="mono">c<sub>k</sub></span> 就"挤成"连续的
+          <span class="mono">X(e<sup>jω</sup>)</span>。这正是第 7 章开头的推导思路。
+        </p>
+        <p style="margin-bottom:0">
+          <b>与 DFS 的别名</b>：有的教材把本章内容叫 DFS（discrete Fourier series），和 DTFS 是一回事。
+        </p>
+      </div>
+
+      <h2 id="s12">12. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：把 k 写成 −∞ 到 +∞</h4>
+          <p class="small">离散周期信号的谐波只有 N 个不同的。综合式写成
+            <span class="mono">Σ<sub>k=−∞</sub><sup>∞</sup></span> 会把同一根谱线加很多遍，结果是原信号的无穷多倍。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：1/N 的位置记反</h4>
+          <p class="small">分析式（求 <span class="mono">c<sub>k</sub></span>）带 <span class="mono">1/N</span>，综合式不带。
+            写反了会让所有系数整体差 N 倍。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：以为 c<sub>k</sub> 只有 N 个值</h4>
+          <p class="small"><span class="mono">c<sub>k</sub></span> 对任意整数 k 都有定义，只是以 N 为周期。
+            "只有 N 个不同值"和"只在 N 个 k 上有定义"是两件事。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：把 2π/N 写成 2π/T</h4>
+          <p class="small">离散时间的周期是<b>样本个数</b> N，不是秒。基频
+            <span class="mono">ω<sub>0</sub> = 2π/N</span> 的单位是 <b>rad/样本</b>，
+            别和连续时间的 rad/s 混用。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：把 DTFS 的 c<sub>k</sub> 当成 DFT 的 X[k]</h4>
+          <p class="small">两者差一个因子 N：<span class="mono">X[k] = N c<sub>k</sub></span>。
+            用 <span class="mono">fft</span> 算出结果后想得到 <span class="mono">c<sub>k</sub></span>，记得除以 N。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：以为离散方波也有吉布斯过冲</h4>
+          <p class="small">离散时间傅里叶级数是有限项（N 项），取满就精确相等，不存在过冲。
+            看到"过冲"两个字，先确认在讨论连续时间还是离散时间。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：忘记周期卷积里的 N</h4>
+          <p class="small"><span class="mono">Σ<sub>r=&lt;N&gt;</sub>x[r]y[n−r] ⟷ N c<sub>k</sub>d<sub>k</sub></span>。
+            这个 N 来自分析式的归一化，少写它是最常见的丢分点。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：负频率当成"不存在的频率"</h4>
+          <p class="small">对实信号，<span class="mono">c<sub>−k</sub> = c*<sub>k</sub></span>，负频率那半边是冗余的。
+            但它不是错误：它是把余弦拆成两个复指数时的必然产物。而且在离散时间里
+            <span class="mono">c<sub>−k</sub></span> 就写在 <span class="mono">k = N−1, N−2, …</span> 的位置上。</p>
+        </div>
+      </div>
+
+      <h2 id="s13">13. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz5"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 5 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ============ 本页内联工具（共享内核没有的，自己实现） ============ */
+
+  function modN(v, N) { return ((v % N) + N) % N; }
+
+  /* 控件值安全化：先取整再限幅。滑块有可能被设成小数（例如 min 与 max 的中点 7.5），
+     直接拿去当下标会取到 undefined —— 所有整数控件都必须先过这一关。 */
+  function intOf(v, lo, hi, def) {
+    var x = Math.round(+v);
+    if (!isFinite(x)) x = def;
+    return SSC.clamp(x, lo, hi);
+  }
+  /* 强制取奇数：本页有两个实验台的 Mmax=(N−1)/2 必须是整数 */
+  function oddOf(v, lo, hi, def) {
+    var x = intOf(v, lo, hi, def);
+    if (x % 2 === 0) x = (x + 1 <= hi) ? x + 1 : x - 1;
+    return x;
+  }
+
+  /* 复数版 DTFS：输入可以是实数数组，也可以是 {re,im} 数组；输出 c_k（已除以 N） */
+  function dtfsC(y) {
+    var N = y.length, out = [], k, n, re, im, ang, vr, vi, e;
+    for (k = 0; k < N; k++) {
+      re = 0; im = 0;
+      for (n = 0; n < N; n++) {
+        e = y[n];
+        vr = typeof e === 'number' ? e : e.re;
+        vi = typeof e === 'number' ? 0 : e.im;
+        ang = -2 * Math.PI * k * n / N;
+        re += vr * Math.cos(ang) - vi * Math.sin(ang);
+        im += vr * Math.sin(ang) + vi * Math.cos(ang);
+      }
+      out.push({ re: re / N, im: im / N });
+    }
+    return out;
+  }
+
+  /* 一个周期（n = 0…N−1）上的波形
+     kind: 'pulse' 0/1 对称脉冲；'square' ±1 对称方波；'delta' 单脉冲；'bump' 衰减脉冲串 */
+  function waveSeq(N, kind, N1) {
+    var x = [], n, d;
+    for (n = 0; n < N; n++) {
+      d = Math.min(n, N - n);                       /* n 到 0 的"环形距离" */
+      if (kind === 'delta') x.push(n === 0 ? 1 : 0);
+      else if (kind === 'square') x.push(d <= N1 ? 1 : -1);
+      else if (kind === 'bump') x.push(Math.pow(0.7, d));
+      else x.push(d <= N1 ? 1 : 0);
+    }
+    return x;
+  }
+
+  /* 取 c_k：k 先取整再按模 N 折回；数组越界/缺失时返回 0，绝不抛异常 */
+  function ckAt(c, k) {
+    if (!c || !c.length) return { re: 0, im: 0 };
+    var i = modN(Math.round(+k) || 0, c.length);
+    return c[i] || { re: 0, im: 0 };
+  }
+  function cmag(c, k) { var v = ckAt(c, k); return Math.hypot(v.re, v.im); }
+  function cph(c, k) { var v = ckAt(c, k); return Math.atan2(v.im, v.re); }
+
+  /* 用 k = −M…M 的谐波重建 x[n]（M 先取整并夹到 ≥0，越界项按 0 处理） */
+  function reconAt(c, n, M) {
+    if (!c || !c.length) return 0;
+    var N = c.length, K = Math.max(0, Math.round(+M) || 0), s = 0, k, v, a;
+    for (k = -K; k <= K; k++) {
+      v = ckAt(c, k);
+      a = 2 * Math.PI * k * n / N;
+      s += v.re * Math.cos(a) - v.im * Math.sin(a);
+    }
+    return s;
+  }
+
+  /* π 的倍数刻度标签（本页用来标相位谱的 ±π） */
+  function piTick(v) {
+    var r = v / Math.PI;
+    var known = [[-2, '−2π'], [-1, '−π'], [-0.5, '−π/2'], [0, '0'],
+      [0.5, 'π/2'], [1, 'π'], [2, '2π']];
+    for (var i = 0; i < known.length; i++) if (Math.abs(r - known[i][0]) < 1e-6) return known[i][1];
+    return SSC.fmt(v, 2);
+  }
+
+  /* 刻度标签：整数就写整数（n / k 轴），否则给两位小数（幅度轴） */
+  function niceTick(v) { return Math.abs(v - Math.round(v)) < 1e-9 ? SSC.fmt(v, 0) : SSC.fmt(v, 2); }
+
+  /* 三个周期背景带：让"一个基波周期"看得见 */
+  function periodBands(N) {
+    return [
+      { x1: -N - 0.5, x2: -0.5, color: 'rgba(120,140,180,.10)' },
+      { x1: -0.5, x2: N - 0.5, color: 'rgba(67,56,202,.11)' },
+      { x1: N - 0.5, x2: 2 * N - 0.5, color: 'rgba(120,140,180,.10)' }
+    ];
+  }
+
+  /* 给定波形与周期，返回 {x, c, N, N1}（所有控件值都先取整、限幅） */
+  function build(v) {
+    var N = intOf(v.N, 3, 16, 5);
+    var N1 = intOf(v.N1 == null ? 1 : v.N1, 0, Math.floor((N - 1) / 2), 0);
+    var x = waveSeq(N, v.wave || 'pulse', N1);
+    return { N: N, N1: N1, x: x, c: dtfsC(x) };
+  }
+
+  function avgPower(x) {
+    var s = 0, i;
+    for (i = 0; i < x.length; i++) s += x[i] * x[i];
+    return s / x.length;
+  }
+  function coeffPower(c) {
+    var s = 0, i;
+    for (i = 0; i < c.length; i++) s += c[i].re * c[i].re + c[i].im * c[i].im;
+    return s;
+  }
+
+  /* ---------- 实验 1（核心）：独立谐波个数 = N ---------- */
+  SSC.lab({
+    mount: '#lab-dtfs',
+    title: '实验 1 · 改周期 N：独立谐波个数永远是 N',
+    hint: '拖动 N 与脉冲半宽 N₁，数一数一个周期里有几根红谱线',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：画了 3 个周期，深色带是一个基波周期', height: 205 },
+      { id: 'spec', label: '频谱 |c_k|：红=一个周期内的 N 根，灰=它们每 N 格重复一次', height: 205 }
+    ],
+    controls: [
+      { id: 'N', label: '周期 N', min: 3, max: 16, step: 1, value: 5 },
+      { id: 'wave', label: '波形', options: [
+        { v: 'pulse', t: '对称脉冲序列（0 / 1）' },
+        { v: 'square', t: '对称方波（±1）' },
+        { v: 'delta', t: '单脉冲 δ[n]' }
+      ], value: 'pulse' },
+      { id: 'N1', label: '脉冲半宽 N₁', min: 0, max: 7, step: 1, value: 1 }
+    ],
+    draw: function (cv, v, api) {
+      var b = build(v), N = b.N, x = b.x, c = b.c, bands = periodBands(N);
+      var n, k, m;
+
+      var tx = [], ty = [];
+      for (n = -N; n <= 2 * N - 1; n++) { tx.push(n); ty.push(x[modN(n, N)]); }
+      SSC.plot(cv.time, {
+        xmin: -N - 0.9, xmax: 2 * N - 0.1, ymin: -1.4, ymax: 1.4,
+        xticks: [-N, 0, N], tickFmt: niceTick,
+        xlabel: 'n（样本序号）', ylabel: 'x[n]',
+        bands: bands,
+        stems: [{ xs: tx, ys: ty, color: '#4338ca', label: '周期序列 x[n]' }],
+        legend: true
+      });
+
+      var fIn = [], fInV = [], fRep = [], fRepV = [];
+      for (k = -N; k <= 2 * N - 1; k++) {
+        m = cmag(c, k);
+        if (k >= 0 && k <= N - 1) { fIn.push(k); fInV.push(m); }
+        else { fRep.push(k); fRepV.push(m); }
+      }
+      var peak = 0;
+      for (k = 0; k < N; k++) { if (cmag(c, k) > peak) peak = cmag(c, k); }
+      SSC.plot(cv.spec, {
+        xmin: -N - 0.9, xmax: 2 * N - 0.1, ymin: 0, ymax: Math.max(peak * 1.35, 1e-3),
+        xticks: [-N, 0, N], tickFmt: niceTick,
+        xlabel: 'k（谐波序号）', ylabel: '|c_k|',
+        bands: bands,
+        stems: [
+          { xs: fRep, ys: fRepV, color: '#c3ccdd', width: 1.4, r: 2.4, label: '每 N 格重复的那份' },
+          { xs: fIn, ys: fInV, color: '#dc2626', width: 1.8, r: 3, label: 'N 根独立谱线' }
+        ],
+        legend: true
+      });
+
+      var P = avgPower(x), S = coeffPower(c);
+      api.readout(
+        '<div class="stat"><div class="k">独立谐波个数</div><div class="v">N = ' + N + '</div></div>' +
+        '<div class="stat"><div class="k">|c₁| 与 |c₁₊N|</div><div class="v" style="font-size:13px">' +
+        SSC.fmt(cmag(c, 1), 4) + ' = ' + SSC.fmt(cmag(c, 1 + N), 4) + ' ✓</div></div>' +
+        '<div class="stat"><div class="k">|c₂| 与 |c₂₊N|</div><div class="v" style="font-size:13px">' +
+        SSC.fmt(cmag(c, 2), 4) + ' = ' + SSC.fmt(cmag(c, 2 + N), 4) + ' ✓</div></div>' +
+        '<div class="stat"><div class="k">平均功率 / Σ|c_k|²</div><div class="v" style="font-size:13px">' +
+        SSC.fmt(P, 4) + ' = ' + SSC.fmt(S, 4) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var b = build(v), N = b.N, k, nz = 0, nzList = [];
+      for (k = 0; k < N; k++) if (cmag(b.c, k) > 1e-9) { nz++; if (nzList.length < 10) nzList.push(k); }
+      var txt = '当前 <b>N = ' + N + '</b>，所以 k 只需要取 <b>0 … ' + (N - 1) + '</b> 这 N 个值，' +
+        '<b>独立谐波个数 = N = ' + N + '</b>。读数栏里对上的是 |c₁| 与 |c₁₊N|、|c₂| 与 |c₂₊N|，它们必然相等。';
+      if (v.wave === 'delta') {
+        txt += '<br>单脉冲 δ[n]：所有 |c_k| 都等于 1/N，是一条水平线（离散版的"冲激频谱平坦"）。把 N 拉大，这条线整体压矮。';
+      } else if (v.wave === 'square') {
+        txt += '<br>±1 方波：直流 c₀ = ' + SSC.fmt(ckAt(b.c, 0).re, 4) + '，其余谱线关于 k=0 对称（实偶信号的 c_k 是实数）。';
+      } else {
+        txt += '<br>对称脉冲：一个周期里非零的谱线有 <b>' + nz + '</b> 根，k = ' + nzList.join(', ') +
+          (nz > 10 ? ' …' : '') + '。改变 N 会同时改变"几根谱线"和"每根多高"。';
+      }
+      return txt;
+    }
+  });
+
+  /* ---------- 实验 2：N 项谐波精确重建 ---------- */
+  SSC.lab({
+    mount: '#lab-recon',
+    title: '实验 2 · 取满 N 项谐波，重建误差变成 0',
+    hint: '拖动 M：到 (N−1)/2 时蓝点和灰点完全重合',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：原序列（灰）与 k=−M…M 的部分和（蓝）', height: 205 },
+      { id: 'err', label: '误差 x[n] − x_M[n]（一个周期内逐点）', height: 205 }
+    ],
+    controls: [
+      { id: 'N', label: '周期 N（取奇数）', min: 5, max: 15, step: 2, value: 9 },
+      { id: 'N1', label: '方波半宽 N₁', min: 0, max: 3, step: 1, value: 1 },
+      { id: 'M', label: '最多用到第 M 次谐波', min: 0, max: 7, step: 1, value: 2 }
+    ],
+    draw: function (cv, v, api) {
+      var N = oddOf(v.N, 5, 15, 9);                      /* 奇数：Mmax=(N−1)/2 才是整数 */
+      var N1 = intOf(v.N1, 0, Math.floor((N - 1) / 2), 0);
+      var Mmax = (N - 1) / 2;
+      var M = intOf(v.M, 0, Mmax, 0);
+      var x = waveSeq(N, 'square', N1), c = dtfsC(x);
+      var n, k, bands = periodBands(N);
+
+      var tx = [], ty = [], rx = [], ry = [];
+      for (n = -N; n <= 2 * N - 1; n++) {
+        tx.push(n); ty.push(x[modN(n, N)]);
+        rx.push(n); ry.push(reconAt(c, n, M));
+      }
+      SSC.plot(cv.time, {
+        xmin: -N - 0.9, xmax: 2 * N - 0.1, ymin: -1.6, ymax: 1.6,
+        xticks: [-N, 0, N], tickFmt: niceTick,
+        xlabel: 'n', ylabel: '幅度',
+        bands: bands,
+        stems: [
+          { xs: tx, ys: ty, color: '#c3ccdd', width: 2.6, r: 3.6, label: '原序列（±1 方波）' },
+          { xs: rx, ys: ry, color: '#4338ca', width: 1.6, r: 2.4, label: '用 2M+1 次谐波重建' }
+        ],
+        legend: true
+      });
+
+      var ex = [], ey = [], emax = 0;
+      for (n = 0; n < N; n++) {
+        var e = x[n] - reconAt(c, n, M);
+        ex.push(n); ey.push(e);
+        if (Math.abs(e) > emax) emax = Math.abs(e);
+      }
+      var ylim = Math.max(emax * 1.4, 0.05);
+      SSC.plot(cv.err, {
+        xmin: -0.6, xmax: N - 0.4, ymin: -ylim, ymax: ylim,
+        xticks: [0, Math.floor(N / 2), N - 1], tickFmt: niceTick,
+        yticks: emax > 1e-9 ? [-emax, 0, emax] : [-ylim, 0, ylim],
+        xlabel: 'n（一个周期内）', ylabel: '误差',
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        stems: [{ xs: ex, ys: ey, color: '#dc2626', label: '误差' }],
+        legend: true
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">用到的项数 2M+1</div><div class="v">' + (2 * M + 1) + ' / ' + N + '</div></div>' +
+        '<div class="stat"><div class="k">最大误差</div><div class="v" style="font-size:14px">' + SSC.fmt(emax, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">M 还能增加到</div><div class="v">' + Mmax + '</div></div>' +
+        '<div class="stat"><div class="k">是否已精确</div><div class="v" style="font-size:14px">' + (emax < 1e-9 ? '是 ✓' : '否') + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var N = oddOf(v.N, 5, 15, 9);                       /* 与 draw 用同一套归一化 */
+      var Mmax = (N - 1) / 2;
+      var M = intOf(v.M, 0, Mmax, 0);
+      var used = 2 * M + 1;
+      var txt = '这个方波只有 <b>N = ' + N + '</b> 个独立谐波，所以把 k = −' + Mmax + ' … ' + Mmax +
+        '（共 N 项）全用上时，重建是<b>精确相等</b>，不是"越来越像"。';
+      if (used < N) {
+        txt += '<br>你现在只用了 <b>' + used + '</b> 项，还差 ' + (N - used) + ' 项没用上——把 M 拉到 ' + Mmax +
+          '，误差会掉到浮点精度（1e−15 上下）。';
+      } else {
+        txt += '<br>已经取满 N 项：读数栏里的最大误差在 1e−15 上下，那是浮点误差，不是真实偏差。' +
+          '<b>离散时间没有吉布斯过冲</b>，这和第 4 章连续时间方波的部分和完全不同。';
+      }
+      return txt;
+    }
+  });
+
+  /* ---------- 实验 3：时移与频移 ---------- */
+  SSC.lab({
+    mount: '#lab-shift',
+    title: '实验 3 · 时移只改相位，频移整体搬谱线',
+    hint: '把 M 留在 0 拖动 n₀，看幅度谱如何纹丝不动',
+    columns: 3,
+    canvases: [
+      { id: 'time', label: '时域：原序列（灰）与变换后（蓝）', height: 195 },
+      { id: 'mag', label: '幅度谱 |c_k|：原（灰）与变换后（红）', height: 195 },
+      { id: 'ph', label: '相位谱 ∠c_k：变换后（红，折进 ±π）', height: 195 }
+    ],
+    controls: [
+      { id: 'N', label: '周期 N（取奇数）', min: 5, max: 15, step: 2, value: 9 },
+      { id: 'n0', label: '时移 n₀', min: 0, max: 8, step: 1, value: 2 },
+      { id: 'M', label: '频移次数 M', min: 0, max: 8, step: 1, value: 0 }
+    ],
+    draw: function (cv, v, api) {
+      var N = oddOf(v.N, 5, 15, 9);                       /* 奇数周期，与滑块步长一致 */
+      var n0 = modN(intOf(v.n0, 0, 100, 0), N);
+      var M = modN(intOf(v.M, 0, 100, 0), N);
+      var x = waveSeq(N, 'bump', 0), c = dtfsC(x);
+      var n, k, bands = periodBands(N);
+
+      /* 变换后的序列：先时移 n₀，再乘 e^{jM(2π/N)n}（频移） */
+      var y = [];
+      for (n = 0; n < N; n++) {
+        var a = M * 2 * Math.PI * n / N, xv = x[modN(n - n0, N)];
+        y.push({ re: xv * Math.cos(a), im: xv * Math.sin(a) });
+      }
+      var cy = dtfsC(y);
+
+      var tx = [], ty = [], yx = [], yr = [];
+      for (n = -N; n <= 2 * N - 1; n++) {
+        tx.push(n); ty.push(x[modN(n, N)]);
+        var aa = M * 2 * Math.PI * n / N;
+        yx.push(n); yr.push(x[modN(n - n0, N)] * Math.cos(aa));   /* Re{y[n]} */
+      }
+      SSC.plot(cv.time, {
+        xmin: -N - 0.9, xmax: 2 * N - 0.1, ymin: -1.15, ymax: 1.15,
+        xticks: [-N, 0, N], tickFmt: niceTick,
+        xlabel: 'n', ylabel: '幅度',
+        bands: bands,
+        stems: [
+          { xs: tx, ys: ty, color: '#c3ccdd', width: 2.6, r: 3.6, label: '原 x[n]' },
+          { xs: yx, ys: yr, color: '#4338ca', width: 1.4, r: 2.4, label: '变换后 Re{y[n]}' }
+        ],
+        legend: true
+      });
+
+      var kx = [], kc = [], kd = [], kp = [], maxDiff = 0;
+      for (k = 0; k < N; k++) {
+        kx.push(k); kc.push(cmag(c, k)); kd.push(cmag(cy, k));
+        if (cmag(cy, k) > 1e-9) kp.push(cph(cy, k));
+        var d = Math.abs(cmag(cy, k) - cmag(c, k));
+        if (d > maxDiff) maxDiff = d;
+      }
+      SSC.plot(cv.mag, {
+        xmin: -0.6, xmax: N - 0.4, ymin: 0,
+        xticks: [0, Math.floor(N / 2), N - 1], tickFmt: niceTick,
+        xlabel: 'k（一个周期内）', ylabel: '|c_k|',
+        stems: [
+          { xs: kx, ys: kc, color: '#c3ccdd', width: 3.4, r: 4, label: '原 |c_k|' },
+          { xs: kx, ys: kd, color: '#dc2626', width: 1.5, r: 2.3, label: '变换后' }
+        ],
+        legend: true
+      });
+
+      var px = [], py = [];
+      for (k = 0; k < N; k++) if (Math.abs(cph(cy, k)) > 1e-9 || cmag(cy, k) > 1e-9) { px.push(k); py.push(cph(cy, k)); }
+      SSC.plot(cv.ph, {
+        xmin: -0.6, xmax: N - 0.4, ymin: -3.6, ymax: 3.6,
+        xticks: [0, Math.floor(N / 2), N - 1], yticks: [-Math.PI, 0, Math.PI], tickFmt: piTick,
+        xlabel: 'k', ylabel: '∠c_k (rad)',
+        hlines: [{ y: 0, color: '#c3ccdd' }, { y: Math.PI, color: '#e6ebf5', dash: [4, 4] }, { y: -Math.PI, color: '#e6ebf5', dash: [4, 4] }],
+        stems: [{ xs: px, ys: py, color: '#dc2626', label: '变换后的相位谱' }],
+        legend: true
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">时移前后 |c_k| 最大差</div><div class="v" style="font-size:13px">' +
+        (M === 0 ? SSC.fmt(maxDiff, 3) : '（M≠0，谱线被搬走了）') + '</div></div>' +
+        '<div class="stat"><div class="k">相位斜率 −2πn₀/N</div><div class="v" style="font-size:13px">' +
+        SSC.fmt(-2 * Math.PI * n0 / N, 3) + ' rad/格</div></div>' +
+        '<div class="stat"><div class="k">最强谱线位置 k</div><div class="v">' + modN(M, N) + '</div></div>' +
+        '<div class="stat"><div class="k">直流分量 |c₀|</div><div class="v" style="font-size:13px">' + SSC.fmt(cmag(c, 0), 4) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var N = oddOf(v.N, 5, 15, 9);
+      var n0 = modN(intOf(v.n0, 0, 100, 0), N);
+      var M = modN(intOf(v.M, 0, 100, 0), N);
+      var txt = '变换规则：<span class="mono">y[n] = x[n−n₀]·e<sup>jM(2π/N)n</sup></span>，' +
+        '所以 <span class="mono">c<sup>(y)</sup><sub>k</sub> = c<sub>k−M</sub>·e<sup>−j(k−M)(2π/N)n₀</sup></span>。';
+      if (M === 0) {
+        txt += '<br><b>现在 M = 0，只看时移</b>：幅度谱两条曲线完全重合（最大差在 1e−16 ~ 1e−15 之间），' +
+          '相位谱是一条斜率 −2πn₀/N = ' + SSC.fmt(-2 * Math.PI * n0 / N, 3) + ' rad/格的直线（被折进 ±π）。' +
+          '把 n₀ 从 0 拖到 N−1，相位斜率跟着线性变化，而幅度谱一根都不动。';
+      } else {
+        txt += '<br><b>现在 M = ' + M + '，谱线整体搬了 ' + M + ' 格</b>：原来在 k=0 的直流跑到了 k=' + M +
+          '；搬出右端的谱线从左端绕回来（因为离散频率是"圆上的刻度"）。把 M 拖满一圈（M = N）谱线会回到原位。';
+      }
+      return txt;
+    }
+  });
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz5', [
+    {
+      q: 'x[n] 是周期为 N 的离散周期信号。它的 DTFS 里有多少个<b>互不相同</b>的谐波 e^{jk(2π/N)n}？',
+      opts: ['无穷多个（k 取遍所有整数）', '恰好 N 个', 'N+1 个（还要算上 k=0）', '取决于 x[n] 的具体形状'],
+      a: 1,
+      why: '因为 e^{j(k+N)(2π/N)n} = e^{jk(2π/N)n}·e^{j2πn} = e^{jk(2π/N)n}（n 是整数，e^{j2πn}=1）。所以 k 只有模 N 的意义，k=0,1,…,N−1 就穷尽了全部，共 N 个。这和连续时间有本质区别。',
+      tag: '概念'
+    },
+    {
+      q: 'N = 8 时，c₃ 与下面哪一个系数<b>必然相等</b>？',
+      opts: ['c₁₁', 'c₄', 'c₋₃（只有当 x[n] 为实数时）', '没有必然相等的'],
+      a: 0,
+      why: 'DTFS 系数以 N 为周期：c_{k+N} = c_k。3+8 = 11，所以 c₃ = c₁₁。注意 c₋₃ = c₅ 与 c₃ 的关系取决于信号是否实、是否偶（只有实信号才有 c₋ₖ = c*ₖ）。',
+      tag: '周期重复'
+    },
+    {
+      q: '关于 1/N 的位置，正确的是：',
+      opts: ['分析式带 1/N，综合式不带', '综合式带 1/N，分析式不带', '两个式子都带 1/N', '两个式子都不带，1/N 由 Parseval 决定'],
+      a: 0,
+      why: 'c_k 的公式来自"两边乘探针后在一个周期上求和再除以 N"——正交性给出的是 N，所以要除掉 N 才是平均值。综合式只是把谐波加权相加，不引入额外系数。（CTFS 也是分析式带 1/T。）',
+      tag: '公式细节'
+    },
+    {
+      q: '离散周期信号的傅里叶级数（DTFS）与连续时间的相比，最本质的差别是：',
+      opts: ['它是有限项（N 项）的级数，因此没有收敛问题、也没有吉布斯过冲',
+        '它只能表示实信号', '它的系数一定是实数', '它不能用复指数表示'],
+      a: 0,
+      why: '一个周期只有 N 个样本值要记，而 N 个谐波系数与之信息量相等（N 个方程 N 个未知数的唯一解）。取满 N 项即精确相等，第 9 节的实验里误差是机器精度 0。连续时间方波的无穷级数才有 9% 过冲。',
+      tag: '收敛'
+    },
+    {
+      q: 'x[n] 是<b>实</b>周期序列，N = 6。关于系数 c_k，下列哪条成立？',
+      opts: ['c₋ₖ = c*ₖ，所以 |c₋ₖ| = |cₖ|、∠c₋ₖ = −∠cₖ',
+        '所有 c_k 都是实数', 'c_k 都等于 0（实信号没有相位）', 'c₋ₖ = −cₖ 恒成立'],
+      a: 0,
+      why: '实信号满足共轭对称 c₋ₖ = c*ₖ：模偶对称、相位奇对称，负频半边是冗余的。只有在 x[n] 还是偶序列时才额外有"c_k 全为实数"；若 x[n] 实且奇，则 c_k 是纯虚数。',
+      tag: '对称性'
+    },
+    {
+      q: 'x[n] 周期 N = 5，一个周期内取值 x[0]=1, x[1]=1, x[2]=0, x[3]=0, x[4]=1。它的平均功率 P 是多少？（提示：Parseval）',
+      opts: ['P = 0.6', 'P = 3', 'P = 1.8', 'P = 0.36'],
+      a: 0,
+      why: 'P = (1/N)Σ|x[n]|² = (1/5)(1+1+0+0+1) = 3/5 = 0.6。用 Parseval 验证：该信号的 |c_k| = 0.6, 0.3236, 0.1236, 0.1236, 0.3236，平方和为 0.36+0.1047+0.0153+0.0153+0.1047 ≈ 0.6 ✓。这就是本页实验 1 读数栏里"平均功率 / Σ|c_k|²"两个数字相等的来源。',
+      tag: 'Parseval'
+    }
+  ], '第 5 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

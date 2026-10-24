@@ -1,0 +1,1341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 10 章　时频特性与滤波器｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch10">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第四段 · 系统与频域 · 第 10 章</div>
+        <h1>时频特性与滤波器</h1>
+        <p class="lede">
+          第 6 章给了我们一个强大的结论：<b>Y(jω) = H(jω)·X(jω)</b>。
+          这一章问三个很实际的问题：<b>H(jω)</b> 的模长和相位各自负责什么？
+          为什么"理想滤波器"画得出、做不出？为什么滤波器<b>带宽越宽、响应越快</b>，
+          这两件事为什么总是绑在一起、不能各要一半？
+          答案都在"时域与频域必须互相换算"这一件事上。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch06-ctft.html">第 6 章 连续时间傅里叶变换</a>（要会用 <span class="mono">Y(jω)=H(jω)X(jω)</span>）<br>
+          <a href="ch03-eigenfunction.html">第 3 章 复指数是特征函数</a>（<span class="mono">H(jω)</span> 的来处）
+        </div>
+        <div class="cell mid"><b>这一站</b>幅度—相位表示、群延迟、理想与非理想滤波器、一阶二阶系统的时间常数与阻尼比</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch11-modulation.html">第 11 章 调制、解调与通信</a>（把滤波器用到通信链路上）<br>
+          <a href="ch12-laplace.html">第 12 章 拉普拉斯变换</a>（把 <span class="mono">jω</span> 推广成复变量 <span class="mono">s</span>）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 这章要回答的三个"反直觉"问题</a>
+        <a href="#s2">2. 幅度—相位表示：模长管大小，相位管时间</a>
+        <a href="#s3">3. 相位就是延时：线性相位与群延迟</a>
+        <a href="#s4">4. 动手：幅度谱不变，只改相位</a>
+        <a href="#s5">5. 理想频率选择滤波器：画得出、做不出</a>
+        <a href="#s6">6. 非理想滤波器：过渡带、波纹与逼近</a>
+        <a href="#s7">7. 动手：理想 / 一阶 / 巴特沃斯 谁更像个"好滤波器"</a>
+        <a href="#s8">8. 一阶与二阶系统：时间常数、阻尼比与带宽</a>
+        <a href="#s9">9. 动手：带宽与上升时间的交易</a>
+        <a href="#s10">10. 动手：拖极点零点，一切形状都由它们决定</a>
+        <a href="#s11">11. 幅度谱与相位谱：谁在替你"记住"图像</a>
+        <a href="#s12">12. 常见坑</a>
+        <a href="#s13">13. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 这章要回答的三个"反直觉"问题</h2>
+
+      <p>
+        先把这一章的目标说成人话。你在第 6 章学过一个公式：输入信号的频谱乘上系统的频率响应，就是输出信号的频谱。
+        可是"<b>乘一个复数</b>"到底对波形做了什么？下面三个现象是初学者最容易卡住的地方，也是本章的三条主线：
+      </p>
+
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">① 两个滤波器，模长一样，效果天差地别</h4>
+          <p class="small" style="margin-bottom:0">
+            系统的频率响应是复数：<span class="mono">H = |H|·e<sup>j∠H</sup></span>。
+            模长 <span class="mono">|H|</span> 决定"这个频率留多少"，相位 <span class="mono">∠H</span> 决定"这个频率晚到多久"。
+            <b>只关心模长会吃大亏</b>——相位错乱会把波形彻底改样。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">② "理想低通"根本做不出来</h4>
+          <p class="small" style="margin-bottom:0">
+            频域里画一个方方正正的矩形很容易，但它的时域冲激响应是一条<b>向两边无限延伸</b>的 sinc 曲线，
+            在 <span class="mono">t&lt;0</span> 就已经不为零 —— 也就是说，<b>输出还没输入就已经有了</b>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">③ 带宽越大，响应越快</h4>
+          <p class="small" style="margin-bottom:0">
+            想让系统"反应快"（上升时间短），就必须让它通过更多高频。
+            这条 <b>带宽 × 上升时间 ≈ 常数</b> 的关系，和时宽带宽积是同一枚硬币的两面。
+          </p>
+        </div>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">一句话抓住全章</span>
+        <p style="margin-bottom:0">
+          频域里"切一刀"（选频率），时域里就必然"拖一条尾巴"（振铃、非因果、延时）。
+          <b>滤波器的所有取舍，都是这一句话的不同写法。</b>
+        </p>
+      </div>
+
+      <h2 id="s2">2. 幅度—相位表示：模长管大小，相位管时间</h2>
+
+      <p>
+        先复习一个事实：任何复数都能写成"模长 × 单位方向"的形式。频率响应也是复数，所以
+      </p>
+      <div class="eq center-eq">
+        H(jω) = |H(jω)| · e<sup>j∠H(jω)</sup>
+        <span class="lbl">(10-1)</span>
+      </div>
+      <p>
+        这里 <span class="mono">|H(jω)|</span> 和 <span class="mono">∠H(jω)</span> 是这个复数的
+        <span class="term" data-def="magnitude and phase，中文含义：模长与辐角。复数的两个"坐标"：模长是它离原点多远，辐角是从正实轴转过多少角度。">模长与辐角</span>。
+        把它们代进第 6 章的 <span class="mono">Y(jω)=H(jω)X(jω)</span>，取模、取角，就得到两条分开的规则：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">LTI 系统对信号做的两件事</span>
+        <div class="eq center-eq">|Y(jω)| = |H(jω)| · |X(jω)|　<span class="lbl">(10-2)</span></div>
+        <div class="eq center-eq">∠Y(jω) = ∠H(jω) + ∠X(jω)　<span class="lbl">(10-3)</span></div>
+        <p style="margin-bottom:0">
+          <b>复数相乘 = 模长相乘、辐角相加</b>。所以：
+          <span class="mono">|H(jω)|</span> 叫<span class="term" data-def="gain，中文含义：增益。频率响应在该频率上的模长，表示这个频率成分被放大（>1）还是衰减（<1）多少倍。">增益</span>（gain），
+          <span class="mono">∠H(jω)</span> 叫<span class="term" data-def="phase shift，中文含义：相移。频率响应在该频率上的辐角，表示这个频率成分被推迟了多少相位。">相移</span>（phase shift）。
+        </p>
+      </div>
+
+      <p>
+        <b>先给直觉。</b>一个信号可以看成很多个正弦"合唱"。系统对每个歌手做两件事：
+        把他的音量乘一个倍数（<span class="mono">|H|</span>），
+        再把他出场的时间推后一点（<span class="mono">∠H</span>）。
+        音量改了就改了音色（哪些频率响、哪些闷）；<b>但出场时间一旦乱了，合唱就散了</b>——
+        该一起到达的波峰，有的早有的晚，叠加起来就不再是原来的鼓点。
+      </p>
+
+      <p>
+        <span class="term" data-def="frequency response，中文含义：频率响应（频响）。系统对每个频率的复数增益，写成 H(jω)；它是冲激响应 h(t) 的傅里叶变换，模长=放大倍数，辐角=相移。">频率响应</span>（frequency response）
+        <span class="mono">H(jω)</span> 就是这张"每个频率的复数增益表"。由它引出的两种失真必须分清：
+      </p>
+      <table class="tbl sm">
+        <thead><tr><th>失真类型</th><th class="c">谁出问题</th><th>现象</th><th>能不能容忍</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="term" data-def="magnitude distortion，中文含义：幅度失真。|H(jω)| 不是常数，导致不同频率被放大不同倍数。">幅度失真</span></td>
+            <td class="c ft">|H(jω)| ≠ 常数</td>
+            <td>某些频率被压低、某些被抬高，音色/波形形状改变。</td>
+            <td>很多场合可以容忍（人耳对频率响应的起伏很宽容）。</td>
+          </tr>
+          <tr>
+            <td><span class="term" data-def="phase distortion，中文含义：相位失真。∠H(jω) 不是 ω 的线性函数，各频率成分被错开延时。">相位失真</span></td>
+            <td class="c ft">∠H(jω) 非线性</td>
+            <td>各频率到达时间不一致，波峰错位，脉冲被"抹开"。</td>
+            <td>图像、数字脉冲里几乎不能忍（后面第 11 章 PAM 会再遇到）。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">什么叫"完全不失真"</span>
+        <p>
+          最理想的传输是：输出只是输入的一个"放大 + 延迟"版本，
+        </p>
+        <div class="eq center-eq">y(t) = K · x(t − t<sub>0</sub>)　（K 是常数，t<sub>0</sub> 是纯延时）</div>
+        <p>
+          把它变换到频域（用第 6 章的时移性质）：
+        </p>
+        <div class="eq center-eq">H(jω) = K · e<sup>−jωt<sub>0</sub></sup></div>
+        <p style="margin-bottom:0">
+          也就是说 <b>|H(jω)| = K（常数）</b> 且 <b>∠H(jω) = −ωt<sub>0</sub>（过原点的直线）</b>。
+          这两条合起来叫做
+          <span class="term" data-def="distortionless transmission，中文含义：无失真传输。系统对所有频率给出相同增益、且相位随 ω 线性变化，输出就只是输入的放大加延迟。">无失真传输</span>（distortionless transmission）。
+          请把"<b>相位必须是 ω 的直线</b>"这句话记住，下一节就靠它。
+        </p>
+      </div>
+
+      <h2 id="s3">3. 相位就是延时：线性相位与群延迟</h2>
+
+      <p>
+        为什么"相位是直线"就等于"整体延迟"？推一遍就清楚了。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：线性相位 ⟺ 纯延时</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：假设相位是一条过原点的直线。</b></p>
+            <div class="eq">∠H(jω) = −ωt<sub>0</sub>，　|H(jω)| = 1</div>
+            <p class="why">为什么这样假设：这是"无失真"里最简单的情形——增益全频段为 1（不放大也不衰减），只有延时。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：把假设写回复数形式。</b></p>
+            <div class="eq">H(jω) = 1 · e<sup>−jωt<sub>0</sub></sup></div>
+            <p class="why">为什么：式 (10-1) 的模长取 1、辐角取 −ωt<sub>0</sub>，代进去就得到这个式子。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：反变换求冲激响应。用第 6 章的时移性质（或直接套变换对 e<sup>−jωt₀</sup>）。</b></p>
+            <div class="eq">h(t) = δ(t − t<sub>0</sub>)</div>
+            <p class="why">为什么：e<sup>−jωt₀</sup> 正是"时移 t<sub>0</sub>"在频域的记号（第 6 章性质表：x(t−t₀) ⟷ e<sup>−jωt₀</sup>X(jω)）。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：把 δ 卷进输入，得到输出。</b></p>
+            <div class="eq">y(t) = x(t) ∗ δ(t − t<sub>0</sub>) = x(t − t<sub>0</sub>)</div>
+            <p class="why">为什么：卷积的筛选性质——与移位冲激卷积就是平移（第 2 章）。<b>时域里"整体推迟 t<sub>0</sub>"，在频域里就是"相位加一条斜率为 −t<sub>0</sub> 的直线"。</b></p>
+          </div>
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">记住这个对应</span>
+            <p style="margin-bottom:0">
+              <b>相位斜率 = −延时</b>。斜率越陡，延时越长；相位弯曲（非线性），就意味着"不同频率延时不同"。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <p>
+        现实里的相位很少是一条笔直的直线。那怎么办？办法是：<b>只看一小段</b>。
+        一个真正的信号往往是"窄带"的——能量集中在某个中心频率
+        <span class="mono">ω<sub>0</sub></span> 附近的一小段里（比如广播电台的信号）。
+        对这么窄的一段来说，任何曲线都近似是一条直线。
+      </p>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：群延迟 τ(ω) = −d∠H/dω 是怎么冒出来的</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：把相位在 ω<sub>0</sub> 附近做一阶泰勒展开。</b></p>
+            <div class="eq">
+              ∠H(jω) ≈ ∠H(jω<sub>0</sub>) + (ω − ω<sub>0</sub>) ·
+              <span class="frac"><span class="num">d∠H(jω)</span><span class="den">dω</span></span>
+              <span style="font-size:22px">|</span><sub>ω=ω<sub>0</sub></sub>
+            </div>
+            <p class="why">为什么可以这样做：泰勒展开就是"用直线代替曲线"，只要 (ω−ω<sub>0</sub>) 足够小，忽略二阶项误差就很小。这就是"窄带"假设的真正用途。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：把常数项和斜率项分开写。</b>记</p>
+            <div class="eq">
+              φ<sub>0</sub> ≜ −∠H(jω<sub>0</sub>)，　
+              τ<sub>g</sub> ≜ − <span class="frac"><span class="num">d∠H(jω)</span><span class="den">dω</span></span><span style="font-size:22px">|</span><sub>ω=ω<sub>0</sub></sub>
+            </div>
+            <p>于是这一小段频带内</p>
+            <div class="eq">∠H(jω) ≈ −φ<sub>0</sub> − (ω − ω<sub>0</sub>)·τ<sub>g</sub> = −ωτ<sub>g</sub> + (ω<sub>0</sub>τ<sub>g</sub> − φ<sub>0</sub>)</div>
+            <p class="why">为什么这样整理：把它写成"−ωτ<sub>g</sub> 加上一个与 ω 无关的常数"。对照上一段推导——<b>含 ω 的那一项就是延时</b>，与 ω 无关的那一项只是所有频率共同的相移，不改变波形。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：读出结论。</b></p>
+            <div class="eq center-eq">
+              τ(ω<sub>0</sub>) = − <span class="frac"><span class="num">d∠H(jω)</span><span class="den">dω</span></span>
+              <span style="font-size:22px">|</span><sub>ω=ω<sub>0</sub></sub>
+              <span class="lbl">(10-4)</span>
+            </div>
+            <p class="why">为什么叫"群"延迟：它描述的不是某一个频率的延时，而是 ω<sub>0</sub> 附近<b>一整群</b>频率共同的延时。这一群频率是"抱团"一起走的，所以它们之间的相对关系不变——波形（包络）被整体平移，形状不变。</p>
+          </div>
+          <div class="box trap" style="margin-top:14px">
+            <span class="tag">什么时候会出问题</span>
+            <p style="margin-bottom:0">
+              如果 <span class="mono">τ(ω)</span> 随频率变化（叫
+              <span class="term" data-def="nonconstant group delay / dispersion，中文含义：群延迟不平坦（色散）。不同频率被延时不同，脉冲会被"抹开"、振铃。">色散</span>（dispersion）），
+              那么"一群"频率里的不同成分会以不同速度到达，脉冲就被抹开、拖尾。
+              <b>信号带宽越宽，越经不起群延迟起伏</b>——这也是为什么高速数字信号的传输线要专门做"群延迟均衡"。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box intuition">
+        <span class="tag">一个不用公式的类比</span>
+        <p style="margin-bottom:0">
+          想象一支队伍跑步。线性相位 = 所有人速度一样，队形原样到达（只是整体晚了）；
+          非线性相位 = 有人快有人慢，队形散了。<b>"群延迟"就是这一群人的平均到达时间</b>，
+          而"群延迟随频率变化"就是"跑得快慢因人而异"。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 动手：幅度谱不变，只改相位</h2>
+      <p>
+        下面这个信号由四个频率成分组成（一个直流 + 三个谐波，第 6 章教材里用它演示相位的作用）：
+      </p>
+      <div class="eq center-eq">
+        x(t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>
+        + 2cos(2πt + φ<sub>1</sub>) + cos(4πt + φ<sub>2</sub>)
+        + <span class="frac"><span class="num">2</span><span class="den">3</span></span>cos(6πt + φ<sub>3</sub>)
+      </div>
+      <p>
+        你只被允许改三个相位 <span class="mono">φ<sub>1</sub>, φ<sub>2</sub>, φ<sub>3</sub></span>，
+        <b>幅度一根毫毛都动不了</b>。请盯着右边那张幅度谱看——它永远不会变。
+      </p>
+
+      <div id="lab-phase"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          把三个相位设成"线性"（等价于 <span class="mono">t<sub>0</sub>=0.25</span> s 的纯延时，即
+          <span class="mono">φ<sub>1</sub>=−2π·0.25</span>、<span class="mono">φ<sub>2</sub>=−4π·0.25</span>、<span class="mono">φ<sub>3</sub>=−6π·0.25</span>，
+          折算到 0～2π 就是 4.712 / 3.142 / 1.571），你会发现波形<b>只是整体向右挪了 0.25 s，形状一模一样</b>。
+          这就是"线性相位 = 纯延时"的实物证据。
+        </p>
+        <p style="margin-bottom:0">
+          再点"打乱相位"：波形完全不像同一个人了。<b>可它的幅度谱还是那四根线。</b>
+          所以——幅度谱告诉你"有哪些频率、各多强"，相位谱告诉你"它们怎么对齐"。
+          人耳对相位比较宽容，但你的眼睛（图像）和示波器（脉冲）一点都不宽容。
+        </p>
+      </div>
+
+      <h2 id="s5">5. 理想频率选择滤波器：画得出、做不出</h2>
+
+      <p>
+        <span class="term" data-def="frequency-selective filter，中文含义：频率选择滤波器。让某个频段原样通过、其它频段被压掉的系统；按通过的位置分低通/高通/带通/带阻。">频率选择滤波器</span>
+        （frequency-selective filter）的目标很朴素：<b>想要的频率原样放行，不想要的频率全部掐掉</b>。
+        把这个愿望直接写成数学，就是
+        <span class="term" data-def="ideal filter，中文含义：理想滤波器。通带内增益恒为 1、阻带内恒为 0、边界处突变（矩形）的滤波器。">理想滤波器</span>（ideal filter）：
+      </p>
+
+      <table class="tbl">
+        <thead><tr><th>类型</th><th class="c">频域定义 H(jω)</th><th>通过什么</th><th>一句话用途</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>理想低通</b></td>
+            <td class="c ft">1（|ω| ≤ ω_c），0（其它）</td>
+            <td>低频</td>
+            <td>去掉高频噪声；音频的"闷"。</td>
+          </tr>
+          <tr>
+            <td><b>理想高通</b></td>
+            <td class="c ft">1（|ω| ≥ ω_c），0（其它）</td>
+            <td>高频</td>
+            <td>提取边缘、去直流。</td>
+          </tr>
+          <tr>
+            <td><b>理想带通</b></td>
+            <td class="c ft">1（ω<sub>1</sub> ≤ |ω| ≤ ω<sub>2</sub>），0（其它）</td>
+            <td>一段中间频率</td>
+            <td>选台：只留某个电台的频段（第 11 章 FDM）。</td>
+          </tr>
+          <tr>
+            <td><b>理想带阻</b></td>
+            <td class="c ft">0（ω<sub>1</sub> ≤ |ω| ≤ ω<sub>2</sub>），1（其它）</td>
+            <td>除中间一段外的全部</td>
+            <td>掐掉某个干扰频率（比如 50 Hz 工频）。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        这四个定义里都出现了"<span class="mono">|ω|</span>"，因为实信号的频谱是<b>共轭对称</b>的
+        （第 6 章：<span class="mono">X(−jω)=X*(jω)</span>），正负频率必须成对处理。
+        理想滤波器还顺手要求相位为零——通带内 <span class="mono">∠H=0</span>，不引入任何延时。
+      </p>
+
+      <p>
+        那么它的冲激响应长什么样？把 <span class="mono">H(jω)</span> 代进反变换积分就行：
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：理想低通的 h(t) 是一条 bilateral sinc</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：写出反变换积分。注意积分区间只有通带那一段。</b></p>
+            <div class="eq">
+              h(t) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              H(jω)e<sup>jωt</sup>dω
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>ω<sub>c</sub></span><span>−ω<sub>c</sub></span></span></span>
+              e<sup>jωt</sup>dω
+            </div>
+            <p class="why">为什么积分上下限变成 ±ω<sub>c</sub>：因为 H 在通带外恒为 0，积 0 等于没积，直接把区间缩到通带即可。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：把指数函数积出来。</b></p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>ω<sub>c</sub></span><span>−ω<sub>c</sub></span></span></span>
+              e<sup>jωt</sup>dω
+              = <span class="frac"><span class="num">e<sup>jω<sub>c</sub>t</sup> − e<sup>−jω<sub>c</sub>t</sup></span><span class="den">jt</span></span>
+              = <span class="frac"><span class="num">2j sin(ω<sub>c</sub>t)</span><span class="den">jt</span></span>
+              = <span class="frac"><span class="num">2 sin(ω<sub>c</sub>t)</span><span class="den">t</span></span>
+            </div>
+            <p class="why">为什么：<span class="mono">∫e<sup>at</sup>dt = e<sup>at</sup>/a</span>，这里 <span class="mono">a=jω</span>；再用欧拉公式的差 <span class="mono">e<sup>jA</sup>−e<sup>−jA</sup>=2j sin A</span>，分子分母的 j 约掉。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：乘上 1/2π，写成 sinc。</b></p>
+            <div class="eq center-eq">
+              h(t) = <span class="frac"><span class="num">sin(ω<sub>c</sub>t)</span><span class="den">πt</span></span>
+              = <span class="frac"><span class="num">ω<sub>c</sub></span><span class="den">π</span></span> · sinc(ω<sub>c</sub>t)
+              <span class="lbl">(10-5)</span>
+            </div>
+            <p class="why">为什么：<span class="mono">(1/2π)·2 sin(ω<sub>c</sub>t)/t = sin(ω<sub>c</sub>t)/(πt)</span>。这里 <span class="mono">sinc(x)=sin x / x</span>（Oppenheim 约定，和全站一致）。<span class="mono">t=0</span> 时用极限：<span class="mono">h(0)=ω<sub>c</sub>/π</span>。</p>
+          </div>
+          <div class="box trap" style="margin-top:14px">
+            <span class="tag">两个致命的事实</span>
+            <p>
+              <b>(1) 非因果：</b>sinc 在 <span class="mono">t&lt;0</span> 时并不为零。
+              也就是说 <b>t=0 时刻的输入还没进来，系统在 t&lt;0 就已经有输出了</b>。
+              实时系统做不到这件事——它不能预知未来。
+              这叫
+              <span class="term" data-def="noncausal，中文含义：非因果。系统的输出依赖于未来时刻的输入（h(t) 在 t<0 不为零），无法实时实现，只能事后处理或近似。">非因果</span>（noncausal）。
+            </p>
+            <p style="margin-bottom:0">
+              <b>(2) 无限长：</b>sinc 以 <span class="mono">1/t</span> 衰减，两边一直荡下去，永远不严格等于零。
+              要"完全实现"它，需要无穷长的记忆或无穷多个元件。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <p>
+        还有一个后果藏在阶跃响应里：给理想低通喂一个阶跃，输出会<b>冲过头</b>再荡回来——
+        这就是
+        <span class="term" data-def="ringing / Gibbs phenomenon，中文含义：振铃（吉布斯现象）。频域被"硬切一刀"（矩形边界）时，时域响应在跳变处出现过冲与振荡。">振铃</span>（ringing），
+        和第 4 章方波部分和的吉布斯现象是同一件事。过冲量大约是跳变幅度的 <b>9%</b>，
+        <b>与截止频率无关</b>——你切得宽切得窄，过冲比例都是这么多，只是振荡快慢变了。
+        另外，通带越宽（<span class="mono">ω<sub>c</sub></span> 越大），sinc 主瓣越窄，
+        阶跃的上升时间 <span class="mono">t<sub>r</sub></span> 越短：
+      </p>
+      <div class="eq center-eq">
+        t<sub>r</sub> ≈ <span class="frac"><span class="num">2π</span><span class="den">ω<sub>c</sub></span></span>
+        　　⟹　　t<sub>r</sub> · BW = 常数
+        <span class="lbl">(10-6)</span>
+      </div>
+      <p class="small muted">
+        （为什么主瓣宽度是 <span class="mono">2π/ω<sub>c</sub></span>：sinc 的零点在 <span class="mono">ω<sub>c</sub>t = ±π</span>，即 <span class="mono">t = ±π/ω<sub>c</sub></span>，主瓣跨越的长度就是 <span class="mono">2π/ω<sub>c</sub></span>。）
+      </p>
+
+      <div class="box ok">
+        <span class="tag">第 9 章的老朋友又来了</span>
+        <p style="margin-bottom:0">
+          式 (10-5) 的 <span class="mono">h(t)</span> 和你在第 9 章见过的"理想 sinc 内插重建"是同一个函数。
+          这不是巧合：<b>理想低通滤波 = 与 sinc 卷积 = 用 sinc 把样本插回去</b>。
+          采样定理里的重建滤波器，就是这里的理想低通。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 非理想滤波器：过渡带、波纹与逼近</h2>
+
+      <p>
+        理想滤波器有一个巨大的优点（频率切得干净）和两个致命缺点（非因果、无限长）。
+        工程上的做法是<b>放弃"突变"，换取可实现性</b>。于是滤波器指标从"一个数字"变成"几个数字"：
+      </p>
+
+      <table class="tbl sm">
+        <thead><tr><th>指标</th><th>它规定什么</th><th>为什么允许它不完美</th></tr></thead>
+        <tbody>
+          <tr><td><span class="term" data-def="passband ripple，中文含义：通带波纹。通带内 |H| 相对 1 的最大偏离量 δ₁。">通带波纹</span> δ<sub>1</sub></td><td>通带内 |H| 允许在 1 附近上下晃动多少。</td><td>物理元件的增益不可能每个频率都精确等于 1。</td></tr>
+          <tr><td><span class="term" data-def="stopband attenuation / ripple，中文含义：阻带衰减（阻带波纹）。阻带内 |H| 相对 0 的最大残余量 δ₂，常写成 -20log₁₀δ₂ dB。">阻带衰减</span> δ<sub>2</sub></td><td>阻带残留多少（越小越好）。</td><td>"完全为 0"意味着无限阶，做不到。</td></tr>
+          <tr><td><span class="term" data-def="transition band，中文含义：过渡带。通带边缘 ω_p 到阻带边缘 ω_s 之间的频段，|H| 在这里从通带值滑到阻带值。">过渡带</span> [ω<sub>p</sub>, ω<sub>s</sub>]</td><td>从"放行"滑到"掐掉"要走多远。</td><td>过渡带越窄，相位越弯、时域振铃越凶（交易）。</td></tr>
+          <tr><td><span class="term" data-def="rise time，中文含义：上升时间。阶跃响应从终值的 10% 升到 90% 所用的时间。">上升时间</span> t<sub>r</sub></td><td>系统"反应有多快"。</td><td>与时域要求直接挂钩：太快就意味着宽带宽。</td></tr>
+          <tr><td><span class="term" data-def="overshoot / settling time，中文含义：过冲与建立时间。过冲是阶跃响应超出终值的最大百分比；建立时间是响应进入并保持在终值 ±δ 以内所需的时间。">过冲 · 建立时间</span></td><td>阶跃响应冲多高、多久才稳。</td><td>振铃越小，频域过渡带就越宽。</td></tr>
+        </tbody>
+      </table>
+
+      <p>
+        最常用的"逼近方案"是
+        <span class="term" data-def="Butterworth filter，中文含义：巴特沃斯滤波器。通带内幅频最平坦（各阶导数在 ω=0 处为 0）、单调下降、过渡带较宽的一种滤波器。">巴特沃斯滤波器</span>（Butterworth filter）。
+        它的幅频特性是一个极简的公式：
+      </p>
+      <div class="eq center-eq">
+        |H(jω)|<sup>2</sup> = <span class="frac">
+          <span class="num">1</span>
+          <span class="den">1 + (ω/ω<sub>c</sub>)<sup>2n</sup></span>
+        </span>
+        <span class="lbl">(10-7)</span>
+      </div>
+      <p>
+        这里 <span class="mono">n</span> 叫<b>阶数</b>，<span class="mono">ω<sub>c</sub></span> 叫截止频率（defind 为 |H| 掉到 <span class="mono">1/√2 ≈ 0.707</span> 的地方，也就是 −3 dB 点）。
+        逐条读这个公式：
+      </p>
+      <ul>
+        <li><b>ω = 0 时 |H| = 1</b>：直流原样通过。</li>
+        <li><b>ω = ω<sub>c</sub> 时 |H|<sup>2</sup> = 1/2</b>：所以不管 n 是多少，曲线都穿过 <span class="mono">(ω<sub>c</sub>, 0.707)</span> 这一点——这正是"截止频率"的定义。</li>
+        <li><b>ω ≫ ω<sub>c</sub> 时 |H| ≈ (ω<sub>c</sub>/ω)<sup>n</sup></b>：高频按 <span class="mono">n</span> 次方掉下去，n 越大掉得越陡。</li>
+        <li>在 <span class="mono">ω=0</span> 附近，它的头 <span class="mono">2n</span> 阶导数都为 0，所以曲线贴着 1 走得很平——这叫
+          <span class="term" data-def="maximally flat，中文含义：最大平坦。在 ω=0 处尽可能多的导数等于 0，使通带内曲线最"平"，不出现波纹。">最大平坦</span>（maximally flat）。</li>
+      </ul>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：巴特沃斯为什么"最大平坦"，以及它的极点在哪</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：把 |H|<sup>2</sup> 看成关于 ω<sup>2</sup> 的有理函数，做小 ω 展开。</b></p>
+            <div class="eq">
+              |H(jω)|<sup>2</sup> = <span class="frac"><span class="num">1</span><span class="den">1 + (ω/ω<sub>c</sub>)<sup>2n</sup></span></span>
+              = 1 − (ω/ω<sub>c</sub>)<sup>2n</sup> + (ω/ω<sub>c</sub>)<sup>4n</sup> − ⋯
+            </div>
+            <p class="why">为什么：这是等比级数 <span class="mono">1/(1+u) = 1 − u + u² − ⋯</span>，其中 <span class="mono">u = (ω/ω<sub>c</sub>)<sup>2n</sup></span>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：观察"最低阶的非零项"。</b></p>
+            <p>展开式里 <span class="mono">ω<sup>2</sup>, ω<sup>4</sup>, …, ω<sup>2n−2</sup></span> 的系数<b>全是 0</b>，
+              第一个非零项是 <span class="mono">−(ω/ω<sub>c</sub>)<sup>2n</sup></span>。</p>
+            <p class="why">为什么这就是"最大平坦"：曲线在 ω=0 处"贴平"的能力由最早出现的那一项决定。第 2n 阶才出现偏差，说明它在 0 点附近比任何低阶多项式都更平。对比一下一阶低通 <span class="mono">1/(1+ω²)</span>：它一展开就是 <span class="mono">1−ω²+⋯</span>，二阶项立刻出现，所以平得多但不如高阶巴特沃斯平。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：找极点（这决定了它的相位和群延迟）。</b></p>
+            <p>把 <span class="mono">H(s)H(−s) = 1/(1+(s/jω<sub>c</sub>)<sup>2n</sup>)</span> 的分母置零：</p>
+            <div class="eq">(s/jω<sub>c</sub>)<sup>2n</sup> = −1 = e<sup>j(2k−1)π</sup></div>
+            <p class="why">为什么能写成 <span class="mono">H(s)H(−s)</span>：因为 <span class="mono">|H(jω)|<sup>2</sup> = H(jω)H*(jω)</span>，而实系统的 <span class="mono">H*(jω)=H(−jω)</span>。所以频域的模方对应 s 域的 <span class="mono">H(s)H(−s)</span>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：解出 2n 个根，取左半平面的 n 个。</b></p>
+            <div class="eq center-eq">
+              p<sub>k</sub> = ω<sub>c</sub> · e<sup>jπ(2k+n−1)/(2n)</sup>,　k = 1, 2, …, n
+            </div>
+            <p class="why">为什么只取左半平面这 n 个：为了让系统<b>因果且稳定</b>（第 12 章会证明：因果稳定 ⟺ 极点全在左半平面）。这 n 个极点<b>均匀分布在半径为 ω<sub>c</sub> 的左半圆上</b>——所以你会看到一个"半圆排列"，n 越大排得越密。</p>
+          </div>
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">为什么这对你有用</span>
+            <p style="margin-bottom:0">
+              这一节把"滤波器设计"从"猜一个 H"变成了"<b>选 ω<sub>c</sub> 和 n，然后算极点</b>"。
+              下面的实验台 4 里，你可以亲眼看到这些极点怎么决定曲线形状和群延迟。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">理想 vs 巴特沃斯：不是孰优孰劣</h4>
+          <p class="small" style="margin-bottom:0">
+            理想低通：过渡带为 0，但振铃 9%、非因果、无限长。<br>
+            巴特沃斯：过渡带较宽，但单调、无过冲、群延迟平缓、可实现。<br>
+            <b>椭圆滤波器</b>：过渡带最窄，代价是通带和阻带都有波纹、振铃更凶、建立时间更长。
+            第 6 章教材里的对比（5 阶巴特沃斯 vs 5 阶椭圆）就是这个交易：<b>频率选择性越强，时域振铃越大</b>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">一条不会错的判据</h4>
+          <p class="small" style="margin-bottom:0">
+            遇到"选哪个滤波器"的问题，先问两件事：<br>
+            ① 频域要求多严？（过渡带要多窄、阻带要多深）<br>
+            ② 时域要求多严？（上升时间、过冲、建立时间）<br>
+            两者<b>同时变严</b>是不可能的，只能加阶数（加成本）或放弃一边。
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s7">7. 动手：理想 / 一阶 / 巴特沃斯 谁更像个"好滤波器"</h2>
+      <p>
+        下面把同一个方波送进不同的低通滤波器。<b>方波是一台"频率成分发生器"</b>：
+        它的谐波在 <span class="mono">ω<sub>0</sub>, 2ω<sub>0</sub>, 3ω<sub>0</sub>, …</span> 上（<span class="mono">ω<sub>0</sub>=2π</span>，因为周期取 1 s），
+        第 k 次谐波的幅度是 <span class="mono">4 sin(kπd)/(kπ)</span>（第 4 章的结论，本页用 <span class="mono">d=0.5</span>）。
+        所以只要看输出还剩几个谐波，就知道滤波器在干什么。
+      </p>
+
+      <div id="lab-kind"></div>
+
+      <div class="box intuition">
+        <span class="tag">请按这个顺序试</span>
+        <p>
+          <b>第一步</b>：选"理想低通"，ω<sub>c</sub> 默认在 20，此时输出已经是个"圆角方波"，
+          跳变处那条<b>振铃尾巴</b>请盯紧——它一直在。把 ω<sub>c</sub> 往上推到 40，输出越来越像方波（振铃更快更密）；
+          往下拉到 6，连基波（ω = 2π ≈ 6.28）都被切掉，输出<b>整个变成 0</b>。这就是"硬切频域"的代价。
+        </p>
+        <p>
+          <b>第二步</b>：换成"一阶低通"，同样的 ω<sub>c</sub>。振铃没了，波形更"圆润"，
+          但整条曲线<b>向右移了</b>——因为一阶低通有相位（群延迟不为零）。
+          理想低通相位为 0，所以不延迟；<b>不延迟的代价就是非因果</b>。
+        </p>
+        <p style="margin-bottom:0">
+          <b>第三步</b>：换成"巴特沃斯"，把阶数 n 从 1 加到 8。
+          过渡带越来越陡（越来越像理想），波形越来越接近方波，
+          但跳变处的<b>振铃逐渐长出来</b>，同时延迟变大。
+          <b>这就是这一章的核心交易。</b>
+        </p>
+      </div>
+
+      <h2 id="s8">8. 一阶与二阶系统：时间常数、阻尼比与带宽</h2>
+
+      <p>
+        任何复杂的有理频率响应，都可以拆成很多个一阶和二阶环节的级联。所以这两个"零件"必须吃透。
+      </p>
+
+      <h3>8.1 一阶系统：只有一个参数 τ</h3>
+      <p>一阶系统的微分方程习惯写成这种形式：</p>
+      <div class="eq center-eq">
+        τ <span class="frac"><span class="num">dy(t)</span><span class="den">dt</span></span> + y(t) = x(t)
+        <span class="lbl">(10-8)</span>
+      </div>
+      <p>
+        两边取傅里叶变换（用第 6 章的微分性质 <span class="mono">dy/dt ⟷ jωY</span>），立刻得到
+      </p>
+      <div class="eq center-eq">
+        H(jω) = <span class="frac"><span class="num">1</span><span class="den">1 + jωτ</span></span>,
+        　|H(jω)| = <span class="frac"><span class="num">1</span><span class="den">√(1 + (ωτ)<sup>2</sup>)</span></span>,
+        　∠H(jω) = −arctan(ωτ)
+        <span class="lbl">(10-9)</span>
+      </div>
+      <p>
+        参数 <span class="mono">τ</span> 叫
+        <span class="term" data-def="time constant，中文含义：时间常数。一阶系统唯一的时间尺度参数 τ；冲激响应衰减到 1/e、阶跃响应到达终值 63.2% 所用的时间。">时间常数</span>（time constant），它是这个系统的"唯一旋钮"：
+      </p>
+      <ul>
+        <li><b>冲激响应</b> <span class="mono">h(t) = (1/τ)e<sup>−t/τ</sup>u(t)</span>：单调衰减，<b>永不振荡</b>。</li>
+        <li><b>阶跃响应</b> <span class="mono">s(t) = (1 − e<sup>−t/τ</sup>)u(t)</span>：指数爬升，<b>永不超调</b>。</li>
+        <li><b>转折频率</b>：<span class="mono">ω = 1/τ</span> 处 <span class="mono">|H| = 1/√2 ≈ 0.707</span>（−3 dB 点），
+          这一点又叫
+          <span class="term" data-def="break frequency / 3-dB point，中文含义：转折频率（3 dB 点）。幅频曲线高频渐近线与低频渐近线的交点，也是 |H| 降到 0.707 的频率。">转折频率</span>
+          （break frequency）。这就是它的带宽。</li>
+        <li><b>高频衰减速度</b>：<span class="mono">ω ≫ 1/τ</span> 时 <span class="mono">|H| ≈ 1/(ωτ)</span>，
+          即每十倍频程下降 20 dB（Bode 图上是一条斜率 −20 dB/dec 的直线）。</li>
+      </ul>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：一阶阶跃响应与 10%→90% 上升时间 ≈ 2.2τ</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：阶跃响应 = 冲激响应与 u(t) 的卷积，也等于"积分累积"。</b></p>
+            <div class="eq">
+              s(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>t</span><span>−∞</span></span></span> h(λ)dλ
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>t</span><span>0</span></span></span>
+              <span class="frac"><span class="num">1</span><span class="den">τ</span></span> e<sup>−λ/τ</sup>dλ
+              = [ −e<sup>−λ/τ</sup> ]<sub>0</sub><sup>t</sup>
+              = 1 − e<sup>−t/τ</sup>
+            </div>
+            <p class="why">为什么阶跃响应是 h 的积分：阶跃是冲激的积分（<span class="mono">u(t)=∫δ</span>），而 LTI 系统与积分可交换，所以阶跃响应就是冲激响应的积分。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：解 10% 和 90% 两个时刻。</b></p>
+            <div class="eq">
+              1 − e<sup>−t<sub>10</sub>/τ</sup> = 0.1 ⇒ t<sub>10</sub> = τ ln(1/0.9) ≈ 0.105τ
+            </div>
+            <div class="eq">
+              1 − e<sup>−t<sub>90</sub>/τ</sup> = 0.9 ⇒ t<sub>90</sub> = τ ln(10) ≈ 2.303τ
+            </div>
+            <p class="why">为什么：把 <span class="mono">e<sup>−t/τ</sup></span> 解出来再取对数。<span class="mono">ln10 ≈ 2.3026</span>，<span class="mono">ln(1/0.9) ≈ 0.1054</span>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：相减。</b></p>
+            <div class="eq center-eq">t<sub>r</sub> = t<sub>90</sub> − t<sub>10</sub> ≈ 2.197τ ≈ 2.2τ</div>
+            <p class="why">为什么用 10%–90% 而不是 0–100%：指数永远到不了 100%，"从 0 到 1"的时间是无穷大。工程上统一取 10%→90% 这一段，既稳定又可比。</p>
+          </div>
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">把两个式子并排看</span>
+            <p style="margin-bottom:0">
+              带宽 <span class="mono">BW = 1/τ</span>，上升时间 <span class="mono">t<sub>r</sub> ≈ 2.2τ</span>，
+              相乘得 <span class="mono">t<sub>r</sub> · BW ≈ 2.2</span>——<b>常数</b>。
+              想要快一倍，带宽就得宽一倍。<b>天下没有免费的"快"。</b>
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h3>8.2 二阶系统：多了一个阻尼比 ζ</h3>
+      <p>二阶系统的标准形式（弹簧-阻尼-质量系统的教科书写法）是</p>
+      <div class="eq center-eq">
+        <span class="frac"><span class="num">d<sup>2</sup>y</span><span class="den">dt<sup>2</sup></span></span>
+        + 2ζω<sub>n</sub><span class="frac"><span class="num">dy</span><span class="den">dt</span></span>
+        + ω<sub>n</sub><sup>2</sup> y = ω<sub>n</sub><sup>2</sup> x
+        <span class="lbl">(10-10)</span>
+      </div>
+      <div class="eq center-eq">
+        H(jω) = <span class="frac">
+          <span class="num">ω<sub>n</sub><sup>2</sup></span>
+          <span class="den">(jω)<sup>2</sup> + 2ζω<sub>n</sub>(jω) + ω<sub>n</sub><sup>2</sup></span>
+        </span>
+        <span class="lbl">(10-11)</span>
+      </div>
+      <p>
+        <span class="mono">ω<sub>n</sub></span> 叫
+        <span class="term" data-def="undamped natural frequency，中文含义：无阻尼自然频率。二阶系统的频率尺度，ζ=0（无阻尼）时振荡的频率。">无阻尼自然频率</span>（undamped natural frequency），它只负责"把整个时间轴和频率轴按比例缩放"；
+        <span class="mono">ζ</span> 叫
+        <span class="term" data-def="damping ratio，中文含义：阻尼比。二阶系统的"阻尼程度"：ζ<1 欠阻尼（振荡、有超调）、ζ=1 临界阻尼、ζ>1 过阻尼（迟钝）。">阻尼比</span>（damping ratio），它才决定"振荡不振荡、冲过头多少"。
+      </p>
+
+      <table class="tbl sm">
+        <thead><tr><th class="c">阻尼比 ζ</th><th>名称</th><th>阶跃响应</th><th>频响</th><th>典型场合</th></tr></thead>
+        <tbody>
+          <tr><td class="c ft">0 &lt; ζ &lt; 1</td><td>欠阻尼<br><span class="tiny muted">underdamped</span></td><td>超调 + 振铃，振荡频率 <span class="mono">ω<sub>d</sub>=ω<sub>n</sub>√(1−ζ²)</span></td><td>ζ&lt;0.707 时出现谐振峰</td><td>想"快"的场合（但要忍受过冲）</td></tr>
+          <tr><td class="c ft">ζ = 1</td><td>临界阻尼<br><span class="tiny muted">critically damped</span></td><td><b>不超调的最快响应</b></td><td>单调下降，无峰</td><td>仪表、控制系统默认目标</td></tr>
+          <tr><td class="c ft">ζ &gt; 1</td><td>过阻尼<br><span class="tiny muted">overdamped</span></td><td>两个衰减指数相减，迟钝、无振荡</td><td>单调下降，更"圆滑"</td><td>怕过冲、不在乎慢的场合</td></tr>
+          <tr><td class="c ft">ζ = 0</td><td>无阻尼（理想化）</td><td>等幅振荡永不衰减</td><td>ω<sub>n</sub> 处 |H| = ∞（极点在虚轴上）</td><td>只在数学模型里出现</td></tr>
+        </tbody>
+      </table>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：谐振峰的位置与高度，以及超调量公式</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：把 |H| 写成 ω 的函数并求极值。令 u = ω/ω<sub>n</sub>。</b></p>
+            <div class="eq">
+              |H(jω)|<sup>2</sup> = <span class="frac">
+                <span class="num">1</span>
+                <span class="den">(1 − u<sup>2</sup>)<sup>2</sup> + (2ζu)<sup>2</sup></span>
+              </span>
+            </div>
+            <p class="why">为什么分母长这样：把 <span class="mono">jω = jω<sub>n</sub>u</span> 代进式 (10-11)，分母变成 <span class="mono">ω<sub>n</sub><sup>2</sup>(1 − u² + 2jζu)</span>，取模方 = (实部)²+(虚部)²。<b>注意：|H| 最大 ⟺ 分母最小</b>，所以下面只需让分母取最小。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：把分母记作 D(u) =(1−u²)² + 4ζ²u²，展开成 u² 的二次式。</b></p>
+            <div class="eq">D(u) = 1 − 2u<sup>2</sup> + u<sup>4</sup> + 4ζ<sup>2</sup>u<sup>2</sup> = 1 + (4ζ<sup>2</sup> − 2)u<sup>2</sup> + u<sup>4</sup></div>
+            <p class="why">为什么整理成 u² 的式子：D 只通过 u² 依赖 u，所以对 u² 求导就能找极值，省一次计算。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：对 u² 求导置零。</b>记 v = u²：</p>
+            <div class="eq"><span class="frac"><span class="num">dD</span><span class="den">dv</span></span> = (4ζ<sup>2</sup> − 2) + 2v = 0 ⇒ v = 1 − 2ζ<sup>2</sup></div>
+            <p class="why">为什么这就是谐振条件：v 必须为正（因为 v=u²≥0），所以只有 <span class="mono">1 − 2ζ² &gt; 0</span> 即 <b>ζ &lt; 1/√2 ≈ 0.707</b> 时才存在谐振峰。ζ 大于 0.707，曲线就单调下降——这正是"最平坦"的分界。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：回代求峰的位置与高度。</b></p>
+            <div class="eq">ω<sub>r</sub> = ω<sub>n</sub>√(1 − 2ζ<sup>2</sup>)</div>
+            <div class="eq">
+              |H(jω<sub>r</sub>)| = <span class="frac">
+                <span class="num">1</span>
+                <span class="den">2ζ√(1 − ζ<sup>2</sup>)</span>
+              </span>
+            </div>
+            <p class="why">为什么：把 <span class="mono">v = 1−2ζ²</span> 代回 D，得 <span class="mono">D = 1 − (1−2ζ²)² = 4ζ²(1−ζ²)</span>，开方取倒数即得上式。注意 ζ→0 时高度 → ∞（极点在虚轴上）。</p>
+          </div>
+          <div class="step">
+            <p><b>第 5 步：时域的超调量。</b>欠阻尼阶跃响应为</p>
+            <div class="eq">
+              s(t) = 1 − e<sup>−ζω<sub>n</sub>t</sup>
+              <span style="font-size:22px">[</span>cos(ω<sub>d</sub>t) +
+              <span class="frac"><span class="num">ζ</span><span class="den">√(1−ζ<sup>2</sup>)</span></span>
+              sin(ω<sub>d</sub>t)<span style="font-size:22px">]</span>,
+              　ω<sub>d</sub> = ω<sub>n</sub>√(1−ζ<sup>2</sup>)
+            </div>
+            <p>它的第一个波峰出现在 <span class="mono">t<sub>p</sub> = π/ω<sub>d</sub></span>，此时的超调量为</p>
+            <div class="eq center-eq">
+              M<sub>p</sub> = e<sup>−πζ/√(1−ζ<sup>2</sup>)</sup>
+              <span class="lbl">(10-12)</span>
+            </div>
+            <p class="why">为什么：把 <span class="mono">t<sub>p</sub></span> 代进去，正弦项恰好归零（因为 <span class="mono">ω<sub>d</sub>t<sub>p</sub>=π</span>），剩下 <span class="mono">1 + e<sup>−ζω<sub>n</sub>π/ω<sub>d</sub></sup></span>，所以超调部分就是那个指数，指数上把 <span class="mono">ω<sub>n</sub>/ω<sub>d</sub></span> 换成 <span class="mono">1/√(1−ζ²)</span>。ζ=0.456 时约 20%，ζ=0.1 时高达 73%。</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box warn">
+        <span class="tag">品质因数 Q 与阻尼比是一回事</span>
+        <p style="margin-bottom:0">
+          电路书里常写 <span class="mono">Q = 1/(2ζ)</span>。Q 越大，"谐振越尖"、"振铃越长"。
+          收音机选台要 Q 大（选择性好），但音频功放反而怕 Q 大（振铃难听）。
+          <b>"尖"与"稳"永远是矛盾的。</b>
+        </p>
+      </div>
+
+      <h2 id="s9">9. 动手：带宽与上升时间的交易</h2>
+      <p>
+        下面左边是幅频特性 <span class="mono">|H(jω)|</span>（虚线是 −3 dB 线），右边是阶跃响应。
+        拖动两个滑块，盯着下面那排数字：<b>带宽变大时，上升时间一定会变小</b>。
+      </p>
+
+      <div id="lab-order"></div>
+
+      <h2 id="s10">10. 动手：拖极点零点，一切形状都由它们决定</h2>
+      <p>
+        前面所有结论，其实都被<b>极点零点的位置</b>管着。拖动下面的 ×（极点）和 ○（零点），
+        右边频响曲线与下面的结论文字会立刻更新：
+      </p>
+      <ul>
+        <li><b>极点靠近虚轴</b>（或靠近单位圆）⟹ 该频率处 <span class="mono">|H|</span> 出现尖峰（谐振）。极点正好落在虚轴上就是 <span class="mono">|H|→∞</span>，系统临界。</li>
+        <li><b>零点靠近虚轴</b> ⟹ 该频率处 <span class="mono">|H|</span> 出现凹陷；零点正好在虚轴上则完全掐掉该频率。</li>
+        <li><b>极点落在右半平面</b> ⟹ 不稳定（因果系统的 ROC 不含虚轴，傅里叶变换都不存在）。</li>
+        <li><b>零点在原点</b> ⟹ 乘上 <span class="mono">jω</span> 因子 = 高通/微分；<b>极点个数多于零点</b> ⟹ 高频衰减 = 低通。</li>
+      </ul>
+
+      <div class="lab">
+        <div class="lab-head">
+          <b>实验 4 · 拖极点零点：频响形状与稳定性都是它们定的</b>
+          <span class="hint">用鼠标拖 × / ○（绿色区域是 ROC 收敛域，虚线是虚轴 = 频率轴）</span>
+        </div>
+        <div class="canvases g2c">
+          <div class="cv-cell">
+            <div class="cv-label">s 平面：极点 ×、零点 ○、虚轴 jω</div>
+            <canvas id="pz" style="height:300px"></canvas>
+          </div>
+          <div class="cv-cell">
+            <div class="cv-label">幅度频响 |H(jω)|</div>
+            <canvas id="pz-resp" style="height:300px"></canvas>
+          </div>
+        </div>
+        <div id="pz-stats" class="readout"></div>
+        <div id="pz-note" class="lab-note"></div>
+      </div>
+
+      <div class="lab-actions" style="margin:-6px 0 20px;display:flex;flex-wrap:wrap;gap:8px">
+        <button class="btn ghost sm" id="pz-lowpass">二阶低通（极点在半圆上）</button>
+        <button class="btn ghost sm" id="pz-first">一阶低通（单个实极点）</button>
+        <button class="btn ghost sm" id="pz-highpass">高通（原点放两个零点）</button>
+        <button class="btn ghost sm" id="pz-bandpass">带通（原点放一个零点）</button>
+        <button class="btn ghost sm" id="pz-notch">带阻/陷波（虚轴上放零点）</button>
+        <button class="btn ghost sm" id="pz-unstable">不稳定（极点到右半平面）</button>
+        <button class="btn ghost sm" id="pz-reset">复位</button>
+      </div>
+
+      <div class="box trap">
+        <span class="tag">一组必须会"读"的配置</span>
+        <p>
+          ① 极点 <span class="mono">−0.5 ± j1</span>、无零点：低频增益 <span class="mono">|H(0)| = 1/((0.5)²+1) ≈ 0.8</span>，高频掉下去 ⟹ <b>低通</b>。
+          把一对极点往虚轴推（比如 <span class="mono">−0.1 ± j1</span>），<span class="mono">ω≈1</span> 处冒出一个很高的尖峰 ⟹ <b>谐振</b>，
+          同时阶跃响应会剧烈振铃。
+        </p>
+        <p>
+          ② 零点放 <span class="mono">0</span>（原点）：分子多一个 <span class="mono">jω</span>，直流被掐掉 ⟹ <b>高通或带通</b>。
+        </p>
+        <p style="margin-bottom:0">
+          ③ 零点放 <span class="mono">±j2</span>：在 <span class="mono">ω=2</span> 处 <span class="mono">|H|</span> 直接为 0 ⟹ <b>陷波器</b>，
+          用来掐掉 50 Hz 工频干扰就是这个思路。
+        </p>
+      </div>
+
+      <h2 id="s11">11. 幅度谱与相位谱：谁在替你"记住"图像</h2>
+      <p>
+        第 6 章教材里有一个非常著名的实验，值得在这里再强调一次，因为它直接解释了"相位为什么不能丢"。
+        取一张黑白照片 <span class="mono">f(x, y)</span>，做二维傅里叶变换
+        <span class="mono">F(u, v)</span>，然后做三件事：
+      </p>
+      <table class="tbl sm">
+        <thead><tr><th>实验</th><th>幅度 |F|</th><th>相位 ∠F</th><th>反变换后的结果</th></tr></thead>
+        <tbody>
+          <tr><td>(a) 原图</td><td class="c">保留</td><td class="c">保留</td><td>清晰的原图。</td></tr>
+          <tr><td>(b) 相位清零</td><td class="c">保留</td><td class="c">全部置 0</td><td><b>认不出是什么</b>——只剩一片模糊的能量团。</td></tr>
+          <tr><td>(c) 幅度置 1</td><td class="c">全部置 1</td><td class="c">保留</td><td><b>轮廓、边缘仍然看得出来</b>（只是对比度变怪）。</td></tr>
+          <tr><td>(d) 张冠李戴</td><td class="c">换成别的图的</td><td class="c">保留原图的</td><td>看起来像<b>原图</b>（相位把结构带过来了）。</td></tr>
+        </tbody>
+      </table>
+      <p>
+        结论很硬：<b>幅度谱告诉你"有哪些空间频率、各多强"，相位谱告诉你"这些条纹怎么对齐"——而对齐方式才是形状。</b>
+        图像的边缘对应高频成分"在空间上同相叠加"的位置，相位一乱，边缘就散了。
+        同样的道理：把一段录音 <span class="mono">x(t)</span> 倒放成 <span class="mono">x(−t)</span>，
+        幅度谱<b>完全不变</b>，只有相位取了负号（第 6 章：<span class="mono">X(−jω)=X*(jω)</span>），
+        可你已经完全听不懂了。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">顺带说说声音和图像的低通/高通</span>
+        <p>
+          <b>声音</b>：把一首歌做低通（只留几百 Hz），剩下的是"闷"的低音鼓点；
+          做高通（只留几 kHz 以上），剩下的是"嘶嘶"的齿音和镲片。
+          第 6 章的课件里就画了同两个声音信号的时域波形、幅度谱和相位谱——
+          <b>幅度谱能看出"这是说话还是音乐"，相位谱能看出"浊音还是清音"。</b>
+        </p>
+        <p style="margin-bottom:0">
+          <b>图像</b>：理想低通滤波后的图像会在边缘出现一圈一圈的波纹，
+          叫"<b>年轮效应</b>"——就是理想滤波器那 9% 的振铃在二维上的样子。
+          换成巴特沃斯低通，波纹小得多，因为它的频域边界是"滑下去"而不是"啪一下断掉"。
+          <b>频域怎么切，时域（空域）就怎么响。</b>
+        </p>
+      </div>
+
+      <h2 id="s12">12. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：以为"幅频特性就够了"</h4>
+          <p class="small" style="margin-bottom:0">
+            同一个 <span class="mono">|H|</span>，相位不同，输出波形可以完全不认识（本页实验 1）。
+            做波形保真（图像、数字脉冲）时必须一起看相位/<b>群延迟</b>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：把群延迟当成"某个频率的延时"</h4>
+          <p class="small" style="margin-bottom:0">
+            群延迟是"<b>一小群</b>频率共同的延时"，只有在窄带内才好用。
+            信号带宽很宽时，必须看 <span class="mono">τ(ω)</span> 是否在<b>整个信号带宽内</b>都平。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：以为理想滤波器"更好所以应该追求"</h4>
+          <p class="small" style="margin-bottom:0">
+            它非因果（不可实时）、无限长（不可实现）、阶跃振铃 9%（时域难看）。
+            工程上要的是"够用"，不是"理想"。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：忘了理想滤波器的幅度是"双边"的</h4>
+          <p class="small" style="margin-bottom:0">
+            实信号的谱共轭对称，<span class="mono">H</span> 必须在 <span class="mono">±ω<sub>c</sub></span> 对称地切。
+            只切正频率半边，时域会冒出个复数信号（物理上要求用复数元件）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：把 −3 dB 带宽当成"通带边缘"</h4>
+          <p class="small" style="margin-bottom:0">
+            −3 dB 点（0.707）只是习惯上的"截止"，真正的"通带边缘 ω<sub>p</sub>"由你的容许波纹 δ<sub>1</sub> 决定。
+            巴特沃斯的 −3 dB 点与 δ<sub>1</sub> 定义的边缘是两码事。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：ζ 与 ω<sub>n</sub> 混淆</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">ω<sub>n</sub></span> 只是"时间/频率尺度"，改它整条曲线整体拉伸；
+            <span class="mono">ζ</span> 才决定"峰有没有、冲多少"。<b>形状看 ζ，快慢看 ω<sub>n</sub>。</b>
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s13">13. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz10"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 10 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* =========================================================
+     实验 1 · 幅度谱不变，只改相位
+     ========================================================= */
+  SSC.lab({
+    mount: '#lab-phase',
+    title: '实验 1 · 只改相位，波形就变成另一个人',
+    hint: '拖三个相位滑块；右上那张幅度谱永远不会变',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域 x(t) = 1/2 + 2cos(2πt+φ₁) + cos(4πt+φ₂) + (2/3)cos(6πt+φ₃)', height: 210 },
+      { id: 'spec', label: '幅度谱 |X(jω)|：只有四根线，与相位无关', height: 210 }
+    ],
+    controls: [
+      { id: 'p1', label: '相位 φ₁（ω = 2π）', min: 0, max: 6.28, step: 0.02, value: 0, unit: ' rad' },
+      { id: 'p2', label: '相位 φ₂（ω = 4π）', min: 0, max: 6.28, step: 0.02, value: 0, unit: ' rad' },
+      { id: 'p3', label: '相位 φ₃（ω = 6π）', min: 0, max: 6.28, step: 0.02, value: 0, unit: ' rad' }
+    ],
+    buttons: [
+      {
+        label: '相位全清零', onClick: function (v, api) {
+          api.set('p1', 0); api.set('p2', 0); api.set('p3', 0);
+        }
+      },
+      {
+        label: '线性相位（等价纯延时 0.25 s）', onClick: function (v, api) {
+          api.set('p1', 4.712); api.set('p2', 3.142); api.set('p3', 1.571);
+        }
+      },
+      {
+        label: '打乱相位', onClick: function (v, api) {
+          api.set('p1', 1.2); api.set('p2', 4.1); api.set('p3', 5.546);
+        }
+      }
+    ],
+    draw: function (cv, v) {
+      var f = function (t) {
+        return 0.5
+          + 2 * Math.cos(2 * Math.PI * t + v.p1)
+          + Math.cos(4 * Math.PI * t + v.p2)
+          + (2 / 3) * Math.cos(6 * Math.PI * t + v.p3);
+      };
+      var delayed = function (t) {   /* 纯延时 0.25 s：用于对比 */
+        var u = t - 0.25;
+        return 0.5 + 2 * Math.cos(2 * Math.PI * u) + Math.cos(4 * Math.PI * u) + (2 / 3) * Math.cos(6 * Math.PI * u);
+      };
+      SSC.plot(cv.time, {
+        xmin: -1, xmax: 1.5, ymin: -3.8, ymax: 4.8,
+        xlabel: 't (s)', ylabel: 'x(t)',
+        curves: [
+          { f: f, color: '#4338ca', width: 2.4, label: '当前相位的波形' },
+          { f: delayed, color: '#c3ccdd', width: 1.4, dash: [5, 4], label: '零相位波形右移 0.25 s（参考）' }
+        ],
+        legend: true
+      });
+      SSC.plot(cv.spec, {
+        xmin: 0, xmax: 21, ymin: 0, ymax: 2.6,
+        xlabel: 'ω (rad/s)', ylabel: '|X(jω)|',
+        stems: [{
+          xs: [0, 2 * Math.PI, 4 * Math.PI, 6 * Math.PI],
+          ys: [0.5, 2, 1, 2 / 3],
+          color: '#dc2626', label: '幅度（拖动相位时纹丝不动）'
+        }],
+        legend: true
+      });
+    },
+    note: function (v) {
+      var lin = Math.abs(v.p1 - 4.712) < 0.05 && Math.abs(v.p2 - 3.142) < 0.05 && Math.abs(v.p3 - 1.571) < 0.05;
+      return '当前相位：<b>φ₁ = ' + SSC.fmt(v.p1, 2) + ' rad，φ₂ = ' + SSC.fmt(v.p2, 2) +
+        ' rad，φ₃ = ' + SSC.fmt(v.p3, 2) + ' rad</b>。' +
+        '幅度谱始终是 0.5 / 2 / 1 / 0.667 这四根线。' +
+        (lin
+          ? '<br><b>你正处在"线性相位"状态</b>：相位与 ω 成正比（φ<sub>k</sub> = −kω₀t₀，t₀ = 0.25 s），波形只是整体右移，形状与灰虚线完全重合——线性相位 = 纯延时。'
+          : '<br>试着点"线性相位"按钮：波形会正好落在灰虚线上（只是晚了 0.25 s）。点"打乱相位"，波形就完全变样——<b>但幅度谱一动没动</b>。');
+    }
+  });
+
+  /* =========================================================
+     实验 2 · 理想 / 一阶 / 巴特沃斯 低通
+     ========================================================= */
+  function butterPoles(wc, n) {
+    var p = [];
+    for (var k = 1; k <= n; k++) {
+      var th = Math.PI * (2 * k + n - 1) / (2 * n);
+      p.push([wc * Math.cos(th), wc * Math.sin(th)]);
+    }
+    return p;
+  }
+  /* 巴特沃斯的复频响 H(jω)：分母 = Π(jω − p_k)，分子 = 低通 ω_c^n / 高通 (jω)^n */
+  function butterResp(wc, n, hp, w) {
+    var numR, numI;
+    if (hp) {
+      var an = n * Math.PI / 2, am = Math.pow(w, n);
+      numR = am * Math.cos(an); numI = am * Math.sin(an);
+    } else {
+      numR = Math.pow(wc, n); numI = 0;
+    }
+    var denR = 1, denI = 0, ps = butterPoles(wc, n);
+    for (var i = 0; i < ps.length; i++) {
+      var dr = -ps[i][0], di = w - ps[i][1];       /* jω − p */
+      var nr = denR * dr - denI * di, ni = denR * di + denI * dr;
+      denR = nr; denI = ni;
+    }
+    var d2 = denR * denR + denI * denI || 1e-300;
+    return { re: (numR * denR + numI * denI) / d2, im: (numI * denR - numR * denI) / d2 };
+  }
+  function filterResp(kind, wc, n, w) {
+    if (kind === 'ideal') return { mag: w < wc ? 1 : 0, ph: 0 };
+    if (kind === 'first') {
+      var u = w / wc;
+      return { mag: 1 / Math.sqrt(1 + u * u), ph: -Math.atan(u) };
+    }
+    var H = butterResp(wc, n, kind === 'butterHP', w);
+    return { mag: Math.hypot(H.re, H.im), ph: Math.atan2(H.im, H.re) };
+  }
+
+  SSC.lab({
+    mount: '#lab-kind',
+    title: '实验 2 · 同一个方波，送进三种不同的低通',
+    hint: '先选"理想低通"推 ω_c，再换"一阶"，最后加巴特沃斯阶数 n',
+    columns: 2,
+    canvases: [
+      { id: 'out', label: '时域：输入方波（灰虚线）与滤波后的输出（蓝）', height: 210 },
+      { id: 'H', label: '幅频特性 |H(jω)|（滤波器本身）', height: 210 }
+    ],
+    controls: [
+      {
+        id: 'kind', label: '滤波器类型', value: 'ideal',
+        options: [
+          { v: 'ideal', t: '理想低通（硬切，零相位）' },
+          { v: 'first', t: '一阶低通 1/(1+jωτ)' },
+          { v: 'butter', t: '巴特沃斯低通（n 阶）' },
+          { v: 'butterHP', t: '巴特沃斯高通（n 阶）' }
+        ]
+      },
+      { id: 'wc', label: '截止频率 ω_c', min: 1, max: 40, step: 0.5, value: 20, unit: ' rad/s' },
+      { id: 'n', label: '巴特沃斯阶数 n', min: 1, max: 8, step: 1, value: 3 },
+      { id: 'N', label: '输入方波谐波数', min: 5, max: 61, step: 2, value: 41 }
+    ],
+    draw: function (cv, v, api) {
+      var w0 = 2 * Math.PI;               /* 方波周期 T = 1 s */
+      var isHP = (v.kind === 'butterHP');
+      var pass = [], maxOut = 0;
+      for (var k = 1; k <= v.N; k++) {
+        var H = filterResp(v.kind, v.wc, v.n, k * w0);
+        if (H.mag > 0.707) pass.push(k);
+      }
+      var outF = function (t) {
+        var s = 0;
+        for (var k = 1; k <= v.N; k++) {
+          var w = k * w0, Hk = filterResp(v.kind, v.wc, v.n, w);
+          if (Hk.mag < 1e-9) continue;
+          s += SSC.squareCoeff(k, 0.5) * Hk.mag * Math.cos(w * t + Hk.ph);
+        }
+        return s;
+      };
+      for (var i = 0; i <= 800; i++) { var yy = outF(-1 + 2 * i / 800); if (Math.abs(yy) > maxOut) maxOut = Math.abs(yy); }
+
+      SSC.plot(cv.out, {
+        xmin: -1.5, xmax: 1.5, ymin: -1.45, ymax: 1.45,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: function (t) { return SSC.squarePartial(t, 41, 1, 0.5); }, color: '#c3ccdd', width: 1.5, dash: [5, 4], label: '输入（41 项近似方波）' },
+          { f: outF, color: '#4338ca', width: 2.4, label: '输出 y(t)' }
+        ],
+        legend: true
+      });
+      SSC.plot(cv.H, {
+        xmin: 0, xmax: 45, ymin: 0, ymax: 1.25,
+        xlabel: 'ω (rad/s)', ylabel: '|H(jω)|',
+        curves: [{
+          f: function (w) { return filterResp(v.kind, v.wc, v.n, w).mag; },
+          color: '#0e7490', width: 2.2, samples: 1400, label: '|H(jω)|'
+        }],
+        hlines: [{ y: 0.707, color: '#dc2626', dash: [4, 4], label: '−3 dB（0.707）' }],
+        vlines: [{ x: v.wc, color: '#b45309', label: 'ω_c=' + SSC.fmt(v.wc, 1) }],
+        legend: true
+      });
+      api.readout(
+        '<div class="stat"><div class="k">通过（&gt;0.707）的谐波 k</div><div class="v" style="font-size:13px">' +
+        (pass.length ? pass.join(', ') : '一个都不剩') + '</div></div>' +
+        '<div class="stat"><div class="k">保留个数</div><div class="v">' + pass.length + '</div></div>' +
+        '<div class="stat"><div class="k">输出峰值（过冲？）</div><div class="v">' + SSC.fmt(maxOut, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">高频渐近斜率</div><div class="v" style="font-size:13px">' +
+        (v.kind === 'ideal' ? '—（硬切）' : (v.kind === 'first' ? '−20 dB/dec' : (isHP ? '+20n dB/dec' : '−20n dB/dec'))) +
+        '</div></div>'
+      );
+    },
+    note: function (v) {
+      var t = '';
+      if (v.kind === 'ideal') {
+        t = '<b>理想低通</b>：频域"啪一下"切在 ω_c（|H| 曲线是个方角），相位为 0，所以输出<b>不延迟</b>。' +
+          '代价是跳变处那条永远消不掉的<b>振铃</b>（约 9% 过冲，吉布斯现象）——而且它在频域是方角，时域就必然是无限长的 sinc。';
+      } else if (v.kind === 'first') {
+        t = '<b>一阶低通</b>：曲线在 ω_c 处穿过 0.707，往上按 −20 dB/十倍频 慢慢滑下去（过渡带很宽）。' +
+          '没有振铃，但整条输出波形相对输入<b>向右移了</b>——因为一阶系统有相位（群延迟 ≠ 0）。' +
+          '把 ω_c 调大：波形更接近方波、延迟更小；调小：输出越来越像正弦（只剩基波）。';
+      } else if (v.kind === 'butter') {
+        t = '<b>巴特沃斯低通（n = ' + v.n + ' 阶）</b>：不管几阶，曲线一定穿过 (ω_c, 0.707) 这一点；n 越大过渡带越陡，' +
+          '越来越像理想低通，<b>跳变处的振铃也越来越明显</b>，延迟同时变大。这就是"频率选择性 ↔ 时域振铃"的交易。';
+      } else {
+        t = '<b>巴特沃斯高通（n = ' + v.n + ' 阶）</b>：极点还是排成左半圆，但分子多了 (jω)^n，直流被彻底掐掉，' +
+          '低频全部被压下去，只留下跳变处的快速变化（边沿）。把 ω_c 调大，输出只剩很窄的尖峰。';
+      }
+      return t + '<br>提示：把"输入方波谐波数"调大，输入那条灰虚线会更接近理想方波。';
+    }
+  });
+
+  /* =========================================================
+     实验 3 · 带宽（ω_n / ζ）↔ 上升时间
+     ========================================================= */
+  function stepResponse(kind, wn, zeta, t) {
+    if (t < 0) return 0;
+    if (kind === 'first') return 1 - Math.exp(-wn * t);
+    if (zeta < 1) {
+      var wd = wn * Math.sqrt(1 - zeta * zeta);
+      return 1 - Math.exp(-zeta * wn * t) *
+        (Math.cos(wd * t) + (zeta / Math.sqrt(1 - zeta * zeta)) * Math.sin(wd * t));
+    }
+    if (Math.abs(zeta - 1) < 1e-6) return 1 - Math.exp(-wn * t) * (1 + wn * t);
+    var wdd = wn * Math.sqrt(zeta * zeta - 1);
+    return 1 - Math.exp(-zeta * wn * t) *
+      (Math.cosh(wdd * t) + (zeta / Math.sqrt(zeta * zeta - 1)) * Math.sinh(wdd * t));
+  }
+  function magResponse(kind, wn, zeta, w) {
+    if (kind === 'first') return 1 / Math.sqrt(1 + (w / wn) * (w / wn));
+    var u = w / wn;
+    var re = 1 - u * u, im = 2 * zeta * u;
+    return 1 / Math.hypot(re, im);
+  }
+
+  SSC.lab({
+    mount: '#lab-order',
+    title: '实验 3 · 带宽越大，上升越快（这是躲不掉的交易）',
+    hint: '拖 ω_n（特征频率）和 ζ（阻尼比），看下面数字怎么联动',
+    columns: 2,
+    canvases: [
+      { id: 'H', label: '幅频特性 |H(jω)|（虚线 = −3 dB）', height: 215 },
+      { id: 'step', label: '阶跃响应 s(t)（虚线 = 10% / 90%）', height: 215 }
+    ],
+    controls: [
+      { id: 'kind', label: '系统类型', value: 'second', options: [{ v: 'first', t: '一阶系统' }, { v: 'second', t: '二阶系统' }] },
+      { id: 'wn', label: '特征频率 ω_n（一阶时 = 1/τ）', min: 0.4, max: 12, step: 0.1, value: 2, unit: ' rad/s' },
+      { id: 'zeta', label: '阻尼比 ζ（只对二阶有效）', min: 0.05, max: 1.6, step: 0.01, value: 0.5 }
+    ],
+    draw: function (cv, v, api) {
+      var kind = v.kind, wn = v.wn, z = v.zeta;
+      var wmax = 4 * wn, i;
+
+      /* --- 幅频 --- */
+      var peak = 1, wPeak = 0;
+      for (i = 0; i <= 2000; i++) {
+        var w = wmax * i / 2000, m = magResponse(kind, wn, z, w);
+        if (m > peak) { peak = m; wPeak = w; }
+      }
+      var bw = wmax;                                   /* −3 dB 带宽（数值扫描） */
+      for (i = 0; i <= 2000; i++) {
+        var w2 = wmax * i / 2000;
+        if (magResponse(kind, wn, z, w2) < Math.SQRT1_2) { bw = w2; break; }
+      }
+      SSC.plot(cv.H, {
+        xmin: 0, xmax: wmax, ymin: 0, ymax: Math.max(1.18, peak * 1.1),
+        xlabel: 'ω (rad/s)', ylabel: '|H(jω)|',
+        curves: [{ f: function (w) { return magResponse(kind, wn, z, w); }, color: '#0e7490', width: 2.3, samples: 900, label: '|H(jω)|' }],
+        hlines: [{ y: Math.SQRT1_2, color: '#dc2626', dash: [4, 4], label: '−3 dB（0.707）' }],
+        vlines: [{ x: bw, color: '#b45309', label: '带宽 ' + SSC.fmt(bw, 2) }],
+        legend: true
+      });
+
+      /* --- 阶跃响应 --- */
+      var tmax = (kind === 'first') ? 6 / wn : (z < 1 ? 9 / wn : (10 * z + 6) / wn);
+      var t10 = NaN, t90 = NaN, mx = 0, tPeak = 0;
+      for (i = 0; i <= 3000; i++) {
+        var t = tmax * i / 3000, s = stepResponse(kind, wn, z, t);
+        if (isNaN(t10) && s >= 0.1) t10 = t;
+        if (isNaN(t90) && s >= 0.9) t90 = t;
+        if (s > mx) { mx = s; tPeak = t; }
+      }
+      var tr = (isNaN(t10) || isNaN(t90)) ? NaN : (t90 - t10);
+      /* 2% 建立时间 */
+      var ts = NaN;
+      for (i = 3000; i >= 0; i--) {
+        var tt = tmax * i / 3000;
+        if (Math.abs(stepResponse(kind, wn, z, tt) - 1) > 0.02) { ts = tmax * (i + 1) / 3000; break; }
+      }
+      var overshoot = Math.max(0, mx - 1);
+      var mpTh = (kind === 'second' && z < 1) ? Math.exp(-Math.PI * z / Math.sqrt(1 - z * z)) : 0;
+
+      SSC.plot(cv.step, {
+        xmin: 0, xmax: tmax, ymin: -0.05, ymax: Math.max(1.25, mx * 1.08),
+        xlabel: 't (s)', ylabel: 's(t)',
+        curves: [{ f: function (t) { return stepResponse(kind, wn, z, t); }, color: '#4338ca', width: 2.4, samples: 1200, label: '阶跃响应' }],
+        hlines: [
+          { y: 1, color: '#15803d', dash: [6, 4], label: '终值 1' },
+          { y: 0.9, color: '#c3ccdd', dash: [3, 4] },
+          { y: 0.1, color: '#c3ccdd', dash: [3, 4] }
+        ],
+        vlines: isNaN(tr) ? [] : [
+          { x: t10, color: '#b45309', label: '10%' }, { x: t90, color: '#b45309', label: '90%' }
+        ],
+        points: [{ x: tPeak, y: mx, color: '#dc2626', r: 3.4 }],
+        legend: true
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">−3 dB 带宽</div><div class="v">' + SSC.fmt(bw, 3) + ' rad/s</div></div>' +
+        '<div class="stat"><div class="k">上升时间 t_r（10→90%）</div><div class="v">' + SSC.fmt(tr, 3) + ' s</div></div>' +
+        '<div class="stat"><div class="k">t_r × 带宽</div><div class="v">' + SSC.fmt(tr * bw, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">超调量 M_p</div><div class="v">' + SSC.fmt(overshoot * 100, 1) + ' %</div></div>' +
+        '<div class="stat"><div class="k">峰值时间</div><div class="v">' + SSC.fmt(tPeak, 3) + ' s</div></div>' +
+        '<div class="stat"><div class="k">2% 建立时间</div><div class="v">' + SSC.fmt(ts, 3) + ' s</div></div>' +
+        '<div class="stat"><div class="k">|H| 峰值 / 位置</div><div class="v" style="font-size:13px">' +
+        SSC.fmt(peak, 3) + ' @ ' + SSC.fmt(wPeak, 2) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      if (v.kind === 'first') {
+        return '<b>一阶系统</b>：只有一个旋钮 ω_n = 1/τ。带宽正好等于 ω_n，上升时间 ≈ 2.2τ = 2.2/ω_n，' +
+          '所以 <b>t_r × 带宽 ≈ 2.2（常数）</b>——看上面的数字，你无论怎么拖 ω_n，这个乘积都不动。<br>' +
+          '一阶系统<b>永远不会超调</b>（超调量恒为 0%），也没有谐振峰。';
+      }
+      var s = '<b>二阶系统</b>：ζ = ' + SSC.fmt(v.zeta, 2) + '，' + (v.zeta < 1 ? '欠阻尼' : (Math.abs(v.zeta - 1) < 0.02 ? '临界阻尼' : '过阻尼')) + '。';
+      if (v.zeta < Math.SQRT1_2) {
+        s += 'ζ &lt; 0.707 ⟹ 幅频出现<b>谐振峰</b>，峰的位置在 ω_n√(1−2ζ²) = ' +
+          SSC.fmt(v.wn * Math.sqrt(Math.max(0, 1 - 2 * v.zeta * v.zeta)), 3) + ' rad/s（右图红点）。' +
+          '<br>把 ζ 往 0.05 拖：峰变得又尖又高、上升时间很短，但阶跃响应会剧烈振铃、超调很大（公式 M_p = e<sup>−πζ/√(1−ζ²)</sup>）。';
+      } else {
+        s += 'ζ ≥ 0.707 ⟹ <b>没有谐振峰</b>，|H| 单调下降，阶跃响应不再超调。' +
+          '<br><b>ζ = 1（临界阻尼）是"不超调情况下最快的响应"</b>；ζ 再大就越来越迟钝（建立时间变长）。';
+      }
+      s += '<br>再拖 ω_n：整条频响被横向拉伸、整条阶跃被横向压缩——<b>ω_n 只是时间/频率的尺度，形状由 ζ 决定</b>。';
+      return s;
+    }
+  });
+
+  /* =========================================================
+     实验 4 · pzLab（s 域）
+     ========================================================= */
+  var pzApi = SSC.pzLab({
+    domain: 's',
+    canvas: '#pz', respCanvas: '#pz-resp', statsEl: '#pz-stats', noteEl: '#pz-note',
+    poles: [[-0.5, 1], [-0.5, -1]],
+    zeros: [],
+    K: 1,
+    mode: 'causal',
+    wmax: 8,
+    respLabel: '|H(jω)|'
+  });
+  function bindPZ(id, poles, zeros) {
+    var b = document.getElementById(id);
+    if (b && pzApi) b.addEventListener('click', function () { pzApi.set(poles, zeros); });
+  }
+  bindPZ('pz-lowpass', [[-0.5, 1], [-0.5, -1]], []);
+  bindPZ('pz-first', [[-1.5, 0]], []);
+  bindPZ('pz-highpass', [[-0.5, 1], [-0.5, -1]], [[0, 0], [0, 0]]);
+  bindPZ('pz-bandpass', [[-0.3, 1.5], [-0.3, -1.5]], [[0, 0]]);
+  bindPZ('pz-notch', [[-0.3, 1.5], [-0.3, -1.5]], [[0, 2], [0, -2]]);
+  bindPZ('pz-unstable', [[0.5, 1.2], [0.5, -1.2]], []);
+  var rst = document.getElementById('pz-reset');
+  if (rst && pzApi) rst.addEventListener('click', function () { pzApi.reset(); });
+
+  /* =========================================================
+     自测
+     ========================================================= */
+  SSC.quiz('#quiz10', [
+    {
+      q: '一个 LTI 系统的 |H(jω)| 在全频段恒为 1，但 ∠H(jω) 是 ω 的一个"弯曲"函数。输入一个由多个频率成分组成的脉冲，输出最可能是？',
+      opts: [
+        '波形被改变（各成分到达时间不同，脉冲被抹开/振铃），尽管每个频率的幅度都没变',
+        '波形完全不变，因为幅度谱没被改变',
+        '波形被整体放大 1 倍，形状不变',
+        '输出恒为 0'
+      ],
+      a: 0,
+      why: '幅度谱只决定各成分的强弱，相位决定它们的相对到达时间。相位非线性 = 群延迟随频率变化 = 各成分错位，叠加后波形就变了（这叫相位失真/色散）。这就是"全通系统也能毁掉波形"的原因。',
+      tag: '概念'
+    },
+    {
+      q: '理想低通滤波器的冲激响应 h(t) = sin(ω_c t)/(πt)，它为什么不能被实时实现？',
+      opts: [
+        '它在 t<0 时不为零（非因果），而且两边无限延伸、无法用有限元件实现',
+        '它的频谱不是有限的',
+        '它的阶数太高',
+        '它只对正弦输入有效'
+      ],
+      a: 0,
+      why: '非因果意味着"输入还没来，输出已经有了"，实时系统不能预知未来；sinc 又以 1/t 缓慢衰减，永不严格到零。这正是"频域矩形边界"在时域必须付出的代价。',
+      tag: '理想滤波器'
+    },
+    {
+      q: '一阶低通 H(jω)=1/(1+jωτ)。若把 τ 从 1 s 减小到 0.5 s，则？',
+      opts: [
+        '带宽从 1 rad/s 增大到 2 rad/s，上升时间从约 2.2 s 缩短到约 1.1 s',
+        '带宽变小，上升时间变长',
+        '带宽与上升时间都不变',
+        '带宽翻倍，上升时间也翻倍'
+      ],
+      a: 0,
+      why: '带宽 = 1/τ，上升时间 ≈ 2.2τ，两者乘积恒为 2.2。所以 τ 减半 ⟹ 带宽加倍、上升时间减半——这就是"带宽 × 上升时间 ≈ 常数"。',
+      tag: '计算'
+    },
+    {
+      q: '二阶系统 H(jω)=ω_n²/((jω)²+2ζω_n(jω)+ω_n²)。关于谐振峰，正确的是？',
+      opts: [
+        '只有 ζ < 1/√2 ≈ 0.707 时才存在谐振峰；ζ 越小峰越高',
+        '任何 ζ 都有谐振峰，位置在 ω_n',
+        'ζ 越大峰越高',
+        '谐振峰只出现在阶跃响应里，频响里没有'
+      ],
+      a: 0,
+      why: '对 |H|² 求极值得到极值点 ω_r = ω_n√(1−2ζ²)，要求 1−2ζ²>0 即 ζ<0.707；峰值 = 1/(2ζ√(1−ζ²))，ζ→0 时趋于 ∞（极点靠近虚轴）。ζ≥0.707 时 |H| 单调下降，没有峰。',
+      tag: '二阶系统'
+    },
+    {
+      q: '巴特沃斯低通的 |H(jω)|² = 1/(1+(ω/ω_c)^{2n})。把阶数 n 从 2 提高到 8，会发生什么？',
+      opts: [
+        '过渡带变窄（更像理想低通），但相位更弯、时域振铃更明显',
+        '过渡带变宽，同时振铃减小',
+        '曲线在 ω_c 处不再等于 0.707',
+        '直流增益从 1 变成 n'
+      ],
+      a: 0,
+      why: '不管 n 是多少，ω=ω_c 处恒有 |H|=1/√2（这是 ω_c 的定义）。n 只改变高频衰减速度（−20n dB/十倍频），过渡带随之变窄。而"过渡带越窄 ⟹ 相位越弯 ⟹ 群延迟起伏越大 ⟹ 阶跃振铃越凶"，这是频域选择性与时域振铃的固有交易。',
+      tag: '巴特沃斯'
+    },
+    {
+      q: '一张图像的二维傅里叶变换，把幅度全部置为 1、保留原来的相位，再反变换。结果最可能是？',
+      opts: [
+        '虽然对比度变得奇怪，但仍能看出原图的轮廓和边缘',
+        '完全看不出是什么，只剩一片模糊',
+        '就是原图，一点变化都没有',
+        '变成全黑'
+      ],
+      a: 0,
+      why: '相位携带"各空间频率成分怎么对齐"的信息，而边缘正是高频成分同相叠加的位置，所以结构被保住了（实验结果表明轮廓可辨）。反过来把相位清零、只留幅度，图像就完全认不出来——相位比幅度更能"记住"形状。',
+      tag: '幅相表示'
+    }
+  ], '第 10 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

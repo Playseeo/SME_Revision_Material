@@ -1,0 +1,1478 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 11 章　调制、解调与通信｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+<style>
+  /* 只作用于本页"完整链路"实验台：上排三张（发送端），下排两张（接收端）。
+     内核的 .canvases.g2c 是两列，这里用 id 提权覆盖为三列，窄屏再退回。 */
+  #lab-link .canvases { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  @media (max-width: 1000px) { #lab-link .canvases { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+  @media (max-width: 640px) { #lab-link .canvases { grid-template-columns: 1fr; } }
+</style>
+</head>
+<body data-page="ch11">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第四段 · 系统与频域 · 第 11 章</div>
+        <h1>调制、解调与通信</h1>
+        <p class="lede">
+          第 6 章里有一个当时看起来"没什么用"的性质：<b>时域相乘 = 频域卷积</b>。
+          这一章就是它的主战场。把人声乘上一个高频余弦，频谱就被整体搬到高频去——
+          天线变小了，多路信号还能挤进同一条信道（频分复用）。
+          到了接收端，再乘一次同一个余弦、过一个低通、放大两倍，人声就回来了。
+          这一章把这条链路从头推到尾，每一个系数都算给你看。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch06-ctft.html">第 6 章 CTFT</a>（要有频移性质、相乘性质、<span class="mono">cos ω<sub>0</sub>t ⟷ π[δ(ω−ω<sub>0</sub>)+δ(ω+ω<sub>0</sub>)]</span>）<br>
+          <a href="ch10-filters.html">第 10 章 时频特性与滤波器</a>（要会用低通滤波器）
+        </div>
+        <div class="cell mid"><b>这一站</b>幅度调制与同步解调、频分复用、单边带、脉冲载波与 PAM、离散时间调制</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch12-laplace.html">第 12 章 拉普拉斯变换</a>（把频域搬进复平面）<br>
+          <a href="ch14-atlas.html">第 14 章 四大变换总对照</a>（想看全局关系图）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 为什么非要调制：一根天线引出的问题</a>
+        <a href="#s2">2. 复指数载波：频谱整体搬移</a>
+        <a href="#s3">3. 正弦载波：频谱劈成两半（完整推导）</a>
+        <a href="#s4">4. 接收端：同步解调、低通与放大 2 倍</a>
+        <a href="#s5">5. 动手：一条完整的通信链路</a>
+        <a href="#s6">6. 本地载波不同步会怎样</a>
+        <a href="#s7">7. 动手：相位误差与频率误差</a>
+        <a href="#s8">8. 频分复用（FDM）</a>
+        <a href="#s9">9. 动手：三路信号挤进一条信道</a>
+        <a href="#s10">10. 单边带（SSB）：砍掉一半带宽</a>
+        <a href="#s11">11. 脉冲载波、PAM 与时分复用（TDM）</a>
+        <a href="#s12">12. 动手：脉冲载波与 PAM 的频谱副本</a>
+        <a href="#s13">13. 频率调制与离散时间调制</a>
+        <a href="#s14">14. 速查表</a>
+        <a href="#s15">15. 常见坑</a>
+        <a href="#s16">16. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 为什么非要调制：一根天线引出的问题</h2>
+
+      <p>
+        先回答一个最朴素的问题：<b>直接把人声送进天线不行吗？</b>不行，原因是物理的。
+        天线要把电磁波有效地辐射出去，它的尺寸得和波长<b>同一个量级</b>（常用半波振子
+        <span class="mono">λ/2</span>、四分之一波长 <span class="mono">λ/4</span>）。而波长和频率的关系是
+      </p>
+      <div class="eq center-eq">
+        λ = <span class="frac"><span class="num">c</span><span class="den">f</span></span>,
+        　c ≈ 3 × 10<sup>8</sup> m/s
+        <span class="lbl">(11-1)</span>
+      </div>
+      <p>算两个数你就明白问题的严重性：</p>
+      <table class="tbl sm">
+        <thead><tr><th>信号</th><th class="c">频率 f</th><th class="c">波长 λ = c/f</th><th class="c">λ/4 天线长度</th><th>能不能做</th></tr></thead>
+        <tbody>
+          <tr><td>人声（最高约 4 kHz）</td><td class="c ft">4 × 10<sup>3</sup> Hz</td><td class="c ft">75 km</td><td class="c ft">≈ 19 km</td><td>不可能</td></tr>
+          <tr><td>中波广播载波</td><td class="c ft">550 kHz</td><td class="c ft">545 m</td><td class="c ft">≈ 136 m</td><td>能做（广播塔就这么高）</td></tr>
+          <tr><td>手机/Wi-Fi 载波</td><td class="c ft">2.4 GHz</td><td class="c ft">12.5 cm</td><td class="c ft">≈ 3.1 cm</td><td>轻松（芯片上天线几毫米）</td></tr>
+        </tbody>
+      </table>
+      <p>
+        结论：<b>要把信息送出去，就得先把它"抬"到一个高得多的频率上去</b>。这个"抬"的动作就叫
+        <span class="term" data-def="modulation，中文含义：调制。把携带信息的基带信号搬移到某个高频载波上的过程；频域上表现为频谱搬移。">调制</span>（modulation），
+        接收端把它"放回来"的动作叫
+        <span class="term" data-def="demodulation，中文含义：解调。从已调信号中恢复原始基带信号的过程。">解调</span>（demodulation）。
+      </p>
+      <p>
+        第二个理由是<b>频谱是一种公共资源</b>。大气对 10 Hz～20 kHz 的音频衰减极快，根本传不远；
+        而几百 kHz 到几十 GHz 的频段可以传播很远。可这段"好频段"是有限的：如果每个人声信号都占着
+        0～4 kHz 这一段，谁也挤不进去。调制让我们把不同的信号搬到<b>不同的载频</b>上，
+        于是它们在同一根电缆、同一段空气里各占一块地盘，互不干扰。这就是
+        <span class="term" data-def="frequency-division multiplexing，中文含义：频分复用（FDM）。把多路信号的频谱搬到不同载频上，使它们不重叠，从而在同一信道里同时传输。">频分复用</span>（frequency-division multiplexing，FDM）。
+      </p>
+
+      <div class="box ok">
+        <span class="tag">本章的三个关键词，先记下来</span>
+        <p style="margin-bottom:0">
+          设要传的信号叫
+          <span class="term" data-def="modulating signal，中文含义：调制信号（基带信号）。携带有用信息、频率较低的那个信号 x(t)。">调制信号</span>（modulating signal）
+          <span class="mono">x(t)</span>，用来"承载"它的高频振荡叫
+          <span class="term" data-def="carrier，中文含义：载波。频率很高的周期信号（常用余弦），本身不携带信息，只负责把信号"运"到高频去。">载波</span>（carrier）
+          <span class="mono">c(t) = cos(ω<sub>c</sub>t)</span>，其中
+          <span class="term" data-def="carrier frequency，中文含义：载波频率。载波振荡的频率 ω_c，收音机里说的"调频 91.8 兆赫"就是它。">载波频率</span>（carrier frequency）
+          <span class="mono">ω<sub>c</sub></span> 就是收音机面板上调的那个数。
+          调制器做的运算只有一件事：<b>相乘</b> <span class="mono">y(t) = x(t)·c(t)</span>。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 复指数载波：频谱整体搬移</h2>
+      <p>
+        先从最简单的载波开始：复指数 <span class="mono">c(t)=e<sup>jω<sub>c</sub>t</sup></span>。
+        虽然它物理上不能单独存在（复信号），但把它的道理弄懂，实信号的调制就是"取实部"而已。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：y(t)=x(t)e<sup>jω<sub>c</sub>t</sup> ⟹ Y(jω)=X(j(ω−ω<sub>c</sub>))</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：写出相乘性质（第 6 章证过）。</b></p>
+            <div class="eq">
+              Y(jω) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jθ) C(j(ω−θ)) dθ
+            </div>
+            <p class="why">为什么：时域相乘 ⟺ 频域卷积（卷积定义就是"翻转移位相乘积分"）。这里的 1/2π 来自反变换的定义约定，不能丢。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：写出复指数的频谱（第 6 章变换对 ④）。</b></p>
+            <div class="eq">e<sup>jω<sub>c</sub>t</sup> <span class="op ft">⟷</span> 2π δ(ω − ω<sub>c</sub>)</div>
+            <p class="why">为什么是冲激：复指数只含"一个"频率，所以它的谱是一根线；2π 是因为反变换里带了 1/2π，两边要配平。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：把 C(j(ω−θ)) = 2π δ(ω−θ−ω<sub>c</sub>) 代进卷积积分，用冲激的筛选性质。</b></p>
+            <div class="eq">
+              Y(jω) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jθ) · 2π δ(ω−θ−ω<sub>c</sub>) dθ
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jθ) δ(θ − (ω−ω<sub>c</sub>)) dθ
+              = X(j(ω−ω<sub>c</sub>))
+            </div>
+            <p class="why">为什么：<b>筛选性质</b> <span class="mono">∫f(θ)δ(θ−a)dθ = f(a)</span>——冲激只把 θ=a 那一处的值"挑"出来。这里 <span class="mono">a = ω−ω<sub>c</sub></span>；同时 2π 与 1/2π 相消。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：一行读完结论。</b></p>
+            <div class="eq center-eq">
+              Y(jω) = X(j(ω−ω<sub>c</sub>))：把整条 X 曲线沿频率轴<b>向右平移</b> ω<sub>c</sub>
+            </div>
+            <p class="why">为什么这也叫频移性质：第 6 章性质表里"乘 e<sup>jω₀t</sup> ⟺ 频谱搬移"就是这条。从这里看，<b>调制的数学本质 = 频谱搬家</b>。</p>
+          </div>
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">复指数调制的解调只要一步</span>
+            <p style="margin-bottom:0">
+              再乘一次 <span class="mono">e<sup>−jω<sub>c</sub>t</sup></span> 就搬回来了：
+              <span class="mono">x(t) = y(t)·e<sup>−jω<sub>c</sub>t</sup></span>（把上面的推导里 ω<sub>c</sub> 换成 −ω<sub>c</sub>）。
+              <b>干净利落，不需要滤波器、不需要放大</b>。可惜现实里我们只能发实信号。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s3">3. 正弦载波：频谱劈成两半（完整推导）</h2>
+      <p>
+        现在用真正的载波 <span class="mono">c(t) = cos(ω<sub>c</sub>t)</span>，
+        发出的信号是实的：<span class="mono">y(t) = x(t)cos(ω<sub>c</sub>t)</span>。
+        这一步的代价是：<b>一条谱变成了两条</b>。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：Y(jω) = ½[X(j(ω−ω<sub>c</sub>)) + X(j(ω+ω<sub>c</sub>))]</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：先把余弦拆成两个复指数的和（欧拉公式）。</b></p>
+            <div class="eq">
+              cos(ω<sub>c</sub>t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>
+              ( e<sup>jω<sub>c</sub>t</sup> + e<sup>−jω<sub>c</sub>t</sup> )
+            </div>
+            <p class="why">为什么：欧拉公式 <span class="mono">e<sup>jθ</sup>+e<sup>−jθ</sup> = 2cosθ</span>。实余弦天生就是"两个复指数"的组合。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：写出余弦的频谱。</b></p>
+            <div class="eq">
+              cos(ω<sub>c</sub>t) <span class="op ft">⟷</span> π[ δ(ω−ω<sub>c</sub>) + δ(ω+ω<sub>c</sub>) ]
+            </div>
+            <p class="why">为什么：由第 1 步，两个复指数各贡献一根 2πδ，再乘 1/2 得 πδ。第 6 章变换对 ⑤ 就是它——一个余弦在谱上占<b>两根线</b>（±ω<sub>c</sub>）。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：套相乘性质。</b></p>
+            <div class="eq">
+              Y(jω) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jθ) · π[ δ(ω−θ−ω<sub>c</sub>) + δ(ω−θ+ω<sub>c</sub>) ] dθ
+            </div>
+            <p class="why">为什么：把 C(j(ω−θ)) 写出来——它与第 2 步的形式一样，只是自变量换成 ω−θ，两根冲激分别落在 θ = ω−ω<sub>c</sub> 和 θ = ω+ω<sub>c</sub>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：拆成两个积分，各自用筛选性质。</b></p>
+            <div class="eq">
+              = <span class="frac"><span class="num">π</span><span class="den">2π</span></span>
+              <span style="font-size:22px">[</span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jθ)δ(θ−(ω−ω<sub>c</sub>))dθ +
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jθ)δ(θ−(ω+ω<sub>c</sub>))dθ
+              <span style="font-size:22px">]</span>
+            </div>
+            <div class="eq center-eq">
+              Y(jω) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>
+              <span style="font-size:22px">[</span>
+              X(j(ω−ω<sub>c</sub>)) + X(j(ω+ω<sub>c</sub>))
+              <span style="font-size:22px">]</span>
+              <span class="lbl">(11-2)</span>
+            </div>
+            <p class="why">为什么系数是 1/2：<span class="mono">π/2π = 1/2</span>。两个积分分别把 θ 钉在 ω−ω<sub>c</sub> 和 ω+ω<sub>c</sub> 上，于是得到"X 分别向左、向右搬 ω<sub>c</sub>"的两份拷贝。</p>
+          </div>
+          <div class="step">
+            <p><b>第 5 步：几何图像与一个硬条件。</b></p>
+            <p>
+              设 <span class="mono">x(t)</span> 是<b>带限</b>的：<span class="mono">|ω| &gt; ω<sub>M</sub></span> 时
+              <span class="mono">X(jω)=0</span>（<span class="mono">ω<sub>M</sub></span> 叫最高频率）。
+              那 <span class="mono">Y(jω)</span> 就是两块宽 <span class="mono">2ω<sub>M</sub></span> 的频谱，
+              分别坐在 <span class="mono">±ω<sub>c</sub></span> 上。
+            </p>
+            <p class="why">为什么必须 <b>ω<sub>c</sub> &gt; ω<sub>M</sub></b>：两块拷贝各自从 <span class="mono">ω<sub>c</sub>−ω<sub>M</sub></span>
+              和 <span class="mono">−ω<sub>c</sub>+ω<sub>M</sub></span> 开始向中间延伸。只有 <span class="mono">ω<sub>c</sub>−ω<sub>M</sub> &gt; −ω<sub>c</sub>+ω<sub>M</sub></span>，
+              即 <span class="mono">ω<sub>c</sub> &gt; ω<sub>M</sub></span>，它们才不重叠、互不污染。一旦重叠（<span class="mono">ω<sub>c</sub> &lt; ω<sub>M</sub></span>），
+              信息就被搅在一起，<b>后面无论怎么滤波都救不回来</b>。</p>
+          </div>
+          <div class="box warn" style="margin-top:14px">
+            <span class="tag">"双边带、抑制载波"这个名字是怎么来的</span>
+            <p style="margin-bottom:0">
+              以 <span class="mono">+ω<sub>c</sub></span> 为中心的那块谱，从 <span class="mono">ω<sub>c</sub>−ω<sub>M</sub></span>
+              到 <span class="mono">ω<sub>c</sub></span> 的一段叫<b>下边带</b>，从 <span class="mono">ω<sub>c</sub></span> 到
+              <span class="mono">ω<sub>c</sub>+ω<sub>M</sub></span> 的一段叫<b>上边带</b>；两块谱就是"双边带"。
+              而 <span class="mono">cos(ω<sub>c</sub>t)</span> 自身那两根谱线在相乘之后<b>不见了</b>（被搬走的是 X，不是 C），
+              所以叫<b>抑制载波</b>（suppressed carrier，缩写 DSB/SC）。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <p>
+        你可能会问：既然正负频率各搬一份、内容重复，那是不是浪费了一半带宽？<b>是的</b>，
+        这就是第 10 节"单边带"要解决的问题。但它换来一个巨大的好处：<b>信号仍然是实的</b>，
+        一根天线就能发。
+      </p>
+
+      <h2 id="s4">4. 接收端：同步解调、低通与放大 2 倍</h2>
+      <p>
+        接收端拿到的只有 <span class="mono">y(t)=x(t)cos(ω<sub>c</sub>t)</span>。
+        怎么把 <span class="mono">x(t)</span> 掏出来？答案简单到让你怀疑：
+        <b>再乘一次同一个余弦</b>。这个操作叫
+        <span class="term" data-def="synchronous demodulation，中文含义：同步解调（相干解调）。接收端用与发送端同频同相的载波再乘一次已调信号，再低通滤波恢复基带。">同步解调</span>（synchronous demodulation）。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：cos²θ=(1+cos2θ)/2 —— 解调的全部秘密就在这一步</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：接收端再乘一次载波，记结果叫 w(t)。</b></p>
+            <div class="eq">w(t) = y(t)·cos(ω<sub>c</sub>t) = x(t)cos(ω<sub>c</sub>t)·cos(ω<sub>c</sub>t) = x(t)cos<sup>2</sup>(ω<sub>c</sub>t)</div>
+            <p class="why">为什么能这样乘：接收端自己有一个本地振荡器，产生与发送端同频同相的余弦。相乘在电路里就是一个乘法器（混频器）。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：用倍角公式把 cos² 降次——这一步是全部的关键。</b></p>
+            <div class="eq center-eq">
+              cos<sup>2</sup>θ = <span class="frac"><span class="num">1 + cos 2θ</span><span class="den">2</span></span>
+              <span class="lbl">(11-3)</span>
+            </div>
+            <p class="why">为什么成立：由 <span class="mono">cos(2θ) = cos²θ − sin²θ = 2cos²θ − 1</span> 反解即得。它的意义是：<b>平方之后，直流成分出现了</b>——而直流成分正是我们要的信息。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：把 θ = ω<sub>c</sub>t 代进去。</b></p>
+            <div class="eq center-eq">
+              w(t) = x(t)·<span class="frac"><span class="num">1 + cos(2ω<sub>c</sub>t)</span><span class="den">2</span></span>
+              = <span class="frac"><span class="num">1</span><span class="den">2</span></span>x(t)
+              + <span class="frac"><span class="num">1</span><span class="den">2</span></span>x(t)cos(2ω<sub>c</sub>t)
+              <span class="lbl">(11-4)</span>
+            </div>
+            <p class="why">为什么拆成两项：第一项 <span class="mono">x(t)/2</span> 是"低频项"（x 的频谱还在 0 附近），第二项是一个<b>被 2ω<sub>c</sub> 调制过的高频项</b>（频谱跑到 ±2ω<sub>c</sub> 去了）。<b>两项在频率上已经分家了</b>，这就给了我们"用滤波器把它们分开"的机会。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：换成频域看清楚。</b>对式 (11-4) 两边做变换，用式 (11-2)（把 ω<sub>c</sub> 换成 2ω<sub>c</sub>）：</p>
+            <div class="eq center-eq">
+              W(jω) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>X(jω)
+              + <span class="frac"><span class="num">1</span><span class="den">4</span></span>
+              <span style="font-size:22px">[</span>X(j(ω−2ω<sub>c</sub>)) + X(j(ω+2ω<sub>c</sub>))<span style="font-size:22px">]</span>
+              <span class="lbl">(11-5)</span>
+            </div>
+            <p class="why">为什么第二项系数是 1/4：它先是 <span class="mono">+½x·cos(2ω<sub>c</sub>t)</span>，而余弦调制本身就带一个 ½，<span class="mono">½ × ½ = ¼</span>。所以高频副本的高度只有直流那份的一半。<br>
+              <b>注意这里是加号</b>：<span class="mono">cos²θ=(1+cos2θ)/2</span> 里两项同号，所以 <span class="mono">w(t) = ½x + ½x cos 2ω<sub>c</sub>t</span>。
+              如果写成减号，<span class="mono">2ω<sub>c</sub></span> 处那份副本就会反相，与下面频域推导式 (11-5) 的结论矛盾——两边的符号必须一致。</p>
+          </div>
+          <div class="step">
+            <p><b>第 5 步：低通滤波，把高频副本切掉。</b>取一个理想低通，截止频率 <span class="mono">ω<sub>co</sub></span> 满足</p>
+            <div class="eq center-eq">
+              ω<sub>M</sub> &lt; ω<sub>co</sub> &lt; 2ω<sub>c</sub> − ω<sub>M</sub>
+              <span class="lbl">(11-6)</span>
+            </div>
+            <p>
+              低通输出就是 <span class="mono">½x(t)</span>。最后<b>乘 2</b>（一个放大器）：
+            </p>
+            <div class="eq center-eq">
+              2 × <span class="frac"><span class="num">1</span><span class="den">2</span></span>x(t) = x(t) ✓
+            </div>
+            <p class="why">为什么截止频率是<b>这个范围</b>：<br>
+              <b>下界</b> <span class="mono">ω<sub>co</sub> &gt; ω<sub>M</sub></span>：x(t) 的最高频率是 ω<sub>M</sub>，低通必须比它宽，否则会把 x 自己的高频成分砍掉（声音变闷、脉冲变钝）。<br>
+              <b>上界</b> <span class="mono">ω<sub>co</sub> &lt; 2ω<sub>c</sub> − ω<sub>M</sub></span>：高频副本从 <span class="mono">2ω<sub>c</sub> − ω<sub>M</sub></span> 开始，低通必须比它窄，否则高频副本漏进来，输出上会叠一层 2ω<sub>c</sub> 的纹波。<br>
+              <b>为什么必须放大 2 倍</b>：cos² 的降次公式"多"了一个 1/2 因子（这就是信息被"摊薄"的地方），不补回来信号就小了一半。
+            </p>
+          </div>
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">为什么理想低通的截止频率有整整一段区间可以选</span>
+            <p style="margin-bottom:0">
+              因为 <span class="mono">ω<sub>M</sub></span> 和 <span class="mono">2ω<sub>c</sub>−ω<sub>M</sub></span>
+              之间有一段"真空"（<span class="mono">ω<sub>c</sub> &gt; ω<sub>M</sub></span> 保证了
+              <span class="mono">ω<sub>M</sub> &lt; 2ω<sub>c</sub>−ω<sub>M</sub></span>），
+              只要把低通放在这段真空里就不会错。<b>这段真空的宽度 = 2(ω<sub>c</sub>−ω<sub>M</sub>)，载波越高，容错越大。</b>
+              实践中的滤波器都不理想（第 10 章），所以工程师总希望载波尽量高一些。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box intuition">
+        <span class="tag">一句话记住这条链</span>
+        <p style="margin-bottom:0">
+          <b>发送</b>：乘 cos ⟹ 频谱搬到 ±ω<sub>c</sub>。<br>
+          <b>接收</b>：再乘 cos ⟹ 每个副本又"劈成两半"，其中一半回到 0（有用，高度 ½），另一半跑到 ±2ω<sub>c</sub>（垃圾）。<br>
+          <b>低通</b>：扔掉 ±2ω<sub>c</sub> 的垃圾。<b>放大 2 倍</b>：补回 ½ 的亏空。
+        </p>
+      </div>
+
+      <h2 id="s5">5. 动手：一条完整的通信链路</h2>
+      <p>
+        下面这个实验台把整条链路摊开：<b>上排三张是发送端</b>（基带、已调波形、搬移后的频谱），
+        <b>下排两张是接收端</b>（再乘 cos 之后的频谱、低通滤波并放大 2 倍之后的波形）。
+        基带信号取<b>严格带限</b>的 <span class="mono">x(t) = (W/π)sinc(Wt)</span>，
+        它的频谱正好是一个高度 1、宽度 <span class="mono">2W</span> 的矩形，所以下面每一张图都能对得严丝合缝。
+      </p>
+
+      <div id="lab-link"></div>
+
+      <div class="box intuition">
+        <span class="tag">请按这个顺序玩，并且只看图不看文字</span>
+        <p>
+          <b>① 认三块砖</b>：第三张图（已调频谱）里，基带那块"砖"被一分为二，各搬到
+          <span class="mono">±ω<sub>c</sub></span>，高度变成一半。<b>这就是调制。</b>
+        </p>
+        <p>
+          <b>② 看第四张图</b>（接收端再乘 cos 之后）：原来的两块砖<b>各自又劈成两半</b>——
+          一半回到 <span class="mono">ω=0</span>（高度 0.5，正是 <span class="mono">x(t)/2</span>），
+          另一半跑到 <span class="mono">±2ω<sub>c</sub></span>（高度 0.25，那是要扔掉的垃圾）。
+          绿色阴影是低通滤波器的"门框"，只有门框里的东西能活下来。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ 拖低通截止 ω<sub>co</sub></b>，你会看到三种命运：<br>
+          · <b>太窄</b>（ω<sub>co</sub> &lt; W）：门框夹到了 x(t) 自己，恢复的波形变钝、幅度不足；<br>
+          · <b>刚好</b>（W &lt; ω<sub>co</sub> &lt; 2ω<sub>c</sub>−W）：恢复的波形与原来的 x(t) <b>完全重合</b>（看误差数字应该是 0）；<br>
+          · <b>太宽</b>（ω<sub>co</sub> ≥ 2ω<sub>c</sub>−W）：2ω<sub>c</sub> 的垃圾漏进来，恢复的波形上叠了一层高频纹波。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 本地载波不同步会怎样</h2>
+      <p>
+        上面的一切都建立在"接收端的余弦与发送端的余弦<b>同频同相</b>"这个假设上。
+        现实里它们是两台独立的振荡器，永远有误差。把误差代进推导，看看会发生什么。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：相位误差 φ 与频率误差 Δω</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：设发送载波为 cos(ω<sub>c</sub>t + θ<sub>c</sub>)，本地载波为 cos((ω<sub>c</sub>+Δω)t + φ<sub>c</sub>)。</b></p>
+            <div class="eq">w(t) = x(t)·cos(ω<sub>c</sub>t + θ<sub>c</sub>)·cos((ω<sub>c</sub>+Δω)t + φ<sub>c</sub>)</div>
+            <p class="why">为什么这样设：Δω 表示频率对不上，θ<sub>c</sub>−φ<sub>c</sub> 表示相位对不上。两个误差可以同时存在。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：用积化和差 <span class="mono">cosA·cosB = ½[cos(A−B) + cos(A+B)]</span>。</b></p>
+            <div class="eq">
+              w(t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>x(t)cos(Δω·t + φ<sub>c</sub> − θ<sub>c</sub>)
+              + <span class="frac"><span class="num">1</span><span class="den">2</span></span>x(t)cos((2ω<sub>c</sub>+Δω)t + φ<sub>c</sub> + θ<sub>c</sub>)
+            </div>
+            <p class="why">为什么：<span class="mono">A−B</span> 把两个 ω<sub>c</sub> 消掉，只剩频率差 Δω 和相位差；<span class="mono">A+B</span> 把频率加倍到 2ω<sub>c</sub> 附近。第一项是"低频"，第二项是"高频"。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：低通滤掉第二项，再乘 2。</b></p>
+            <div class="eq center-eq">
+              <b>只有相位误差</b>（Δω = 0）：输出 = x(t)·cos(φ<sub>c</sub>−θ<sub>c</sub>)
+              <span class="lbl">(11-7)</span>
+            </div>
+            <div class="eq center-eq">
+              <b>只有频率误差</b>（相位差记作 φ）：输出 = x(t)·cos(Δω·t + φ)
+              <span class="lbl">(11-8)</span>
+            </div>
+            <p class="why">为什么这就是全部结论：注意两式的形式——<b>恢复出来的信号被乘上了一个"缓慢变化"的因子</b>。
+              相位差是常数，所以只是整体音量变小（乘以 cos φ）；频率差让这个因子随时间摆动（cos Δωt），
+              于是音量周期性起伏，听起来像"忽大忽小"，严重时还会听出明显的拍音。</p>
+          </div>
+          <div class="box trap" style="margin-top:14px">
+            <span class="tag">两个必须记住的灾难值</span>
+            <p>
+              <b>φ<sub>c</sub>−θ<sub>c</sub> = π/2（正交）</b>：<span class="mono">cos(π/2)=0</span>，
+              <b>输出的音量是 0</b>。你什么也听不到——哪怕载频、带宽、低通全都完美。
+            </p>
+            <p style="margin-bottom:0">
+              <b>Δω ≠ 0（频率有偏差）</b>：输出带着 <span class="mono">cos(Δωt)</span> 的包络，
+              周期性过零。这就是为什么同步解调要求接收端"锁相"——
+              要么用昂贵的同步接收机，要么改用不需要同步的
+              <span class="term" data-def="asynchronous demodulation，中文含义：异步解调（包络检波）。不需要本地载波同步，直接跟踪已调信号的上包络来恢复信号；代价是发送端必须额外发送载波功率，且要求 x(t)+A 恒为正。">异步解调</span>（包络检波）。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s7">7. 动手：相位误差与频率误差</h2>
+      <p>
+        下面左图是"恢复出来的波形"（已经乘过 2），灰虚线是理想的 <span class="mono">x(t)</span>。
+        右图是相位误差引起的幅度因子 <span class="mono">cos φ</span> 曲线，红点标出你当前的位置。
+      </p>
+
+      <div id="lab-sync"></div>
+
+      <h2 id="s8">8. 频分复用（FDM）</h2>
+      <p>
+        调制最值钱的用途不是"搬高"，而是<b>让很多路信号和平共处</b>。
+        把第 1 路搬到 <span class="mono">ω<sub>c1</sub></span>、第 2 路搬到
+        <span class="mono">ω<sub>c2</sub></span>、第 3 路搬到 <span class="mono">ω<sub>c3</sub></span>……
+        然后<b>把它们全部加起来</b>一起发出去。这就是
+        <span class="term" data-def="frequency-division multiplexing，中文含义：频分复用（FDM）。多路信号搬到不同载频后相加，在同一信道同时传输；接收端先用带通滤波器选路（解复用），再解调。">频分复用</span>（FDM）。
+      </p>
+      <div class="eq center-eq">
+        y(t) = x<sub>1</sub>(t)cos(ω<sub>c1</sub>t) + x<sub>2</sub>(t)cos(ω<sub>c2</sub>t) + x<sub>3</sub>(t)cos(ω<sub>c3</sub>t) + ⋯
+        <span class="lbl">(11-9)</span>
+      </div>
+
+      <p>
+        接收端怎么把第 2 路单独拿出来？<b>两步</b>：
+      </p>
+      <ol>
+        <li><b>解复用（demultiplexing）</b>：用一个中心频率为 <span class="mono">ω<sub>c2</sub></span> 的
+          <span class="term" data-def="bandpass filter，中文含义：带通滤波器。只让某个频段通过（本例中只留 ω_c2 附近那两块），其余频率全部压掉。">带通滤波器</span>，
+          把别路的频谱挡在外面，只留下第 2 路那一对频谱砖。</li>
+        <li><b>解调（demodulation）</b>：再乘 <span class="mono">cos(ω<sub>c2</sub>t)</span> + 低通 + 放大 2 倍，
+          就得到 <span class="mono">x<sub>2</sub>(t)</span>（第 4 节已经推过）。</li>
+      </ol>
+
+      <div class="box warn">
+        <span class="tag">相邻频道之间的最小间隔</span>
+        <p>
+          第 i 路的频谱占据 <span class="mono">[ω<sub>ci</sub>−ω<sub>M</sub>, ω<sub>ci</sub>+ω<sub>M</sub>]</span>
+          （这是 DSB 的固有宽度 <span class="mono">2ω<sub>M</sub></span>）。要不重叠，就要求
+        </p>
+        <div class="eq center-eq">|ω<sub>ci</sub> − ω<sub>cj</sub>| ≥ 2ω<sub>M</sub>　（i ≠ j）</div>
+        <p style="margin-bottom:0">
+          这就是生活中那个熟悉的现象：中波广播（AM）的电台间隔是 <b>10 kHz</b>，
+          而音频带宽只需 5 kHz——多出来的一倍正好被 DSB 用掉了。
+          收音机调谐旋钮转一点点就能换台，靠的就是"载波间距 = 两倍信号带宽"这条规则。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 动手：三路信号挤进一条信道</h2>
+      <p>
+        三路基带信号的带宽都是 <span class="mono">W</span>（频谱是宽 <span class="mono">2W</span> 的矩形），
+        分别搬到 <span class="mono">Δ、2Δ、3Δ</span>。拖动"载波间隔 Δ"，
+        看它们什么时候还分得开。
+      </p>
+
+      <div id="lab-fdm"></div>
+
+      <h2 id="s10">10. 单边带（SSB）：砍掉一半带宽</h2>
+      <p>
+        回头看式 (11-2)：<span class="mono">Y(jω)</span> 是 X 的两份拷贝。可是 X 是实信号的频谱，
+        本身就满足共轭对称 <span class="mono">X(−jω) = X*(jω)</span>。
+        这意味着 <b>两个边带携带的信息是重复的</b>——只要留下其中一个边带，理论上就能把 x(t) 完整恢复。
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">DSB（双边带）</h4>
+          <p class="small" style="margin-bottom:0">
+            正频率处占 <span class="mono">[ω<sub>c</sub>−ω<sub>M</sub>, ω<sub>c</sub>+ω<sub>M</sub>]</span>，
+            总带宽 <b>2ω<sub>M</sub></b>。<br>
+            优点：解调简单（乘 cos + 低通）。<br>
+            缺点：带宽和功率都浪费了一倍。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">SSB（单边带）</h4>
+          <p class="small" style="margin-bottom:0">
+            只留上边带（或只留下边带），
+            <span class="term" data-def="single-sideband modulation，中文含义：单边带调制。只发射一个边带（上边带或下边带），把 DSB 的带宽砍掉一半，代价是调制器复杂。">单边带</span>
+            总带宽 <b>ω<sub>M</sub></b>。<br>
+            优点：带宽减半，发射功率减半（长距离短波通信的标配）。<br>
+            缺点：调制器复杂得多。
+          </p>
+        </div>
+      </div>
+
+      <p>怎么把不要的那个边带砍掉？工程上有两条路：</p>
+      <ul>
+        <li><b>滤波法</b>：先做出 DSB 信号，再用一个<b>极其陡峭</b>的带通/高通滤波器把不需要的边带切掉。
+          难处在于：两个边带在 <span class="mono">ω<sub>c</sub></span> 处紧挨着，
+          滤波器必须在很小的间隔内从通带掉到阻带（第 10 章：过渡带越窄越难做、振铃越大）。</li>
+        <li><b>相移法（90° 相移网络）</b>：用两个乘法器做成
+          <div class="eq">
+            y(t) = x(t)cos(ω<sub>c</sub>t) ∓ x<sub>p</sub>(t)sin(ω<sub>c</sub>t)
+          </div>
+          其中 <span class="mono">x<sub>p</sub>(t)</span> 是 x(t) 经过"所有频率都相移 90°"的系统得到的版本，
+          这个系统的频率响应是
+          <div class="eq">H(jω) = −j·sgn(ω) = <span class="frac"><span class="num">−j,　ω &gt; 0</span><span class="den">+j,　ω &lt; 0</span></span></div>
+          因为两路相减后，其中一个边带的两项恰好反相抵消，另一个边带同相叠加。
+          它叫
+          <span class="term" data-def="Hilbert transform / 90-degree phase shifter，中文含义：希尔伯特变换（90° 相移网络）。对每个正频率移相 −90°、负频率移相 +90° 而幅度不变的系统，用于单边带调制。">希尔伯特变换</span>（Hilbert transform）。</li>
+      </ul>
+      <p>
+        <b>为什么两种方法都对</b>：滤波法在频域"切掉一块"，相移法在时域让两块"一部分相加、一部分相消"——
+        目标都是让最终频谱只剩下一个边带。<b>单边带的解调方法和 DSB 一模一样</b>（再乘 cos + 低通），
+        所以省下的带宽是"白赚"的，代价全在发送端的复杂度上。
+      </p>
+
+      <h2 id="s11">11. 脉冲载波、PAM 与时分复用（TDM）</h2>
+      <p>
+        载波不一定是余弦。用一串<b>周期脉冲</b>去乘信号，也能实现调制——而且在现实里更常见。
+        设 <span class="mono">c(t)</span> 是周期为 <span class="mono">T</span>、脉宽为 <span class="mono">Δ</span>、
+        幅度为 1 的脉冲串，<span class="mono">ω<sub>c</sub> = 2π/T</span>。它就是第 4 章见过的周期信号，
+        可以展成傅里叶级数：
+      </p>
+      <div class="eq center-eq">
+        c(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+        a<sub>k</sub> e<sup>jkω<sub>c</sub>t</sup>,
+        　a<sub>k</sub> = <span class="frac"><span class="num">Δ</span><span class="den">T</span></span>
+        · sinc(kπ<span class="frac"><span class="num">Δ</span><span class="den">T</span></span>)
+        <span class="lbl">(11-10)</span>
+      </div>
+      <p class="small muted">
+        （为什么：对脉宽 Δ、周期 T 的矩形脉冲在一个周期内积分，用第 4 章的结果即可。
+        <span class="mono">a<sub>0</sub> = Δ/T</span> 就是占空比，也是 c(t) 的平均值。）
+      </p>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：脉冲载波调制 = 无穷多份频谱副本</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：写出 c(t) 的频谱。</b>对它取傅里叶变换，</p>
+            <div class="eq">
+              C(jω) = 2π
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              a<sub>k</sub> δ(ω − kω<sub>c</sub>)
+            </div>
+            <p class="why">为什么：周期信号的傅里叶变换是一串等间距冲激，间隔 <span class="mono">ω<sub>c</sub>=2π/T</span>，每根冲激的"重量"就是级数系数 a<sub>k</sub>（第 4 章结论）。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：套相乘性质，用冲激筛选。</b></p>
+            <div class="eq">
+              Y(jω) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jθ) · 2π
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              a<sub>k</sub> δ(ω−θ−kω<sub>c</sub>) dθ
+            </div>
+            <p class="why">为什么可以交换求和与积分：求和里的每一项都是"X 乘一个冲激"，逐项用筛选性质即可（有限项时可以逐项处理；无限项要靠绝对可积/绝对可和的条件保证极限与求和可交换，Oppenheim 教材中这条性质正是在这个前提下成立的）。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：每一项把 θ 钉在 <span class="mono">ω−kω<sub>c</sub></span> 上。</b></p>
+            <div class="eq center-eq">
+              Y(jω) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              a<sub>k</sub> · X(j(ω − kω<sub>c</sub>))
+              <span class="lbl">(11-11)</span>
+            </div>
+            <p class="why">为什么：<b>X 的频谱被复制了无穷多份</b>，第 k 份坐在 <span class="mono">kω<sub>c</sub></span> 上，
+              高度被 a<sub>k</sub> 缩放。<span class="mono">k=0</span> 那一份就是原始基带（高度 a<sub>0</sub>=Δ/T）；<span class="mono">k=±1</span>
+              是搬到 <span class="mono">±ω<sub>c</sub></span> 的余弦调制副本——<b>和上一节的 DSB 是同一种东西</b>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：能否恢复？两个条件。</b></p>
+            <p>
+              <b>(a) 副本不重叠</b>：相邻副本中心相距 <span class="mono">ω<sub>c</sub></span>，
+              每份宽度 <span class="mono">2ω<sub>M</sub></span>，所以要求
+            </p>
+            <div class="eq center-eq">
+              ω<sub>c</sub> = <span class="frac"><span class="num">2π</span><span class="den">T</span></span> &gt; 2ω<sub>M</sub>
+              <span class="lbl">(11-12)</span>
+            </div>
+            <p class="why">为什么这看着眼熟：<b>这就是采样定理</b>（第 9 章）！脉冲载波调制在频域上和"用冲激串采样"完全同构，唯一的区别是副本被 a<sub>k</sub> 缩放了。</p>
+            <p>
+              <b>(b) 直流那一份不能太小</b>：<span class="mono">a<sub>0</sub> = Δ/T</span>。
+              如果脉冲很窄（占空比 d 很小），a<sub>0</sub> 就很小，直接低通取出基带的信噪比会很差；
+              这时可以改用<b>带通滤波器</b>选出某个 a<sub>k</sub> 较大的副本（第 k 副本），
+              得到一个货真价实的正弦调制信号，再用第 4 节的同步解调把它解出来。
+            </p>
+            <p class="why">为什么 a<sub>k</sub> 会随 k 起伏：a<sub>k</sub> = d·sinc(kπd)，sinc 的零点在 kπd = π, 2π, … 处。
+              当 <span class="mono">d = 0.5</span> 时，所有<b>偶数次</b>副本（k = ±2, ±4, …）系数恰好为 0——那些副本直接消失了。</p>
+          </div>
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">时分复用 TDM 从这里长出来</span>
+            <p style="margin-bottom:0">
+              脉冲载波在"脉冲关断"的间隙里什么都不发。<b>既然有空隙，为什么不塞别的路？</b>
+              把第 2 路、第 3 路…的脉冲错开时间放进去，就得到
+              <span class="term" data-def="time-division multiplexing，中文含义：时分复用（TDM）。把一帧时间分成若干时隙，每个时隙分配给一路信号，实现多路共用一条信道。">时分复用</span>（TDM）。
+              和 FDM 对照着记：<b>FDM 分的是频率，TDM 分的是时间。</b>
+              脉冲越窄（Δ/T 越小），一帧里能塞的路数越多——但每路分到的能量也越少。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h3>11.1 PAM：用样本去调制脉冲幅度</h3>
+      <p>
+        现实信道对最大幅度有限制，"发无穷大的冲激"是不现实的。
+        于是工程上发出的是<b>一串宽度有限、幅度等于样本值的脉冲</b>，
+        这叫做
+        <span class="term" data-def="pulse-amplitude modulation，中文含义：脉冲幅度调制（PAM）。用 x(t) 的样本值 x(nT) 去调制一串脉冲的幅度，是采样定理的工程实现。">脉冲幅度调制</span>（PAM）。
+        它本质上是"采样 + 保持"：
+      </p>
+      <div class="eq center-eq">
+        y(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+        x(nT) · p(t − nT)
+        <span class="lbl">(11-13)</span>
+      </div>
+      <p>
+        <span class="mono">p(t)</span> 是单个脉冲的形状（最简单的是宽 Δ 的矩形）。只要采样率
+        <span class="mono">2π/T &gt; 2ω<sub>M</sub></span>，样本里就完整地包含了 x(t) 的全部信息，
+        所以 <b>PAM 是可以被接收端完美重建的</b>（用第 9 章的 sinc 内插）。
+      </p>
+      <div class="box trap">
+        <span class="tag">码间干扰 ISI：PAM 的头号敌人</span>
+        <p>
+          采样定理保证"样本够"，但没保证"脉冲在接收端还是原样"。信道是有带宽限制的（第 10 章），
+          窄脉冲经过它会被抹开、拖尾，于是<b>前一个符号的尾巴叠加到后一个符号的采样点上</b>——
+          这叫
+          <span class="term" data-def="intersymbol interference，中文含义：码间干扰（ISI）。信道带宽受限或相位非线性使脉冲展宽，相邻符号互相重叠，导致判决出错。">码间干扰</span>（intersymbol interference，ISI）。
+        </p>
+        <p style="margin-bottom:0">
+          解决办法很巧妙：用一个"本身也是带限的"脉冲，并且让它在<b>其它采样时刻恰好过零</b>——
+          最典型的就是 <span class="mono">p(t) = sinc(t/T<sub>1</sub>)</span>，
+          它在 <span class="mono">±T<sub>1</sub>, ±2T<sub>1</sub>, …</span> 处都是 0。
+          这样虽然脉冲彼此重叠，但每个采样点上别人的贡献都是 0。代价：采样时刻必须非常准（第 10 章的群延迟又来了）。
+        </p>
+      </div>
+      <p class="small muted">
+        再往前一步：如果把样本值量化成有限个电平、再编成 0/1 比特流去调制脉冲，
+        就成了 <b>PCM（脉冲编码调制）</b>——今天所有数字通信的起点。
+      </p>
+
+      <h2 id="s12">12. 动手：脉冲载波与 PAM 的频谱副本</h2>
+      <p>
+        基带信号仍是带限的 <span class="mono">x(t)=(W/π)sinc(Wt)</span>（带宽 <span class="mono">W=1.5 rad/s</span>）。
+        拖动脉冲重复频率 <span class="mono">ω<sub>c</sub></span>，看频谱副本什么时候开始"打架"；
+        再拖占空比和路数，看时分复用是怎么塞进去的。
+      </p>
+
+      <div id="lab-pam"></div>
+
+      <h2 id="s13">13. 频率调制与离散时间调制</h2>
+
+      <h3>13.1 频率调制（FM）：让载波的频率跟着信号变</h3>
+      <p>
+        前面所有方法都是"调制幅度"。还有一整类方法是<b>调制频率</b>：
+      </p>
+      <div class="eq center-eq">
+        y(t) = cos<span style="font-size:22px">(</span>
+        ω<sub>c</sub>t + k<sub>f</sub>
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>t</span><span>−∞</span></span></span>
+        x(τ)dτ
+        <span style="font-size:22px">)</span>
+        <span class="lbl">(11-14)</span>
+      </div>
+      <p>
+        这里 <span class="mono">k<sub>f</sub></span> 是调制灵敏度。它的
+        <span class="term" data-def="instantaneous frequency，中文含义：瞬时频率。相位对时间的导数，即 ω_i(t)=dθ(t)/dt；FM 里它等于 ω_c + k_f x(t)。">瞬时频率</span>
+        （相位对时间的导数）是
+      </p>
+      <div class="eq center-eq">
+        ω<sub>i</sub>(t) = <span class="frac"><span class="num">d</span><span class="den">dt</span></span>
+        <span style="font-size:22px">[</span>ω<sub>c</sub>t + k<sub>f</sub>∫x<span style="font-size:22px">]</span>
+        = ω<sub>c</sub> + k<sub>f</sub>x(t)
+      </div>
+      <p>
+        也就是说：<b>信号大，载波就"唱"得快一点；信号小，就慢一点。</b>
+        常用来做对照的是
+        <span class="term" data-def="phase modulation，中文含义：相位调制（PM）。让载波相位正比于调制信号，y(t)=cos(ω_c t + k_p x(t))。">相位调制</span>（PM）：
+        <span class="mono">y(t)=cos(ω<sub>c</sub>t + k<sub>p</sub>x(t))</span>。
+        两者只差一个积分/微分的关系。
+      </p>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">FM 的优缺点</h4>
+          <p class="small" style="margin-bottom:0">
+            <b>优点</b>：信息的载体是相位/频率而不是幅度，所以
+            <b>对幅度噪声（雷电、电器干扰）几乎免疫</b>——这也是 FM 广播比 AM 广播音质好的原因。<br>
+            <b>缺点</b>：占用带宽大得多（Carson 准则 <span class="mono">B ≈ 2(Δf + f<sub>m</sub>)</span>，
+            <span class="mono">Δf</span> 是最大频偏、<span class="mono">f<sub>m</sub></span> 是信号最高频率），
+            并且分析起来<b>不是线性的</b>（式 (11-14) 里的 cos 套着积分，不能像前面那样用"搬移"简单处理）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">为什么 FM 的频谱比 AM 复杂</h4>
+          <p class="small" style="margin-bottom:0">
+            前面所有调制都是"线性"的：<span class="mono">y = x·c</span>，频谱只是搬移和缩放。
+            <b>FM 里 x 出现在余弦的相位里</b>，经过 cos 这个非线性函数后
+            会产生无穷多组边频（贝塞尔函数展开），带宽往往比 <span class="mono">2ω<sub>M</sub></span> 大好几倍。
+            这就是"宽带有代价、但换来抗噪"。
+          </p>
+        </div>
+      </div>
+
+      <h3>13.2 离散时间调制：把同一套做法搬到序列上</h3>
+      <p>把上面所有内容和第 7 章（DTFT）拼起来，就是离散时间调制：</p>
+      <div class="eq center-eq">
+        y[n] = x[n]cos(ω<sub>c</sub>n)
+        <span class="op ft">⟷</span>
+        Y(e<sup>jω</sup>) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>
+        <span style="font-size:22px">[</span>
+        X(e<sup>j(ω−ω<sub>c</sub>)</sup>) + X(e<sup>j(ω+ω<sub>c</sub>)</sup>)
+        <span style="font-size:22px">]</span>
+        <span class="lbl">(11-15)</span>
+      </div>
+      <p>
+        推导过程和连续时间<b>一模一样</b>（相乘性质 → 周卷积 → 冲激筛选），
+        唯一的区别是 DTFT 以 <span class="mono">2π</span> 为周期，所以搬移后的副本会被"卷回来"重复。这带来两条限制：
+      </p>
+      <div class="eq center-eq">
+        ω<sub>c</sub> &gt; ω<sub>M</sub>　且　ω<sub>c</sub> + ω<sub>M</sub> &lt; π
+        <span class="lbl">(11-16)</span>
+      </div>
+      <p>
+        <b>第一条</b>和连续时间相同（两个副本不能互相重叠）；
+        <b>第二条</b>是离散时间独有的：因为频谱在 <span class="mono">2π</span> 处会周期重复，
+        坐在 <span class="mono">ω<sub>c</sub></span> 的副本不能"顶到" <span class="mono">π</span>——
+        否则它会和从 <span class="mono">2π−ω<sub>c</sub></span> 卷回来的那份撞上。
+        合并起来就是 <span class="mono">ω<sub>M</sub> &lt; ω<sub>c</sub> &lt; π − ω<sub>M</sub></span>，
+        所以离散时间调制的载波频率<b>有上限</b>（最高只能到 π，也就是每个样本半个周期）。
+      </p>
+      <div class="box intuition">
+        <span class="tag">ω<sub>c</sub> = π 的特殊情形：高低频互换</span>
+        <p style="margin-bottom:0">
+          取 <span class="mono">ω<sub>c</sub>=π</span>，则 <span class="mono">cos(πn) = (−1)<sup>n</sup></span>，
+          于是 <span class="mono">y[n] = (−1)<sup>n</sup>x[n]</span>：<b>奇数点变号</b>。
+          在频域上，这件事等于把频谱左右翻转——<b>低频变成高频、高频变成低频</b>。
+          所以"乘 (−1)<sup>n</sup>"可以用来把一个低通滤波器变成高通滤波器，
+          这是数字信号处理里最便宜的一个小技巧（第 8 章 DFT 里也会再见到它）。
+        </p>
+      </div>
+      <p class="small muted">
+        再往前一步就是"上采样/下采样 + 调制"的数字收发机，以及 TDM↔FDM 的互换（transmultiplexing）——
+        那是通信专业后续课程的内容，这里只需要知道：<b>同一套频域语言，离散时间照样能用。</b>
+      </p>
+
+      <h2 id="s14">14. 速查表</h2>
+      <table class="tbl sm">
+        <thead><tr><th>调制方式</th><th class="c">发送信号 y(t)</th><th class="c">占用带宽</th><th>解调方式与要点</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>复指数载波</td>
+            <td class="c ft">x(t)e<sup>jω<sub>c</sub>t</sup></td>
+            <td class="c ft">2ω<sub>M</sub></td>
+            <td>乘 <span class="mono">e<sup>−jω<sub>c</sub>t</sup></span> 即可，无需滤波。频谱只搬一次，但信号是复的。</td>
+          </tr>
+          <tr>
+            <td>DSB/SC<br><span class="tiny muted">抑制载波双边带</span></td>
+            <td class="c ft">x(t)cos ω<sub>c</sub>t</td>
+            <td class="c ft">2ω<sub>M</sub></td>
+            <td>同步解调：乘 cos + 低通（<span class="mono">ω<sub>M</sub>&lt;ω<sub>co</sub>&lt;2ω<sub>c</sub>−ω<sub>M</sub></span>）+ 放大 2 倍。要求 <span class="mono">ω<sub>c</sub>&gt;ω<sub>M</sub></span>。</td>
+          </tr>
+          <tr>
+            <td>AM-DSB/WC<br><span class="tiny muted">带载波调幅</span></td>
+            <td class="c ft">[A + x(t)]cos ω<sub>c</sub>t</td>
+            <td class="c ft">2ω<sub>M</sub></td>
+            <td>可用<b>包络检波</b>（异步），接收机极简单；代价是要多发载波功率（调制指数 m=K/A）。</td>
+          </tr>
+          <tr>
+            <td>SSB<br><span class="tiny muted">单边带</span></td>
+            <td class="c ft">只留一个边带</td>
+            <td class="c ft">ω<sub>M</sub></td>
+            <td>带宽与功率都减半；解调同 DSB；发送端用陡峭滤波或 90° 相移网络，复杂。</td>
+          </tr>
+          <tr>
+            <td>脉冲载波调制</td>
+            <td class="c ft">x(t)·p(t)</td>
+            <td class="c ft">取决于 a<sub>k</sub></td>
+            <td>频谱是 X 的无穷多份副本，间隔 <span class="mono">ω<sub>c</sub>=2π/T</span>；要求 <span class="mono">ω<sub>c</sub>&gt;2ω<sub>M</sub></span> 且 <span class="mono">a<sub>0</sub>≠0</span>。</td>
+          </tr>
+          <tr>
+            <td>PAM</td>
+            <td class="c ft">Σ x(nT)p(t−nT)</td>
+            <td class="c ft">同脉冲载波</td>
+            <td>采样定理的工程形式；注意码间干扰（ISI），用零交叉脉冲（如 sinc）避免。</td>
+          </tr>
+          <tr>
+            <td>FM / PM</td>
+            <td class="c ft">cos(ω<sub>c</sub>t + k<sub>f</sub>∫x)</td>
+            <td class="c ft">≈ 2(Δf+f<sub>m</sub>)</td>
+            <td>非线性、带宽大，但抗幅度噪声能力强；解调常先微分转成 AM 或直接跟踪相位。</td>
+          </tr>
+          <tr>
+            <td>离散时间调制</td>
+            <td class="c ft">x[n]cos ω<sub>c</sub>n</td>
+            <td class="c ft">2ω<sub>M</sub></td>
+            <td>与 CT 同构，但要求 <span class="mono">ω<sub>M</sub>&lt;ω<sub>c</sub>&lt;π−ω<sub>M</sub></span>；<span class="mono">ω<sub>c</sub>=π</span> 时高低频互换。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <table class="tbl sm">
+        <thead><tr><th>要算的东西</th><th class="c">公式</th><th>一句话</th></tr></thead>
+        <tbody>
+          <tr><td>DSB 已调频谱</td><td class="c ft">Y = ½[X(j(ω−ω<sub>c</sub>)) + X(j(ω+ω<sub>c</sub>))]</td><td>X 的两份拷贝，各搬 ±ω<sub>c</sub>，高度减半。</td></tr>
+          <tr><td>解调后的频谱</td><td class="c ft">W = ½X(jω) + ¼[X(j(ω−2ω<sub>c</sub>))+X(j(ω+2ω<sub>c</sub>))]</td><td>0 处是"货"（½），±2ω<sub>c</sub> 处是"垃圾"（¼）。</td></tr>
+          <tr><td>低通截止的可用区间</td><td class="c ft">ω<sub>M</sub> &lt; ω<sub>co</sub> &lt; 2ω<sub>c</sub> − ω<sub>M</sub></td><td>太窄会砍到自己，太宽会放进垃圾。</td></tr>
+          <tr><td>相位误差的后果</td><td class="c ft">输出 = x(t)cos(φ<sub>c</sub>−θ<sub>c</sub>)</td><td>φ 差 90° 时输出为 0。</td></tr>
+          <tr><td>频率误差的后果</td><td class="c ft">输出 = x(t)cos(Δω·t + φ)</td><td>音量周期性起伏（拍频）。</td></tr>
+          <tr><td>FDM 载波最小间隔</td><td class="c ft">|ω<sub>ci</sub>−ω<sub>cj</sub>| ≥ 2ω<sub>M</sub></td><td>每路 DSB 占 2ω<sub>M</sub>。</td></tr>
+          <tr><td>脉冲载波可恢复条件</td><td class="c ft">ω<sub>c</sub> &gt; 2ω<sub>M</sub> 且 a<sub>0</sub> ≠ 0</td><td>就是采样定理 + 直流系数不为零。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s15">15. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：忘了那个 1/2</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">x(t)cos ω<sub>c</sub>t</span> 的频谱是两份拷贝<b>各自减半</b>。
+            算功率/幅度时少这个 1/2，结果会差一倍（−6 dB）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：以为解调只乘 cos 就完事</h4>
+          <p class="small" style="margin-bottom:0">
+            乘完 cos 得到的是 <span class="mono">x/2 + (x/2)cos 2ω<sub>c</sub>t</span>，
+            <b>还必须低通（滤掉 2ω<sub>c</sub>）并放大 2 倍</b>。三步缺一不可。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：忘记 ω<sub>c</sub> &gt; ω<sub>M</sub></h4>
+          <p class="small" style="margin-bottom:0">
+            载波比基带最高频率还低时，两块拷贝重叠，<b>信息在发送端就已经被破坏</b>，
+            接收端再怎么滤波都救不回来。这不是"质量差一点"，是不可逆的失真。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：把"同步"当成理所当然</h4>
+          <p class="small" style="margin-bottom:0">
+            同步解调要求收发载波同频同相。相位差 90° 时输出为 0；
+            频率差 Δω 会产生 <span class="mono">cos(Δωt)</span> 的衰落包络。
+            想省掉同步就用包络检波，但代价是发送端必须带载波（多花功率）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：带宽算错</h4>
+          <p class="small" style="margin-bottom:0">
+            基带带宽是 <span class="mono">ω<sub>M</sub></span>（单边），
+            DSB 已调信号占 <b>2ω<sub>M</sub></b>，SSB 占 <span class="mono">ω<sub>M</sub></span>，
+            FM 比 <span class="mono">2ω<sub>M</sub></span> 大得多。别把"最高频率"和"带宽"混着用。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：离散时间调制里让 ω<sub>c</sub> 顶到 π</h4>
+          <p class="small" style="margin-bottom:0">
+            DTFT 以 2π 为周期，搬移后的副本会卷回来。
+            可用范围是 <span class="mono">ω<sub>M</sub> &lt; ω<sub>c</sub> &lt; π−ω<sub>M</sub></span>，
+            <b>没有上限的自由</b>——这是离散时间与连续时间最大的不同。
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s16">16. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz11"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 11 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* 公共小工具 -------------------------------------------------- */
+  /* rect(u) = 1（|u|<1/2），与内核一致 */
+  function rect(u) { return Math.abs(u) < 0.5 ? 1 : (Math.abs(u) === 0.5 ? 0.5 : 0); }
+  /* G(t,a,b) = (1/2π)∫_a^b e^{jωt}dω 的实部；用于"矩形频谱 + 理想低通"的精确时域重建。
+     t≠0 时 ∫_a^b cos(ωt)dω = [sin(bt) − sin(at)]/t，再乘 1/2π；
+     t=0 时积分就是区间长度 b−a，同样乘 1/2π（两式在 t→0 处一致）。 */
+  function G(t, a, b) {
+    if (b <= a) return 0;
+    if (Math.abs(t) < 1e-9) return (b - a) / (2 * Math.PI);
+    return (Math.sin(b * t) - Math.sin(a * t)) / (2 * Math.PI * t);
+  }
+  /* 带限基带信号：频谱 = rect(ω/2W)，时域 = (W/π)·sinc(Wt) */
+  function baseband(W) {
+    return function (t) { return (W / Math.PI) * SSC.sinc(W * t); };
+  }
+
+  /* =========================================================
+     实验 1 · 完整通信链路（上排 3 张：发送；下排 2 张：接收）
+     ========================================================= */
+  SSC.lab({
+    mount: '#lab-link',
+    title: '实验 1 · 一条完整的通信链路：调制 → 传输 → 再乘 cos → 低通 → 放大 2 倍',
+    hint: '上排三张看"搬移"，下排两张看"能不能还原"；三个滑块都可以拖',
+    columns: 2,
+    canvases: [
+      { id: 'base', label: '① 发送端 · 基带信号 x(t)（带宽 W）', height: 185 },
+      { id: 'mod', label: '② 发送端 · 已调信号 y(t)=x(t)cos(ω_c t) 与包络', height: 185 },
+      { id: 'modspec', label: '③ 发送端 · 已调频谱 |Y(jω)|：一分为二搬到 ±ω_c', height: 185 },
+      { id: 'demspec', label: '④ 接收端 · 再乘 cos 后的频谱 |W(jω)|：0 处的 x/2 与 ±2ω_c 的高频副本', height: 200 },
+      { id: 'rec', label: '⑤ 接收端 · 低通滤波并放大 2 倍后的波形（蓝）对比 x(t)（灰虚线）', height: 200 }
+    ],
+    controls: [
+      { id: 'W', label: '基带带宽 W', min: 0.8, max: 3.5, step: 0.1, value: 2, unit: ' rad/s' },
+      { id: 'wc', label: '载波频率 ω_c', min: 4.5, max: 30, step: 0.5, value: 12, unit: ' rad/s' },
+      { id: 'wco', label: '接收端低通截止 ω_co', min: 0.5, max: 45, step: 0.5, value: 9, unit: ' rad/s' }
+    ],
+    buttons: [
+      {
+        label: '低通调到"刚刚好"', onClick: function (v, api) {
+          api.set('wco', Math.round(v.wc * 2) / 2);
+        }
+      },
+      {
+        label: '低通故意调窄（ω_co = 1）', onClick: function (v, api) { api.set('wco', 1); }
+      },
+      {
+        label: '低通故意调宽（ω_co = 2ω_c−W+4）', onClick: function (v, api) {
+          api.set('wco', Math.min(45, Math.round((2 * v.wc - v.W + 4) * 2) / 2));
+        }
+      }
+    ],
+    draw: function (cv, v, api) {
+      var W = v.W, wc = v.wc, wco = v.wco;
+      var amp = W / Math.PI;
+      var x = baseband(W);
+      var y = function (t) { return x(t) * Math.cos(wc * t); };
+      var wv = function (t) { return x(t) * Math.cos(wc * t) * Math.cos(wc * t); };
+
+      /* 接收链路的精确时域重建：矩形频谱 + 理想低通 */
+      var lp = function (t) {
+        var hi = Math.min(W, wco);
+        var s = 0.5 * G(t, -hi, hi);
+        s += 0.25 * G(t, Math.max(2 * wc - W, -wco), Math.min(2 * wc + W, wco));
+        s += 0.25 * G(t, Math.max(-2 * wc - W, -wco), Math.min(-2 * wc + W, wco));
+        return s;
+      };
+      var rec = function (t) { return 2 * lp(t); };
+
+      var tmin = -3, tmax = 3;
+      var Xs = function (w) { return rect(w / (2 * W)); };
+      var Ys = function (w) { return 0.5 * (rect((w - wc) / (2 * W)) + rect((w + wc) / (2 * W))); };
+      var Ws = function (w) {
+        return 0.5 * rect(w / (2 * W)) + 0.25 * rect((w - 2 * wc) / (2 * W)) + 0.25 * rect((w + 2 * wc) / (2 * W));
+      };
+      var wmax = 2 * wc + W + 4;
+
+      /* ① 基带 */
+      SSC.plot(cv.base, {
+        xmin: tmin, xmax: tmax, ymin: -amp * 1.35, ymax: amp * 1.45,
+        xlabel: 't (s)', ylabel: 'x(t)',
+        curves: [{ f: x, color: '#4338ca', width: 2.4, samples: 1400, label: 'x(t) = (W/π)sinc(Wt)' }],
+        legend: true
+      });
+
+      /* ② 已调波形 */
+      SSC.plot(cv.mod, {
+        xmin: tmin, xmax: tmax, ymin: -amp * 1.35, ymax: amp * 1.45,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: y, color: '#4338ca', width: 1.7, samples: 2000, label: 'y(t)=x(t)cos(ω_c t)' },
+          { f: x, color: '#c3ccdd', width: 1.3, dash: [5, 4], label: '±包络 x(t)' },
+          { f: function (t) { return -x(t); }, color: '#c3ccdd', width: 1.3, dash: [5, 4] }
+        ],
+        legend: true
+      });
+
+      /* ③ 已调频谱 */
+      SSC.plot(cv.modspec, {
+        xmin: -wmax, xmax: wmax, ymin: 0, ymax: 0.68,
+        xlabel: 'ω (rad/s)', ylabel: '|Y(jω)|',
+        curves: [
+          { f: Ys, color: '#0e7490', width: 1.8, fill: true, alpha: 0.22, samples: 3000, label: '|Y(jω)|（两块，高度 ½）' },
+          { f: Xs, color: '#c3ccdd', width: 1.6, dash: [5, 4], samples: 3000, label: '基带频谱（对比，高度 1）' }
+        ],
+        vlines: [{ x: -wc, color: '#dc2626' }, { x: wc, color: '#dc2626', label: '±ω_c' }],
+        legend: true
+      });
+
+      /* ④ 再乘 cos 之后 */
+      SSC.plot(cv.demspec, {
+        xmin: -wmax, xmax: wmax, ymin: 0, ymax: 0.68,
+        xlabel: 'ω (rad/s)', ylabel: '|W(jω)|',
+        bands: [{
+          x1: Math.max(-wmax, -wco), x2: Math.min(wmax, wco),
+          color: 'rgba(21,128,61,.14)'
+        }],
+        curves: [
+          { f: Ws, color: '#b45309', width: 1.8, fill: true, alpha: 0.22, samples: 3000, label: '|W(jω)|：0 处 = x/2，±2ω_c 处 = 高频副本' }
+        ],
+        hlines: [{ y: 0.5, color: '#15803d', dash: [4, 4], label: '有用的 x/2' }],
+        vlines: [
+          { x: -wco, color: '#15803d', dash: [4, 4] },
+          { x: wco, color: '#15803d', dash: [4, 4], label: '低通门框 ±ω_co' }
+        ],
+        legend: true
+      });
+
+      /* ⑤ 恢复波形 */
+      SSC.plot(cv.rec, {
+        xmin: tmin, xmax: tmax, ymin: -amp * 1.35, ymax: amp * 1.45,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: wv, color: '#c3ccdd', width: 1.3, dash: [4, 4], samples: 2400, label: '低通前 w(t)（含 ½x 与高频项）' },
+          { f: rec, color: '#4338ca', width: 2.4, samples: 2400, label: '低通后 ×2（恢复信号）' },
+          { f: x, color: '#b45309', width: 1.4, dash: [6, 5], samples: 1400, label: '原始 x(t)（参考）' }
+        ],
+        legend: true
+      });
+
+      /* 读数：恢复误差与三种状态判定 */
+      var err = 0;
+      for (var i = 0; i <= 900; i++) {
+        var t = tmin + (tmax - tmin) * i / 900;
+        var e = Math.abs(rec(t) - x(t));
+        if (e > err) err = e;
+      }
+      var state, sc;
+      if (wco <= W + 1e-9) { state = '低通太窄：把 x(t) 自己的高频也砍掉了'; sc = '#b45309'; }
+      else if (wco >= 2 * wc - W - 1e-9) { state = '低通太宽：放进了 2ω_c 的高频副本'; sc = '#b91c1c'; }
+      else { state = '低通刚好：在真空区里，完美还原'; sc = '#15803d'; }
+      api.readout(
+        '<div class="stat"><div class="k">恢复误差 max|×2低通输出 − x(t)|</div><div class="v">' + SSC.fmt(err, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">低通可用区间</div><div class="v" style="font-size:13px">' +
+        SSC.fmt(W, 2) + ' &lt; ω_co &lt; ' + SSC.fmt(2 * wc - W, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">当前状态</div><div class="v" style="font-size:13px;color:' + sc + '">' + state + '</div></div>' +
+        '<div class="stat"><div class="k">已调信号带宽</div><div class="v">' + SSC.fmt(2 * W, 2) + ' rad/s</div></div>' +
+        '<div class="stat"><div class="k">载波 / 基带带宽</div><div class="v">' + SSC.fmt(wc / W, 2) + ' 倍</div></div>'
+      );
+    },
+    note: function (v) {
+      var W = v.W, wc = v.wc, wco = v.wco;
+      var head = '基带频谱是一块高 1、宽 2W 的砖（灰虚线）。乘 cos 后被<b>一分为二</b>，各搬到 ±ω_c，高度变成 ½。';
+      var mid = '<br><b>接收端再乘一次 cos</b>：每块砖又劈成两半——一半回到 0（高度 ½，就是 x(t)/2），' +
+        '一半跑到 ±2ω_c（高度 ¼，是必须扔掉的垃圾）。绿色阴影就是低通的"门框"。';
+      var tail;
+      if (wco <= W + 1e-9) {
+        tail = '<br><b>现在低通太窄</b>（ω_co = ' + SSC.fmt(wco, 2) + ' ≤ W）：连 x(t) 自己的高频都被切掉了，' +
+          '恢复出来的波形变钝、幅度不足（看恢复误差，它不是 0）。';
+      } else if (wco >= 2 * wc - W - 1e-9) {
+        tail = '<br><b>现在低通太宽</b>（ω_co = ' + SSC.fmt(wco, 2) + ' ≥ 2ω_c−W = ' + SSC.fmt(2 * wc - W, 2) + '）：' +
+          '2ω_c 处那块垃圾漏进来了，恢复的波形上叠了一层高频纹波。';
+      } else {
+        tail = '<br><b>现在低通刚好</b>（' + SSC.fmt(W, 2) + ' &lt; ω_co = ' + SSC.fmt(wco, 2) + ' &lt; ' +
+          SSC.fmt(2 * wc - W, 2) + '）：恢复到 x(t)/2，放大 2 倍后与灰色虚线<b>完全重合</b>（恢复误差为 0）。' +
+          '<b>这就是"低通 + 放大 2 倍"能还原的全部原因。</b>';
+      }
+      return head + mid + tail +
+        '<br>试试拖 ω_c：载波越高，两块砖离得越远，低通的可用区间（真空区）越宽，工程上越好做。';
+    }
+  });
+
+  /* =========================================================
+     实验 2 · 相位误差 / 频率误差
+     ========================================================= */
+  SSC.lab({
+    mount: '#lab-sync',
+    title: '实验 2 · 本地载波不同步：音量衰减与周期性衰落',
+    hint: '拖相位误差 φ 与频率误差 Δω，看恢复波形与理想 x(t) 的差别',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '恢复的波形 = x(t)·cos(Δω·t + φ)（灰虚线是理想 x(t)）', height: 215 },
+      { id: 'amp', label: '幅度因子 cos φ 随相位误差 φ 的变化（红点 = 当前）', height: 215 }
+    ],
+    controls: [
+      { id: 'phi', label: '相位误差 φ', min: 0, max: 6.28, step: 0.02, value: 0, unit: ' rad' },
+      { id: 'dw', label: '频率误差 Δω', min: -4, max: 4, step: 0.1, value: 0, unit: ' rad/s' }
+    ],
+    draw: function (cv, v, api) {
+      var W = 2, amp = W / Math.PI;
+      var x = baseband(W);
+      var out = function (t) { return x(t) * Math.cos(v.dw * t + v.phi); };
+      var cphi = Math.cos(v.phi);
+
+      SSC.plot(cv.time, {
+        xmin: -3, xmax: 3, ymin: -amp * 1.35, ymax: amp * 1.45,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: out, color: '#4338ca', width: 2.3, samples: 2000, label: '恢复的信号' },
+          { f: x, color: '#c3ccdd', width: 1.4, dash: [5, 4], samples: 1400, label: '理想 x(t)' }
+        ],
+        legend: true
+      });
+      SSC.plot(cv.amp, {
+        xmin: 0, xmax: 2 * Math.PI, ymin: -1.35, ymax: 1.35,
+        xlabel: '相位误差 φ (rad)', ylabel: 'cos φ',
+        xticks: [0, Math.PI / 2, Math.PI, 3 * Math.PI / 2, 2 * Math.PI],
+        tickFmt: function (t) {
+          if (Math.abs(t) < 1e-6) return '0';
+          if (Math.abs(t - Math.PI / 2) < 1e-6) return 'π/2';
+          if (Math.abs(t - Math.PI) < 1e-6) return 'π';
+          if (Math.abs(t - 3 * Math.PI / 2) < 1e-6) return '3π/2';
+          return '2π';
+        },
+        curves: [{ f: function (p) { return Math.cos(p); }, color: '#0e7490', width: 2.2, label: 'cos φ' }],
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        points: [{ x: v.phi, y: cphi, color: '#dc2626', r: 4.5 }],
+        legend: true
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">相位误差 φ</div><div class="v">' + SSC.fmt(v.phi, 2) + ' rad</div></div>' +
+        '<div class="stat"><div class="k">幅度因子 cos φ</div><div class="v">' + SSC.fmt(cphi, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">相对原信号的功率比</div><div class="v">' + SSC.fmt(cphi * cphi, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">频率误差 Δω</div><div class="v">' + SSC.fmt(v.dw, 2) + ' rad/s</div></div>' +
+        '<div class="stat"><div class="k">衰落周期 2π/|Δω|</div><div class="v">' +
+        (Math.abs(v.dw) < 1e-9 ? '∞（不衰落）' : SSC.fmt(2 * Math.PI / Math.abs(v.dw), 2) + ' s') + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var s = '由积化和差，低通后的输出是 <b>x(t)·cos(Δω·t + φ)</b>：'; 
+      if (Math.abs(v.dw) < 1e-9 && Math.abs(v.phi) < 1e-9) {
+        s += '现在 φ=0、Δω=0，收发完全同步，恢复的信号与理想 x(t) 严丝合缝。';
+      } else {
+        if (Math.abs(v.phi) > 1e-9) {
+          s += '相位差让输出整体乘上 cos φ = <b>' + SSC.fmt(Math.cos(v.phi), 3) + '</b>（功率变成 ' +
+            SSC.fmt(Math.cos(v.phi) * Math.cos(v.phi), 3) + ' 倍）。把 φ 拖到 π/2 ≈ 1.571，输出就<b>彻底为 0</b>——什么都收不到。';
+        }
+        if (Math.abs(v.dw) > 1e-9) {
+          s += '频率差让这个因子随时间摆动：<b>cos(Δω·t)</b>，输出音量周期性起伏，周期 2π/|Δω| = ' +
+            SSC.fmt(2 * Math.PI / Math.abs(v.dw), 2) + ' s，这就是"拍频"式的衰落。';
+          if (Math.abs(v.phi) < 1e-9) s = s.replace('相位差让输出整体乘上 cos φ = <b>1</b>（功率变成 1 倍）。把 φ 拖到 π/2 ≈ 1.571，输出就<b>彻底为 0</b>——什么都收不到。', '');
+        }
+      }
+      return s + '<br>结论：<b>同步解调对"同频同相"的要求不是吹毛求疵</b>，而是数学上的硬要求。' +
+        '想要便宜的接收机，就得改用包络检波（发送端额外发一个载波分量，浪费功率换省事）。';
+    }
+  });
+
+  /* =========================================================
+     实验 3 · 频分复用 FDM
+     ========================================================= */
+  SSC.lab({
+    mount: '#lab-fdm',
+    title: '实验 3 · 三路信号挤进一条信道：载波间隔最小要多大？',
+    hint: '拖"载波间隔 Δ"和"选哪一路"；Δ 小于 2W 时频谱会重叠，谁都解不出来',
+    columns: 2,
+    canvases: [
+      { id: 'total', label: '合成频谱 |Y(jω)|：三路各占一对，搬到 Δ、2Δ、3Δ', height: 220 },
+      { id: 'bp', label: '带通选出的那一路 + 同步解调后的频谱（绿色 = 低通门框）', height: 220 },
+      { id: 'rec', label: '恢复出来的波形（蓝）与理想 A_i·x(t)（灰虚线）', height: 220 }
+    ],
+    controls: [
+      { id: 'gap', label: '载波间隔 Δ', min: 2, max: 12, step: 0.25, value: 8, unit: ' rad/s' },
+      {
+        id: 'pick', label: '接收哪一路', value: '1',
+        options: [{ v: '1', t: '第 1 路（ω_c1 = Δ，幅度 1.0）' },
+          { v: '2', t: '第 2 路（ω_c2 = 2Δ，幅度 0.75）' },
+          { v: '3', t: '第 3 路（ω_c3 = 3Δ，幅度 0.5）' }]
+      }
+    ],
+    draw: function (cv, v, api) {
+      var W = 1.5;                    /* 每路基带带宽 */
+      var A = [1, 0.75, 0.5];
+      var D = v.gap, i = parseInt(v.pick, 10) - 1;   /* 选中的路号（0/1/2） */
+      var wmax = 3 * D + 2 * W + 3;
+      var x = baseband(W);
+
+      /* 合成频谱：三对砖，每块高度 ½A_j */
+      var totalSpec = function (w) {
+        var s = 0;
+        for (var j = 0; j < 3; j++) {
+          var c = (j + 1) * D;
+          s += 0.5 * A[j] * (rect((w - c) / (2 * W)) + rect((w + c) / (2 * W)));
+        }
+        return s;
+      };
+      SSC.plot(cv.total, {
+        xmin: -wmax, xmax: wmax, ymin: 0, ymax: 0.62,
+        xlabel: 'ω (rad/s)', ylabel: '|Y(jω)|',
+        curves: [
+          { f: totalSpec, color: '#0e7490', width: 1.8, fill: true, alpha: 0.22, samples: 4000, label: '三路已调信号之和' },
+          { f: function (w) { return 0.5 * A[i] * (rect((w - (i + 1) * D) / (2 * W)) + rect((w + (i + 1) * D) / (2 * W))); },
+            color: '#dc2626', width: 1.6, dash: [5, 4], samples: 4000, label: '你要收的那一路' }
+        ],
+        vlines: [{ x: (i + 1) * D, color: '#dc2626', label: 'ω_c' + (i + 1) }],
+        legend: true
+      });
+
+      /* 带通选出 + 解调后的频谱（精确：把每块砖与带通/低通的交集都算出来） */
+      var bpCenter = (i + 1) * D;
+      /* S(ω)：收到信号与带通 [±bpCenter±W] 相乘后剩下的砖 */
+      var pieces = [];   /* {c, hw, h} */
+      for (var j = 0; j < 3; j++) {
+        for (var sc = -1; sc <= 1; sc += 2) {          /* 收到信号里 ±(j+1)D 的砖 */
+          var c1 = sc * (j + 1) * D;
+          for (var sb = -1; sb <= 1; sb += 2) {        /* 带通的 ±(i+1)D 两个窗 */
+            var c2 = sb * bpCenter;
+            var hw = W - Math.abs(c1 - c2) / 2;
+            if (hw > 1e-9) pieces.push({ c: (c1 + c2) / 2, hw: hw, h: 0.5 * A[j] });
+          }
+        }
+      }
+      /* D(ω) = ½[S(ω−bpCenter) + S(ω+bpCenter)] */
+      var dpieces = [];
+      pieces.forEach(function (p) {
+        dpieces.push({ c: p.c - bpCenter, hw: p.hw, h: 0.5 * p.h });
+        dpieces.push({ c: p.c + bpCenter, hw: p.hw, h: 0.5 * p.h });
+      });
+      var dspec = function (w) {
+        var s = 0;
+        for (var k = 0; k < dpieces.length; k++) {
+          var p = dpieces[k];
+          if (w > p.c - p.hw && w < p.c + p.hw) s += p.h;
+        }
+        return s;
+      };
+      /* 低通（截止 = W）后的时域波形，×2 */
+      var out2 = function (t) {
+        var s = 0;
+        for (var k = 0; k < dpieces.length; k++) {
+          var p = dpieces[k];
+          var a = Math.max(p.c - p.hw, -W), b = Math.min(p.c + p.hw, W);
+          if (b > a) s += p.h * G(t, a, b);
+        }
+        return 2 * s;
+      };
+      var clean = (D > 2 * W + 1e-9);
+
+      SSC.plot(cv.bp, {
+        xmin: -wmax, xmax: wmax, ymin: 0, ymax: 0.62,
+        xlabel: 'ω (rad/s)', ylabel: '幅度',
+        bands: [{ x1: Math.max(-wmax, -W), x2: Math.min(wmax, W), color: 'rgba(21,128,61,.16)' }],
+        curves: [
+          { f: function (w) { return 0.5 * A[i] * (rect((w - bpCenter) / (2 * W)) + rect((w + bpCenter) / (2 * W))); },
+            color: '#c3ccdd', width: 1.6, dash: [5, 4], samples: 4000, label: '带通选出的那一路（高度 ½A）' },
+          { f: dspec, color: '#b45309', width: 1.8, fill: true, alpha: 0.22, samples: 4000, label: '再乘 cos 之后（0 处 = ½A，±2ω_c 处 = ¼A）' }
+        ],
+        hlines: [{ y: 0.5 * A[i], color: '#15803d', dash: [4, 4], label: '有用的 ½A' }],
+        legend: true
+      });
+
+      SSC.plot(cv.rec, {
+        xmin: -3, xmax: 3, ymin: -A[i] * (W / Math.PI) * 1.4, ymax: A[i] * (W / Math.PI) * 1.5,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: out2, color: '#4338ca', width: 2.3, samples: 2200, label: '低通后的恢复波形（×2）' },
+          { f: function (t) { return A[i] * x(t); }, color: '#c3ccdd', width: 1.5, dash: [6, 5], samples: 1400, label: '理想 A_i·x(t)' }
+        ],
+        legend: true
+      });
+
+      var err = 0;
+      for (var m = 0; m <= 700; m++) {
+        var tt = -3 + 6 * m / 700;
+        var e = Math.abs(out2(tt) - A[i] * x(tt));
+        if (e > err) err = e;
+      }
+      api.readout(
+        '<div class="stat"><div class="k">载波间隔 Δ</div><div class="v">' + SSC.fmt(D, 2) + ' rad/s</div></div>' +
+        '<div class="stat"><div class="k">不重叠要求 Δ ≥ 2W</div><div class="v">' + SSC.fmt(2 * W, 2) + ' rad/s</div></div>' +
+        '<div class="stat"><div class="k">频谱是否重叠</div><div class="v" style="color:' + (clean ? '#15803d' : '#b91c1c') + '">' +
+        (clean ? '不重叠：可以分离' : '重叠了：无法分离') + '</div></div>' +
+        '<div class="stat"><div class="k">恢复误差</div><div class="v">' + SSC.fmt(err, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">每路占用带宽</div><div class="v">' + SSC.fmt(2 * W, 2) + ' rad/s</div></div>'
+      );
+    },
+    note: function (v) {
+      var W = 1.5, D = v.gap;
+      var s = '三路信号的频谱都是宽 2W = 3 的砖。搬到 Δ、2Δ、3Δ 之后，' +
+        '相邻两块之间必须留出空隙，所以要求 <b>Δ ≥ 2W = 3 rad/s</b>——这就是收音机里"相邻电台至少要隔开两倍信号带宽"的来历。';
+      if (D <= 2 * W + 1e-9) {
+        s += '<br><b>现在 Δ = ' + SSC.fmt(D, 2) + ' 已经太小</b>：相邻两路的频谱砖叠在一起（看第一张图里那些连成一片的块），' +
+          '带通滤波器没法只取出你要的那一路——它会把邻居的一部分也带进来，恢复的波形就错了（看恢复误差，它不是 0）。';
+      } else {
+        s += '<br><b>现在 Δ = ' + SSC.fmt(D, 2) + ' &gt; 3</b>：三对砖彼此分开，带通一刀切下去干干净净，' +
+          '再乘 cos、低通、放大 2 倍，恢复波形与理想值重合（恢复误差为 0）。';
+      }
+      s += '<br>顺带注意第二张图：解调之后，有用的那一份落在 0 处（高度 ½A），' +
+        '另一半跑到 ±2ω<sub>c</sub> 去当垃圾——<b>和实验 1 里的结构完全一样，只是换了个载波频率</b>。';
+      return s;
+    }
+  });
+
+  /* =========================================================
+     实验 4 · 脉冲载波与 PAM
+     ========================================================= */
+  SSC.lab({
+    mount: '#lab-pam',
+    title: '实验 4 · 脉冲载波调制 / PAM / 时分复用',
+    hint: '拖脉冲重复频率 ω_c、占空比 d 和路数 M，看频谱副本什么时候开始重叠',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: 'PAM 波形：各路脉冲（垂直错开示意时分复用）+ 基带包络 x(t)', height: 230 },
+      { id: 'spec', label: '频谱 |Y(jω)| = Σ a_k·X(j(ω−kω_c))：副本间隔 ω_c = 2π/T', height: 230 }
+    ],
+    controls: [
+      { id: 'wc', label: '脉冲重复频率 ω_c = 2π/T', min: 3, max: 30, step: 0.5, value: 12, unit: ' rad/s' },
+      { id: 'duty', label: '占空比 d = Δ/T', min: 0.1, max: 0.8, step: 0.02, value: 0.4 },
+      { id: 'M', label: '时分复用路数 M', min: 1, max: 3, step: 1, value: 3 }
+    ],
+    draw: function (cv, v, api) {
+      var W = 1.5;                    /* 基带带宽 */
+      var x = baseband(W);
+      var T = 2 * Math.PI / v.wc;     /* 脉冲周期 */
+      var M = v.M;
+      var tau = v.duty * T / M;       /* 每路脉冲宽度（时隙内的占空比） */
+      var amp = W / Math.PI;
+
+      /* 时域：M 路脉冲，垂直错开 */
+      function chan(m) {
+        var off = m * 1.35;
+        return function (t) {
+          var shift = m * T / M;
+          var n = Math.round((t - shift) / T);
+          var tc = n * T + shift;
+          if (Math.abs(t - tc) <= tau / 2) return x(tc) + off;
+          return off;
+        };
+      }
+      var curves = [];
+      for (var m = 0; m < M; m++) {
+        curves.push({
+          f: chan(m), color: SSC.COLORS[m % SSC.COLORS.length], width: 1.9,
+          samples: 4000, label: M > 1 ? ('第 ' + (m + 1) + ' 路 PAM') : 'PAM 波形'
+        });
+      }
+      curves.push({
+        f: function (t) { return x(t) + (M - 1) * 1.35 / 2; }, color: '#c3ccdd', width: 1.3,
+        dash: [5, 4], samples: 1400, label: '基带包络 x(t)'
+      });
+      SSC.plot(cv.time, {
+        xmin: -2, xmax: 2, ymin: -amp * 1.6, ymax: (M - 1) * 1.35 + amp * 1.6,
+        xlabel: 't (s)', ylabel: '幅度（已错开）',
+        curves: curves, legend: true
+      });
+
+      /* 频域：Σ |a_k|·rect((ω−kω_c)/2W) */
+      var K = 5;
+      var ak = function (k) { return Math.abs(v.duty * SSC.sinc(k * Math.PI * v.duty)); };
+      var spec = function (w) {
+        var s = 0;
+        for (var k = -K; k <= K; k++) s += ak(k) * rect((w - k * v.wc) / (2 * W));
+        return s;
+      };
+      var wspan = (K + 1) * v.wc;
+      SSC.plot(cv.spec, {
+        xmin: -wspan, xmax: wspan, ymin: 0, ymax: Math.max(0.3, v.duty * 1.25),
+        xlabel: 'ω (rad/s)', ylabel: '|Y(jω)|',
+        curves: [
+          { f: spec, color: '#0e7490', width: 1.8, fill: true, alpha: 0.22, samples: 6000, label: '无穷多份副本（前 11 份）' },
+          { f: function (w) { return rect(w / (2 * W)); }, color: '#c3ccdd', width: 1.5, dash: [5, 4], samples: 2000, label: '原始基带频谱（对比）' }
+        ],
+        hlines: [{ y: v.duty, color: '#15803d', dash: [4, 4], label: 'a₀ = d = ' + SSC.fmt(v.duty, 2) + '（基带那份的高度）' }],
+        vlines: [{ x: v.wc, color: '#dc2626', label: 'ω_c = ' + SSC.fmt(v.wc, 2) }],
+        legend: true
+      });
+
+      var ok = v.wc > 2 * W;
+      api.readout(
+        '<div class="stat"><div class="k">副本间距 ω_c</div><div class="v">' + SSC.fmt(v.wc, 2) + ' rad/s</div></div>' +
+        '<div class="stat"><div class="k">不重叠要求 ω_c &gt; 2W</div><div class="v">' + SSC.fmt(2 * W, 2) + ' rad/s</div></div>' +
+        '<div class="stat"><div class="k">采样条件</div><div class="v" style="color:' + (ok ? '#15803d' : '#b91c1c') + '">' +
+        (ok ? '满足：副本分开' : '不满足：混叠') + '</div></div>' +
+        '<div class="stat"><div class="k">a₀（直流/基带副本）</div><div class="v">' + SSC.fmt(v.duty, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">a₁ / a₂</div><div class="v">' + SSC.fmt(ak(1), 3) + ' / ' + SSC.fmt(ak(2), 3) + '</div></div>' +
+        '<div class="stat"><div class="k">每路时隙 / 脉宽</div><div class="v">' + SSC.fmt(T / M, 3) + ' / ' + SSC.fmt(tau, 3) + ' s</div></div>'
+      );
+    },
+    note: function (v) {
+      var W = 1.5, s = '';
+      s = '脉冲载波调制让基带频谱<b>复制无穷多份</b>，第 k 份坐在 <span class="mono">kω<sub>c</sub></span> 上、高度被 a<sub>k</sub> = d·sinc(kπd) 缩放。';
+      if (v.wc > 2 * W) {
+        s += '<br>现在 ω_c = ' + SSC.fmt(v.wc, 2) + ' &gt; 2W = 3，<b>副本彼此分开</b>：' +
+          '用一个截止在 W 与 ω_c−W 之间的低通就能把基带那份完整取出来——<b>这就是采样定理的频域图像</b>（第 9 章）。';
+      } else {
+        s += '<br><b>现在 ω_c = ' + SSC.fmt(v.wc, 2) + ' ≤ 2W = 3</b>：副本开始重叠（看第一张图里连成一片的块），' +
+          '这就是<b>混叠</b>——低通取出来的基带已经被邻居污染了，怎么滤都救不回来。';
+      }
+      s += '<br>注意占空比 d 的作用：它只改变<b>每份副本的高度</b> a<sub>k</sub>（d 小则 a₀ 小，基带那份很弱），' +
+        '<b>不改变副本的间距</b>——能不能恢复取决于 ω_c 而不是脉冲有多窄。' +
+        (Math.abs(v.duty - 0.5) < 0.02
+          ? '<br>你正处在 d = 0.5：此时所有<b>偶数次</b>副本（a<sub>±2</sub>, a<sub>±4</sub>…）的系数恰好为 0，它们真的消失了。'
+          : '')
+        + '<br>第二张图里错开的脉冲就是<b>时分复用 TDM</b>：脉冲越窄，一帧里能塞的路数越多（M = ' + v.M + '）。';
+      return s;
+    }
+  });
+
+  /* =========================================================
+     自测
+     ========================================================= */
+  SSC.quiz('#quiz11', [
+    {
+      q: '通信系统为什么非要调制，不能直接把声音信号送进天线？',
+      opts: [
+        '因为音频波长几十公里，天线尺寸做不出来；而且频谱是共享资源，需要把不同信号搬到不同频段',
+        '因为声音信号的能量太小，传不远',
+        '因为不调制的话信号会变成复数',
+        '因为天线只能发送余弦信号'
+      ],
+      a: 0,
+      why: '天线尺寸要与波长同量级：4 kHz 的波长约 75 km，λ/4 天线就要 19 km。调制把频谱搬到高频（如 2.4 GHz 对应 12.5 cm 波长），天线可以做得很小；同时多路信号占用不同载频，就实现了频分复用。',
+      tag: '动机'
+    },
+    {
+      q: '设 x(t) 带限（|ω|>ω_M 时 X(jω)=0）。已知 y(t)=x(t)cos(ω_c t)。下列说法正确的是？',
+      opts: [
+        'Y(jω) = ½[X(j(ω−ω_c)) + X(j(ω+ω_c))]，且要求 ω_c > ω_M 才能无损恢复',
+        'Y(jω) = X(j(ω−ω_c))，只要 ω_c 任意大就能恢复',
+        'Y(jω) = ½X(jω)，与载波无关',
+        'Y(jω) = 2[X(j(ω−ω_c)) + X(j(ω+ω_c))]'
+      ],
+      a: 0,
+      why: '余弦的频谱是 π[δ(ω−ω_c)+δ(ω+ω_c)]，代进相乘性质 (1/2π)∫X(jθ)C(j(ω−θ))dθ，两次冲激筛选给出两份拷贝，系数 π/2π = ½。两份拷贝分别占据 [ω_c−ω_M, ω_c+ω_M] 和 [−ω_c−ω_M, −ω_c+ω_M]，只有 ω_c > ω_M 时它们不重叠。',
+      tag: '核心公式'
+    },
+    {
+      q: '同步解调把 y(t)=x(t)cos ω_c t 乘上 cos ω_c t，得到 w(t)。接下来为什么必须"低通 + 放大 2 倍"？',
+      opts: [
+        '因为 w(t) = x(t)/2 + (x(t)/2)cos 2ω_c t：低通用来丢掉 2ω_c 的高频项，放大 2 倍用来补回 cos² 降次带来的 ½',
+        '因为 w(t) = x(t)，低通只是为了让波形更光滑，放大是为了提高信噪比',
+        '因为 w(t) = 2x(t)，低通是为了防止过载，放大 2 倍是为了抵消低通的衰减',
+        '因为 w(t) 里有直流分量，低通把它滤掉，放大 2 倍是为了恢复幅度'
+      ],
+      a: 0,
+      why: '关键一步是 cos²θ=(1+cos2θ)/2。代入 θ=ω_c t 得 w(t)=x(t)/2 + (x(t)/2)cos 2ω_c t（两项同号）：第一项在 0 附近（有用），第二项在 ±2ω_c（垃圾）。低通的截止要满足 ω_M<ω_co<2ω_c−ω_M，才能只留下第一项。放大 2 倍是因为降次公式"多出"了 1/2，不补回来幅度就少一半。',
+      tag: '解调'
+    },
+    {
+      q: '在同步解调的实验里把本地载波的相位差调成 φ = π/2（其它一切完美），输出会怎样？',
+      opts: [
+        '输出恒为 0，什么也收不到',
+        '输出不变，只是延迟了四分之一周期',
+        '输出幅度变成原来的 1/2',
+        '输出变成原来的两倍'
+      ],
+      a: 0,
+      why: '低通后的输出是 x(t)·cos(θ_c−φ_c)。φ 差 π/2 时 cos(π/2)=0，输出被整个乘上 0。这说明"同频同相"是同步解调的硬要求，而不是精度问题。',
+      tag: '同步误差'
+    },
+    {
+      q: '频分复用系统里，每路基带信号最高频率为 ω_M，采用 DSB/SC 调制。相邻两路载波间隔至少要多大？',
+      opts: ['2ω_M', 'ω_M', 'ω_M/2', '没有要求，只要不同即可'],
+      a: 0,
+      why: 'DSB 把每路基带复制到 ±ω_c，正频率处占据 [ω_c−ω_M, ω_c+ω_M]，宽度 2ω_M。要不重叠，载波间隔必须 ≥ 2ω_M。这就是 AM 广播电台间隔 10 kHz 而音频带宽只有 5 kHz 的原因。',
+      tag: 'FDM'
+    },
+    {
+      q: '脉冲载波调制 y(t)=x(t)p(t)，p(t) 是周期 T、脉宽 Δ 的脉冲串。要从 y(t) 恢复 x(t)，需要的条件是？',
+      opts: [
+        'ω_c = 2π/T > 2ω_M 且 a₀ = Δ/T 不为零（否则可改用带通取出 a_k 较大的副本再解调）',
+        '只要脉冲足够窄（Δ→0）就一定能恢复，与 T 无关',
+        '必须让 Δ/T 尽量小，越小越容易恢复',
+        '要求 ω_c < 2ω_M'
+      ],
+      a: 0,
+      why: 'C(jω) 是一串间隔 ω_c 的冲激，权重为 a_k，于是 Y(jω)=Σa_k X(j(ω−kω_c))——X 被复制无穷多份，每份宽 2ω_M。要不重叠必须 ω_c>2ω_M（与采样定理同构）。脉冲有多窄只影响各副本的高度（a_k=d·sinc(kπd)），不影响间距；如果 a₀ 太小，可以带通选出某个 a_k 大的副本，当成正弦调制信号再解调。',
+      tag: 'PAM'
+    }
+  ], '第 11 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

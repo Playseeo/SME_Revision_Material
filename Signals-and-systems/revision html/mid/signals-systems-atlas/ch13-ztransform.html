@@ -1,0 +1,932 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 13 章　z 变换｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch13">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第五段 · 两个"万能"变换 · 第 13 章</div>
+        <h1>z 变换（离散世界的拉普拉斯）</h1>
+        <p class="lede">
+          第 7 章的 DTFT 要求序列<b>绝对可和</b>，可 <span class="mono">a<sup>n</sup>u[n]</span>（a&gt;1）这种会增长的序列就被挡在门外。
+          解决办法和连续时间里一模一样：给每一项乘一个"衰减旋钮" <span class="mono">r<sup>−n</sup></span>，把频率 <span class="mono">e<sup>jω</sup></span>
+          推广成复数 <span class="mono">z = re<sup>jω</sup></span>。旋钮开到合适的位置，级数就收敛；
+          <b>哪些旋钮位置能让它收敛，就是收敛域 ROC</b>——而 ROC 正是"同一个 X(z) 却对应不同序列"这件事的答案。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch07-dtft.html">第 7 章 DTFT</a>（z 变换在单位圆上就是它）<br>
+          <a href="ch02-convolution.html">第 2 章 卷积</a>（差分方程与 h[n]）<br>
+          <a href="ch12-laplace.html">第 12 章 拉普拉斯</a>（结构完全平行，建议对照读）
+        </div>
+        <div class="cell mid"><b>这一站</b>z 变换定义、ROC 三铁律、常用对、性质、逆变换三法、系统函数</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch14-atlas.html">第 14 章 四大变换总对照</a>（把拉氏与 z 摆在一起看）<br>
+          <a href="ch16-cheatsheet.html">附 B 速查表</a>（背变换对时回来查）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 为什么要给 DTFT 加"旋钮"</a>
+        <a href="#s2">2. 定义与几何意义：z 平面是什么</a>
+        <a href="#s3">3. 收敛域 ROC：三条铁律</a>
+        <a href="#s4">4. 动手：同一个 X(z)，三种序列</a>
+        <a href="#s5">5. 必须记住的变换对</a>
+        <a href="#s6">6. 性质表（与拉氏对照）</a>
+        <a href="#s7">7. 逆 z 变换三法（含完整算例）</a>
+        <a href="#s8">8. 动手：部分分式与递推结果必须重合</a>
+        <a href="#s9">9. 动手：拖极零点，看 ROC 与滤波器</a>
+        <a href="#s10">10. 系统函数、差分方程与方框图</a>
+        <a href="#s11">11. 单边 z 变换：初值定理与终值定理</a>
+        <a href="#s12">12. 常见坑</a>
+        <a href="#s13">13. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 为什么要给 DTFT 加"旋钮"</h2>
+
+      <p>先明确 DTFT 是什么（第 7 章）：</p>
+      <p class="small muted">下面用到的 X(z) 是<span class="term" data-def="bilateral z-transform，中文含义：双边 z 变换。n 从 −∞ 加到 +∞ 的 z 变换；与之相对的单边 z 变换只从 n=0 开始加。">双边 z 变换</span>，除非特别说明。</p>
+      <div class="eq center-eq">
+        X(e<sup>jω</sup>) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+        x[n] e<sup>−jωn</sup>
+      </div>
+      <p>
+        这个级数收敛的充分条件是
+        <span class="term" data-def="absolutely summable，中文含义：绝对可和。即 Σ|x[n]| 收敛。DTFT 存在的充分条件。">绝对可和</span>
+        （absolutely summable）：<span class="mono">Σ<sub>n</sub>|x[n]| &lt; ∞</span>。
+        像 <span class="mono">2<sup>n</sup>u[n]</span> 这种随 n 指数增长的序列就不满足——DTFT 直接"不存在"。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">关键动作：先乘一个实指数再算 DTFT</span>
+        <p>
+          我们不去改信号，而是先把它乘上 <span class="mono">r<sup>−n</sup></span>（r 是正实数）：
+          <span class="mono">x[n]·r<sup>−n</sup></span>。若 <span class="mono">r &gt; 1</span>，增长的序列被压住（因为 r<sup>−n</sup> 在衰减）；
+          若 <span class="mono">r &lt; 1</span>，衰减的序列反而被放大。于是总有<b>某些 r</b> 能让新序列绝对可和。
+        </p>
+        <p style="margin-bottom:0">
+          对新序列做 DTFT，并把它<b>记成一个关于 r 和 ω 的函数</b>，再把两者合并写成复数
+          <span class="mono">z = re<sup>jω</sup></span>，就得到
+        </p>
+      </div>
+
+      <div class="eq center-eq">
+        X(re<sup>jω</sup>) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+        { x[n] r<sup>−n</sup> } e<sup>−jωn</sup>
+        &nbsp;&nbsp;⟺&nbsp;&nbsp;
+        <b>X(z) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> x[n] z<sup>−n</sup></b>
+        <span class="lbl">(13-1)</span>
+      </div>
+
+      <details class="deriv">
+        <summary>推导：为什么 z = re^{jω} 能把两件事合并成一个符号</summary>
+        <div class="body">
+          <div class="step">
+            <p>把 <span class="mono">z = re<sup>jω</sup></span> 直接代入 <span class="mono">z<sup>−n</sup></span>：</p>
+            <div class="eq">z<sup>−n</sup> = (re<sup>jω</sup>)<sup>−n</sup> = r<sup>−n</sup> e<sup>−jωn</sup></div>
+            <p class="why">为什么：指数的乘法法则 <span class="mono">(ab)<sup>−n</sup> = a<sup>−n</sup>b<sup>−n</sup></span>，且 (e<sup>jω</sup>)<sup>−n</sup> = e<sup>−jωn</sup>。</p>
+          </div>
+          <div class="step">
+            <p>于是式 (13-1) 右边的求和自动分裂成"衰减旋钮 × 频率探针"两部分：</p>
+            <div class="eq">
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> x[n] z<sup>−n</sup>
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              {x[n] r<sup>−n</sup>} e<sup>−jωn</sup>
+            </div>
+            <p class="why">为什么：这正是上面那一步的重新排列。<b>r 负责"压住"信号让它收敛，ω 负责"挑频率"。</b></p>
+          </div>
+          <div class="step">
+            <p>取 <span class="mono">r = 1</span>（即 <span class="mono">|z| = 1</span>，单位圆），衰减旋钮不起作用，式子退化成 DTFT：</p>
+            <div class="eq center-eq">
+              X(z)|<sub>z=e<sup>jω</sup></sub> = X(e<sup>jω</sup>) = DTFT
+              <span class="lbl">(13-2)</span>
+            </div>
+            <p class="why">为什么重要：<b>DTFT 就是 z 变换在单位圆上的取值</b>。前提是 ROC 包含单位圆——否则那个位置根本不收敛，DTFT 不存在。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s2">2. 定义与几何意义：z 平面是什么</h2>
+
+      <table class="tbl">
+        <thead><tr><th>符号</th><th>中文名 / 含义</th><th>直观理解</th></tr></thead>
+        <tbody>
+          <tr><td class="ft">z</td><td>复变量 <span class="mono">z = re<sup>jω</sup></span></td><td>一个"复频率旋钮"。</td></tr>
+          <tr><td class="ft">r = |z|</td><td>半径（模）</td><td><b>衰减旋钮</b>：r&gt;1 压住增长的序列，r&lt;1 放大衰减的序列。</td></tr>
+          <tr><td class="ft">ω = ∠z</td><td>辐角</td><td><b>频率</b>，单位 rad/样本，本质只在长度 2π 的区间内取值（因为 e<sup>jω</sup> 以 2π 为周期）。</td></tr>
+          <tr><td class="ft">单位圆 |z|=1</td><td><span class="term" data-def="unit circle，中文含义：单位圆。z 平面上 |z|=1 的那一圈；z 变换限制在这一圈上就退化成 DTFT。">unit circle</span></td><td>r=1 的那一圈：走在这一圈上，z 变换就是 DTFT（第 7 章）。</td></tr>
+          <tr><td class="ft">X(z)</td><td>z 变换（复函数）</td><td>在每一点 z 上放一个复数；它比 DTFT 多了一整个"径向"维度。</td></tr>
+          <tr><td class="ft">ROC</td><td><span class="term" data-def="region of convergence，中文含义：收敛域。使 X(z)=Σx[n]z⁻ⁿ 收敛的那些 z 组成的区域（z 平面上的一块区域）。">收敛域</span>（region of convergence）</td><td>"哪些 z 让这个无穷级数收敛"。它和 X(z) 的表达式<b>同等重要</b>。</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <span class="tag">和拉普拉斯、DTFT 的关系（一张小表记住）</span>
+        <table class="tbl sm" style="margin:10px 0 0">
+          <thead><tr><th>连续时间</th><th>离散时间</th><th>关系</th></tr></thead>
+          <tbody>
+            <tr><td class="ft">s 平面（s=σ+jω）</td><td class="ft">z 平面（z=re<sup>jω</sup>）</td><td class="ft">z = e<sup>sT</sup>，T 是采样周期</td></tr>
+            <tr><td class="ft">虚轴 s = jω</td><td class="ft">单位圆 z = e<sup>jω</sup></td><td>两条线上，变换退化为傅里叶变换</td></tr>
+            <tr><td class="ft">左半平面 σ&lt;0（衰减）</td><td class="ft">单位圆内 r&lt;1（衰减）</td><td>稳定 ↔ 收敛的那一侧</td></tr>
+            <tr><td class="ft">右半平面 σ&gt;0（增长）</td><td class="ft">单位圆外 r&gt;1（增长）</td><td>不稳定 ↔ 发散的那一侧</td></tr>
+            <tr><td class="ft">ROC 是竖直条带</td><td class="ft">ROC 是圆环（以原点为中心）</td><td>因为 z=e<sup>sT</sup> 把竖直线映成圆</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h2 id="s3">3. 收敛域 ROC：三条铁律</h2>
+      <p>
+        ROC 一定是"以原点为中心的圆环"（或整个平面、或圆外、或圆内），因为收敛条件
+        <span class="mono">Σ|x[n]|r<sup>−n</sup> &lt; ∞</span> <b>只和 r 有关，和 ω 无关</b>：
+        沿同一半径转一圈（ω 变化），收敛性完全一样。这就是"ROC 是环形"的根本原因。
+      </p>
+
+      <table class="tbl">
+        <thead><tr><th>序列类型</th><th>例子</th><th>ROC</th><th>图示</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b><span class="term" data-def="finite-length sequence，中文含义：有限长序列。只在有限个 n 上不为零的序列（如 {1,2,3}）。">有限长</span></b>（只在有限个 n 上非零）</td>
+            <td class="ft">δ[n]、{1,2,3}</td>
+            <td>整个 z 平面（可能去掉 z=0 或 z=∞）</td>
+            <td>全平面</td>
+          </tr>
+          <tr>
+            <td><b><span class="term" data-def="right-sided sequence，中文含义：右边序列。某个 n₀ 之前全为 0 的序列；若 n₀≥0 又称因果序列。">右边</span></b>（n &lt; N₀ 时为 0，又称因果型）</td>
+            <td class="ft">a<sup>n</sup>u[n]</td>
+            <td class="ft">|z| &gt; r<sub>max</sub>（最外极点<b>之外</b>）</td>
+            <td>圆外</td>
+          </tr>
+          <tr>
+            <td><b><span class="term" data-def="left-sided sequence，中文含义：左边序列。某个 n₀ 之后全为 0 的序列；若 n₀≤0 又称反因果序列。">左边</span></b>（n &gt; N₀ 时为 0，又称反因果型）</td>
+            <td class="ft">−a<sup>n</sup>u[−n−1]</td>
+            <td class="ft">|z| &lt; r<sub>min</sub>（最内极点<b>之内</b>）</td>
+            <td>圆内</td>
+          </tr>
+          <tr>
+            <td><b><span class="term" data-def="two-sided sequence，中文含义：双边序列。n→+∞ 与 n→−∞ 两个方向都无限延伸的序列。">双边</span></b>（左右都无限延伸）</td>
+            <td class="ft">a<sup>|n|</sup></td>
+            <td class="ft">r₁ &lt; |z| &lt; r₂（两个极点之间的<b>环</b>）</td>
+            <td>圆环</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">三条铁律（考试高频，务必背下来）</span>
+        <ol style="margin:6px 0 0;padding-left:22px">
+          <li>ROC <b>不包含任何<span class="term" data-def="pole，中文含义：极点。使 X(z) 的分母为 0 的 z 值；在极点处级数发散，所以极点永远被 ROC 排除在外。">极点</span></b>（极点处级数一定发散）。</li>
+          <li>ROC 由极点划分边界，一定是圆环形状（也可能是整个平面或圆外/圆内）。</li>
+          <li><b>同一个 X(z) 表达式 + 不同 ROC = 不同序列。</b>所以答题时"写出 X(z) 与 ROC"两件缺一不可。</li>
+        </ol>
+        <p style="margin-bottom:0">
+          推论（判断稳定性）：若系统因果（h[n] 是右边序列）且 <b>ROC 包含单位圆</b>，则系统稳定，等价于
+          <b>全部极点在单位圆内</b>。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 动手：同一个 X(z)，三种序列</h2>
+      <p>
+        取最经典的那个例子
+        <span class="mono">X(z) = 1/(1 − a z<sup>−1</sup>)</span>（0 &lt; a &lt; 1）。
+        它在 <span class="mono">z = a</span> 处有一个极点。下面切换三种 ROC，看同一个 X(z) 如何对应完全不同的 x[n]。
+        拖动 a，看极点位置与衰减速度如何一起变化。
+      </p>
+
+      <div id="lab-roc"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          <b>因果读法</b>（ROC = |z|&gt;a）：把 1/(1−az<sup>−1</sup>) 展开成 <span class="mono">Σ(az<sup>−1</sup>)<sup>n</sup></span>，
+          幂次是 z<sup>−n</sup> 且 n≥0，对应 <span class="mono">x[n]=a<sup>n</sup>u[n]</span>（n 越大越小，右边序列）。
+        </p>
+        <p>
+          <b>反因果读法</b>（ROC = |z|&lt;a）：改按 z 的<b>正</b>幂展开（长除要换个方向），得到
+          <span class="mono">x[n] = −a<sup>n</sup>u[−n−1]</span>（n 越负越小，左边序列）。
+        </p>
+        <p style="margin-bottom:0">
+          <b>两个都取</b>（ROC = a&lt;|z|&lt;1/a）：两者相加，得到一个左右都无限的"双边"序列。
+          <b>这就是 ROC 存在的意义：它是"选哪一份答案"的开关。</b>
+        </p>
+      </div>
+
+      <h2 id="s5">5. 必须记住的变换对</h2>
+      <table class="tbl">
+        <thead><tr><th class="c">x[n]</th><th class="c">X(z)</th><th class="c">ROC</th><th>怎么记</th></tr></thead>
+        <tbody>
+          <tr><td class="c ft">δ[n]</td><td class="c ft">1</td><td class="c">整个 z 平面</td><td>只有 n=0 一项，z⁰=1。</td></tr>
+          <tr><td class="c ft">δ[n−n₀]</td><td class="c ft">z<sup>−n₀</sup></td><td class="c">整个平面（除 z=0/∞）</td><td>时移 → 乘 z<sup>−n₀</sup>。</td></tr>
+          <tr><td class="c ft">u[n]</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">1−z<sup>−1</sup></span></span></td><td class="c ft">|z| &gt; 1</td><td>a=1 的特例（极点在 z=1）。</td></tr>
+          <tr><td class="c ft">−u[−n−1]</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">1−z<sup>−1</sup></span></span></td><td class="c ft">|z| &lt; 1</td><td>同一表达式，<b>ROC 反过来</b>。</td></tr>
+          <tr><td class="c ft">a<sup>n</sup>u[n]</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">1−az<sup>−1</sup></span></span></td><td class="c ft">|z| &gt; |a|</td><td>最基本的一条，必背。</td></tr>
+          <tr><td class="c ft">−a<sup>n</sup>u[−n−1]</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">1−az<sup>−1</sup></span></span></td><td class="c ft">|z| &lt; |a|</td><td>同上，ROC 反向。</td></tr>
+          <tr><td class="c ft">na<sup>n</sup>u[n]</td><td class="c ft"><span class="frac"><span class="num">az<sup>−1</sup></span><span class="den">(1−az<sup>−1</sup>)²</span></span></td><td class="c ft">|z| &gt; |a|</td><td>z 域微分一次，多一个 z<sup>−1</sup>。</td></tr>
+          <tr><td class="c ft">(n+1)a<sup>n</sup>u[n]</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">(1−az<sup>−1</sup>)²</span></span></td><td class="c ft">|z| &gt; |a|</td><td>常用于二阶极点。</td></tr>
+          <tr><td class="c ft">cos(ω₀n)u[n]</td><td class="c ft"><span class="frac"><span class="num">1 − z<sup>−1</sup>cos ω₀</span><span class="den">1 − 2z<sup>−1</sup>cos ω₀ + z<sup>−2</sup></span></span></td><td class="c ft">|z| &gt; 1</td><td>共轭极点 e<sup>±jω₀</sup>。</td></tr>
+          <tr><td class="c ft">r<sup>n</sup>cos(ω₀n)u[n]</td><td class="c ft"><span class="frac"><span class="num">1 − rz<sup>−1</sup>cos ω₀</span><span class="den">1 − 2rz<sup>−1</sup>cos ω₀ + r²z<sup>−2</sup></span></span></td><td class="c ft">|z| &gt; r</td><td>极点 r e<sup>±jω₀</sup>，稳定需 r&lt;1。</td></tr>
+          <tr><td class="c ft">sin(ω₀n)u[n]</td><td class="c ft"><span class="frac"><span class="num">z<sup>−1</sup>sin ω₀</span><span class="den">1 − 2z<sup>−1</sup>cos ω₀ + z<sup>−2</sup></span></span></td><td class="c ft">|z| &gt; 1</td><td>与 cos 差一个相位。</td></tr>
+        </tbody>
+      </table>
+
+      <details class="deriv">
+        <summary>推导：a^n u[n] 的 z 变换与收敛条件（等比级数）</summary>
+        <div class="body">
+          <div class="step">
+            <p>按定义代入，注意 u[n] 把求和下限变成 0：</p>
+            <div class="eq">
+              X(z) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              a<sup>n</sup>u[n]z<sup>−n</sup>
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+              (az<sup>−1</sup>)<sup>n</sup>
+            </div>
+            <p class="why">为什么：把 a<sup>n</sup>z<sup>−n</sup> 写成 (az<sup>−1</sup>)<sup>n</sup>，就得到一个公比为 az<sup>−1</sup> 的等比级数。</p>
+          </div>
+          <div class="step">
+            <p>等比级数 <span class="mono">Σ<sub>n≥0</sub>q<sup>n</sup></span> 在 <span class="mono">|q| &lt; 1</span> 时收敛到 <span class="mono">1/(1−q)</span>：</p>
+            <div class="eq">
+              X(z) = <span class="frac"><span class="num">1</span><span class="den">1 − az<sup>−1</sup></span></span>,
+              &nbsp;&nbsp; 收敛条件 |az<sup>−1</sup>| &lt; 1 &nbsp;⟺&nbsp; |z| &gt; |a|
+            </div>
+            <p class="why">为什么是 |z| &gt; |a|：<span class="mono">|az<sup>−1</sup>| = |a|/|z| &lt; 1 ⟺ |z| &gt; |a|</span>。
+              这正是"因果序列的 ROC 在最外极点之外"这条铁律的来源。</p>
+          </div>
+          <div class="step">
+            <p>顺便得到 X(z) 的<b>零点与极点</b>：把分子分母同乘 z：</p>
+            <div class="eq">
+              X(z) = <span class="frac"><span class="num">z</span><span class="den">z − a</span></span>
+              &nbsp;⇒&nbsp; 极点 <i>z</i> = a，零点 <i>z</i> = 0
+            </div>
+            <p class="why">为什么要在意：<span class="term" data-def="zero，中文含义：零点。使 X(z) 的分子为 0 的 z 值；在零点处频响会被压出一个凹陷。">极点与零点</span>的位置直接决定 ROC 的边界和系统稳定性（第 9 节会用图来玩这件事）。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s6">6. 性质表（与拉氏对照）</h2>
+      <table class="tbl sm">
+        <thead><tr><th>性质</th><th class="c">序列 / z 域</th><th>ROC 变化</th><th>拉氏对应</th></tr></thead>
+        <tbody>
+          <tr><td>线性</td><td class="c ft">ax₁[n]+bx₂[n] ↔ aX₁(z)+bX₂(z)</td><td>至少是两者交集</td><td>同</td></tr>
+          <tr><td>时移</td><td class="c ft">x[n−n₀] ↔ z<sup>−n₀</sup>X(z)</td><td>可能增删 z=0 或 ∞</td><td>e<sup>−st₀</sup>X(s)</td></tr>
+          <tr><td>z 域尺度</td><td class="c ft">a<sup>n</sup>x[n] ↔ X(z/a)</td><td>|a| 倍缩放：|z| 范围乘以 |a|</td><td>s 域平移</td></tr>
+          <tr><td>时间反转</td><td class="c ft">x[−n] ↔ X(1/z)</td><td>r ↔ 1/r（内外翻转）</td><td>x(−t) ↔ X(−s)</td></tr>
+          <tr><td>共轭</td><td class="c ft">x*[n] ↔ X*(z*)</td><td>不变</td><td>X*(s*)</td></tr>
+          <tr><td><b>卷积</b></td><td class="c ft">x[n] ∗ h[n] ↔ X(z)H(z)</td><td>至少是交集</td><td>同</td></tr>
+          <tr><td>差分（一阶）</td><td class="c ft">x[n] − x[n−1] ↔ (1−z<sup>−1</sup>)X(z)</td><td>可能增删极点</td><td>微分性质</td></tr>
+          <tr><td>累加</td><td class="c ft">Σ<sub>k≤n</sub>x[k] ↔ X(z)/(1−z<sup>−1</sup>)</td><td>至少 |z|&gt;1</td><td>积分性质</td></tr>
+          <tr><td>z 域微分</td><td class="c ft">n·x[n] ↔ −z dX(z)/dz</td><td>不变</td><td>t·x(t) ↔ −dX/ds</td></tr>
+          <tr><td>初值定理（单边）</td><td class="c ft">x[0] = lim<sub>z→∞</sub>X(z)</td><td>—</td><td>x(0⁺)=lim<sub>s→∞</sub>sX(s)</td></tr>
+          <tr><td>终值定理（单边）</td><td class="c ft">lim<sub>n→∞</sub>x[n] = lim<sub>z→1</sub>(1−z<sup>−1</sup>)X(z)</td><td>要求极限存在</td><td>同形</td></tr>
+          <tr><td>帕塞瓦尔</td><td class="c ft">Σ|x[n]|² = (1/2π)∮<sub>|z|=1</sub>|X(z)|²dz/z</td><td>要求 ROC 含单位圆</td><td>同</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">z 域尺度性质特别有用</span>
+        <p style="margin-bottom:0">
+          因为 <span class="mono">a<sup>n</sup>x[n] ↔ X(z/a)</span>，而极点会从 p 变成 ap。
+          换句话说：<b>乘 a<sup>n</sup> = 把所有极点沿径向缩放 |a| 倍</b>。
+          所以 <span class="mono">r<sup>n</sup>cos(ω₀n)u[n]</span> 的极点就是把 cos 的极点按 r 缩放到 <span class="mono">re<sup>±jω₀</sup></span>——
+          这正是变换对表里最后几行的来历，也是"极点越靠单位圆，频响越尖"的根因。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 逆 z 变换三法（含完整算例）</h2>
+
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">方法一：<span class="term" data-def="partial-fraction expansion，中文含义：部分分式展开。把有理分式拆成若干简单分式之和（如 A/(1−pz⁻¹)），使每一项都能查表反变换的代数技巧。">部分分式展开</span></h4>
+          <p class="small">把 X(z) 拆成 <span class="mono">Σ A<sub>i</sub>/(1−p<sub>i</sub>z<sup>−1</sup>)</span>，再对每项查表。
+            <b>每一项是取右边还是左边，由 ROC 决定</b>。最常用、最稳。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">方法二：<span class="term" data-def="power series / long division，中文含义：幂级数（长除）。直接做多项式长除，把 X(z) 展成 Σcₙz⁻ⁿ 的形式，系数就是序列值。">幂级数（长除）</span></h4>
+          <p class="small">直接做多项式长除，把 X(z) 展成 <span class="mono">Σ c<sub>n</sub>z<sup>−n</sup></span>，
+            系数序列就是 x[n]（因果时 n≥0）。适合只求前几项。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">方法三：<span class="term" data-def="residue method，中文含义：留数法。x[n] = Σ（ROC 内各极点的留数），留数是对包围该极点的小圈积分算出的一种系数。">留数法</span></h4>
+          <p class="small">
+            <span class="mono">x[n] = Σ<sub>p 在 ROC 内</sub> Res[ X(z)z<sup>n−1</sup> ]</span>。
+            对有理 X(z)，等于把 X(z)z<sup>n−1</sup> 在 ROC 内每个极点处的留数加起来。
+          </p>
+        </div>
+      </div>
+
+      <details class="deriv" open>
+        <summary>完整算例：X(z) = 1 / [(1−0.5z⁻¹)(1−0.8z⁻¹)]，且 x[n] 因果（ROC: |z|&gt;0.8）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：写部分分式形式。</b>两个一阶极点 p₁=0.5、p₂=0.8，所以</p>
+            <div class="eq">
+              X(z) = <span class="frac"><span class="num">A₁</span><span class="den">1 − 0.5z<sup>−1</sup></span></span>
+              + <span class="frac"><span class="num">A₂</span><span class="den">1 − 0.8z<sup>−1</sup></span></span>
+            </div>
+            <p class="why">为什么这样设：查表里 <span class="mono">a<sup>n</sup>u[n] ↔ 1/(1−az<sup>−1</sup>)</span> 的形状正好是这个形式，拆开就能逐项对表。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：求系数。</b>技巧是"盖住某个因子后代入该极点"：</p>
+            <div class="eq">
+              A₁ = (1−0.5z<sup>−1</sup>)X(z) |<sub>z=0.5</sub> = <span class="frac"><span class="num">1</span><span class="den">1 − 0.8/0.5</span></span> = <span class="frac"><span class="num">1</span><span class="den">−0.6</span></span> = −<span class="frac"><span class="num">5</span><span class="den">3</span></span>
+            </div>
+            <div class="eq">
+              A₂ = (1−0.8z<sup>−1</sup>)X(z) |<sub>z=0.8</sub> = <span class="frac"><span class="num">1</span><span class="den">1 − 0.5/0.8</span></span> = <span class="frac"><span class="num">1</span><span class="den">0.375</span></span> = <span class="frac"><span class="num">8</span><span class="den">3</span></span>
+            </div>
+            <p class="why">为什么要"代入极点"：在 <span class="mono">z=p₁</span> 处，第一项的分母变得极大（1−p₁/p₁ = 0），把它乘回去就消掉了其它项，只剩 A₁。这是留数公式 <span class="mono">A₁ = (1−p₁z<sup>−1</sup>)X(z)|<sub>z=p₁</sub></span> 的直观来源。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：按 ROC 决定方向。</b>ROC 是 |z|&gt;0.8，说明是<b>因果（右边）序列</b>，两项都取右边形式：</p>
+            <div class="eq center-eq">
+              x[n] = [ −<span class="frac"><span class="num">5</span><span class="den">3</span></span>(0.5)<sup>n</sup> + <span class="frac"><span class="num">8</span><span class="den">3</span></span>(0.8)<sup>n</sup> ] u[n]
+            </div>
+            <p class="why">验算：n=0 时 x[0] = −5/3 + 8/3 = 1。这也符合"X(z) 在 z→∞ 时趋于 1，所以 x[0]=1"（初值定理）。</p>
+          </div>
+          <div class="step">
+            <p><b>如果换成 ROC: 0.5 &lt; |z| &lt; 0.8 呢？</b>那就不是因果序列了：|z|&gt;0.5 让 p₁=0.5 那项取右边，
+              而 |z|&lt;0.8 让 p₂=0.8 那项必须取<b>左边</b>：</p>
+            <div class="eq center-eq">
+              x[n] = −<span class="frac"><span class="num">5</span><span class="den">3</span></span>(0.5)<sup>n</sup>u[n]
+              − <span class="frac"><span class="num">8</span><span class="den">3</span></span>(0.8)<sup>n</sup>u[−n−1]
+            </div>
+            <p class="why">结论：<b>部分分式只是一半工作，ROC 决定了每一项取 u[n] 还是 u[−n−1]。</b>这就是为什么题目不给 ROC 就没法做。</p>
+          </div>
+        </div>
+      </details>
+
+      <details class="deriv">
+        <summary>算例（方法二）：用长除法把 X(z) 展成幂级数，直接读出前几项</summary>
+        <div class="body">
+          <p>仍取 <span class="mono">X(z) = 1/[(1−0.5z<sup>−1</sup>)(1−0.8z<sup>−1</sup>)]</span>，
+            先乘开分母：<span class="mono">1 − 1.3z<sup>−1</sup> + 0.4z<sup>−2</sup></span>。</p>
+          <div class="step">
+            <p><b>第 1 步：写成"分母除分子"的长除形式。</b>把 z<sup>−1</sup> 当变量 x 看：</p>
+            <div class="eq center-eq">
+              x[n] ↔ 1 ÷ (1 − 1.3x + 0.4x<sup>2</sup>)，其中 x = z<sup>−1</sup>
+            </div>
+            <p class="why">为什么这样做合法：因果序列的 z 变换按 z<sup>−1</sup> 的升幂展开正是
+              <span class="mono">Σ<sub>n≥0</sub>x[n]z<sup>−n</sup></span>，所以商的系数就是 x[0], x[1], x[2], …</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：逐项做除法（每一步"消掉最高次"）。</b></p>
+            <div class="eq">
+              1 ÷ (1 − 1.3x + 0.4x²) = <b>1</b> + 1.3x + 1.29x² + 1.157x³ + …
+            </div>
+            <p class="why">为什么：第 1 项取 1，因为 1·(1−1.3x+0.4x²) 与 1 相减后余 1.3x − 0.4x²；
+              再取 1.3x，余 1.29x² − 0.52x³；依此类推。每一步都保证把当前最低次项消掉。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：读系数。</b><span class="mono">x[0]=1, x[1]=1.3, x[2]=1.29, x[3]=1.157, …</span></p>
+            <p class="why">与部分分式的闭式解对照：<span class="mono">x[n] = −(5/3)(0.5)<sup>n</sup> + (8/3)(0.8)<sup>n</sup></span>
+              → n=0: 1, n=1: 1.3, n=2: 1.29, n=3: 1.157 …<b>完全一致</b>。
+              长除法适合"只要前几项"，部分分式适合"要通项"。</p>
+          </div>
+        </div>
+      </details>
+
+      <details class="deriv">
+        <summary>算例（方法三）：留数法，并与 ROC 的选择配上</summary>
+        <div class="body">
+          <p>留数法公式（对有理 X(z)）：</p>
+          <div class="eq center-eq">
+            x[n] = <span class="sum"><span class="sym">Σ</span><span class="bot">ROC 内的极点 p</span></span>
+            Res[ X(z)z<sup>n−1</sup> ]<sub>z=p</sub>
+          </div>
+          <div class="step">
+            <p><b>一阶极点的留数怎么算。</b>若 <span class="mono">X(z)z<sup>n−1</sup></span> 在 p 处是一阶极点：</p>
+            <div class="eq">
+              Res = lim<sub>z→p</sub> (z − p)·X(z)z<sup>n−1</sup>
+              = (1 − pz<sup>−1</sup>)X(z)|<sub>z=p</sub> · p<sup>n</sup>
+            </div>
+            <p class="why">为什么两个式子相等：<span class="mono">(z−p) = z(1−pz<sup>−1</sup>)</span>，
+              而 z·z<sup>n−1</sup> = z<sup>n</sup>。乘出来正好是"盖住因子"的形式，所以部分分式的系数 A 就是留数（乘上 <span class="mono">p<sup>n</sup></span>）。</p>
+          </div>
+          <div class="step">
+            <p><b>谁在 ROC 内，谁就参与。</b>回到同一个例子，三个不同 ROC 给出三种答案：</p>
+            <table class="tbl sm" style="margin:8px 0">
+              <thead><tr><th>ROC</th><th>哪些极点在 ROC 内</th><th>x[n]</th></tr></thead>
+              <tbody>
+                <tr><td class="ft">|z| &gt; 0.8</td><td>两个都在（0.5 与 0.8）</td>
+                  <td class="ft">[−(5/3)(0.5)<sup>n</sup> + (8/3)(0.8)<sup>n</sup>]u[n]</td></tr>
+                <tr><td class="ft">0.5 &lt; |z| &lt; 0.8</td><td>只有 0.5</td>
+                  <td class="ft">−(5/3)(0.5)<sup>n</sup>u[n] − (8/3)(0.8)<sup>n</sup>u[−n−1]</td></tr>
+                <tr><td class="ft">|z| &lt; 0.5</td><td>一个都没有</td>
+                  <td class="ft">−[(5/3)(0.5)<sup>n</sup> + (8/3)(0.8)<sup>n</sup>]u[−n−1]</td></tr>
+              </tbody>
+            </table>
+            <p class="why">规律：<b>极点落在 ROC 内 → 该项对应右边序列（u[n]）；极点落在 ROC 外 → 该项对应左边序列（u[−n−1]）</b>，
+              并且要整体加一个负号。这与部分分式的"逐项判方向"是同一件事的两种说法。</p>
+          </div>
+          <p class="small muted">注意最后一行：ROC 内没有极点时 <span class="mono">n ≥ 0</span> 的留数和为 0，
+            说明序列在 <span class="mono">n ≥ 0</span> 上恒为 0——即纯左边序列。这也是判断"因果与否"的一个视角。</p>
+        </div>
+      </details>
+
+      <details class="deriv">
+        <summary>性质证明（时移 / z 域尺度 / 卷积 / 累加）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>(a) 时移：x[n−n₀] ⟷ z<sup>−n₀</sup>X(z)</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n−n₀]z<sup>−n</sup>
+              &nbsp;<span style="color:var(--accent);font-size:14px">令 m = n − n₀ ⇒ n = m + n₀</span>&nbsp;
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              x[m]z<sup>−(m+n₀)</sup> = z<sup>−n₀</sup>X(z)
+            </div>
+            <p class="why">为什么：换元只改求和指标，z<sup>−n₀</sup> 是常数可提到求和号外。
+              注意它可能改变 <span class="mono">z=0</span> / <span class="mono">z=∞</span> 处的收敛性（延迟一个样本会让 z=∞ 出现极点）。</p>
+          </div>
+          <div class="step">
+            <p><b>(b) z 域尺度：a<sup>n</sup>x[n] ⟷ X(z/a)</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              a<sup>n</sup>x[n]z<sup>−n</sup>
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n](z/a)<sup>−n</sup> = X(z/a)
+            </div>
+            <p class="why">为什么：把 <span class="mono">a<sup>n</sup></span> 塞进括号写成 <span class="mono">(z/a)<sup>−n</sup></span>。
+              几何效果就是"把整张极点零点图沿径向缩放 |a| 倍"，ROC 也随之缩放——这正是变换对表里
+              <span class="mono">r<sup>n</sup>cos(ω₀n)u[n]</span> 那几行的来历。</p>
+          </div>
+          <div class="step">
+            <p><b>(c) 卷积：x[n] ∗ h[n] ⟷ X(z)H(z)</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              <span style="font-size:20px">(</span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k]h[n−k]
+              <span style="font-size:20px">)</span> z<sup>−n</sup>
+            </div>
+            <p class="why">为什么可以交换两个求和次序：在 ROC 内部两个级数都绝对收敛（这正是 ROC 的定义），
+              绝对收敛时重排求和不会改变结果。</p>
+            <div class="eq">
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> x[k]
+              <span style="font-size:20px">(</span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> h[n−k]z<sup>−n</sup>
+              <span style="font-size:20px">)</span>
+              &nbsp;=&nbsp; <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> x[k]·z<sup>−k</sup>H(z)
+              &nbsp;=&nbsp; X(z)H(z)
+            </div>
+            <p class="why">括号里用的是刚证的时移性质（把 n₀ 换成 k）。<b>结论：时域卷积 = z 域相乘</b>，
+              这是把差分方程变成代数方程、把滤波器级联变成 H₁(z)H₂(z) 的全部依据。</p>
+          </div>
+          <div class="step">
+            <p><b>(d) 累加：Σ<sub>k≤n</sub>x[k] ⟷ X(z)/(1−z<sup>−1</sup>)</b></p>
+            <div class="eq">
+              y[n] = <span class="sum"><span class="top">n</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> x[k]
+              &nbsp;⇒&nbsp; y[n] − y[n−1] = x[n]
+            </div>
+            <p class="why">为什么：累加器的"差分"就是原信号——这一步是理解累加性质的关键。</p>
+            <div class="eq">
+              Y(z) − z<sup>−1</sup>Y(z) = X(z) &nbsp;⇒&nbsp; Y(z) = <span class="frac"><span class="num">X(z)</span><span class="den">1 − z<sup>−1</sup></span></span>
+            </div>
+            <p class="why">为什么：两边取 z 变换并用时移性质（<span class="mono">y[n−1] ↔ z<sup>−1</sup>Y(z)</span>），
+              再把 Y(z) 解出来。<b>"累加 = 乘 1/(1−z<sup>−1</sup>)"</b>，而 <span class="mono">1/(1−z<sup>−1</sup>)</span> 正是 u[n] 的 z 变换——
+              所以累加器就是"与阶跃做卷积"，两种说法完全一致。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s8">8. 动手：部分分式与递推结果必须重合</h2>
+      <p>
+        下面把上节的算例做成可调的：拖动两个极点位置，页面同时用<b>两条完全不同的路</b>算出 x[n]——
+        一条用部分分式闭式公式，一条用差分方程逐项递推（这是"长除/递推"的等价形式）。
+        两条茎叶图必须完全重合，这是对你理解的最直接检验。
+      </p>
+
+      <div id="lab-inverse"></div>
+
+      <h2 id="s9">9. 动手：拖极零点，看 ROC 与滤波器</h2>
+      <p>
+        左边拖极点（红叉）和零点（蓝圈），右边是系统频率响应
+        <span class="mono">|H(e<sup>jω</sup>)|</span>，绿色阴影是 ROC。试试这些动作：
+      </p>
+      <ul>
+        <li>把<b>极点拖到单位圆外</b> → 稳定性判定变红；</li>
+        <li>把<b>极点拖到单位圆上</b> → 峰值增益变 ∞（临界振荡）；</li>
+        <li>把极点拖到<b>靠近单位圆</b>（但仍在圆内）→ 频响在对应频率处出现尖峰；</li>
+        <li>把极点放到 <b>ω=π</b> 附近 → 高频被放大（高通倾向）；放到 <b>ω=0</b> 附近 → 低频被放大（低通倾向）；</li>
+        <li>切换 <b>因果 / 反因果</b> 看同一个极零点对应的 ROC 怎么变。</li>
+      </ul>
+
+      <div class="lab" style="padding:16px 18px">
+        <div class="lab-head"><b>实验 3 · z 平面极零点与 ROC 实验室</b>
+          <span class="hint">按住红叉/蓝圈拖动（触屏也可），Shift+拖动可吸附到单位圆</span></div>
+        <div class="canvases g2c">
+          <div class="cv-cell"><div class="cv-label">z 平面（绿=ROC，青虚线=单位圆）</div>
+            <canvas id="pz13" style="height:300px"></canvas></div>
+          <div class="cv-cell"><div class="cv-label">幅度响应 |H(e^{jω})|，ω ∈ [0, π]</div>
+            <canvas id="resp13" style="height:300px"></canvas></div>
+        </div>
+        <div class="lab-actions">
+          <select id="mode13" aria-label="序列类型">
+            <option value="causal">因果（右边序列）ROC: |z| &gt; r_max</option>
+            <option value="anticausal">反因果（左边序列）ROC: |z| &lt; r_min</option>
+            <option value="annulus">双边序列 ROC: r_min &lt; |z| &lt; r_max</option>
+          </select>
+          <button class="btn ghost sm" id="reset13">恢复初始极零点</button>
+        </div>
+        <div class="readout" id="stats13"></div>
+        <div class="lab-note" id="note13"></div>
+      </div>
+
+      <div class="box ok">
+        <span class="tag">从图里直接读出稳定性判据</span>
+        <p style="margin-bottom:0">
+          因果系统（h[n] 右边序列）稳定 <b>⟺ 全部极点在单位圆内</b>。
+          图上就是：绿色 ROC 是"最外极点之外的圆外"，只要所有红叉都在青虚线圆<b>里面</b>，
+          单位圆整圈就落在 ROC 内 → DTFT 存在 → 稳定。
+          <b>这是把所有抽象条件压缩成一眼判断的方法。</b>
+        </p>
+      </div>
+
+      <h2 id="s10">10. 系统函数、差分方程与方框图</h2>
+      <p>
+        对 DT LTI 系统 <span class="mono">y[n] = x[n] ∗ h[n]</span>，用卷积性质：
+      </p>
+      <div class="eq center-eq">
+        Y(z) = H(z)·X(z), &nbsp;&nbsp;&nbsp;
+        H(z) = <span class="frac"><span class="num">Y(z)</span><span class="den">X(z)</span></span>
+        = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> h[n]z<sup>−n</sup>
+      </div>
+      <p>
+        <span class="mono">H(z)</span> 叫
+        <span class="term" data-def="system function，中文含义：系统函数。H(z)=Y(z)/X(z)，是冲激响应 h[n] 的 z 变换；它的极零点决定系统的一切频域行为与稳定性。">系统函数</span>
+        （system function）。若系统由线性常系数差分方程描述：
+      </p>
+      <div class="eq center-eq">
+        <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+        a<sub>k</sub> y[n−k] =
+        <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+        b<sub>k</sub> x[n−k]
+      </div>
+
+      <details class="deriv">
+        <summary>推导：差分方程 → H(z)（两步，不用求 h[n]）</summary>
+        <div class="body">
+          <div class="step">
+            <p>两边取 z 变换，用<b>时移性质</b> <span class="mono">y[n−k] ↔ z<sup>−k</sup>Y(z)</span>：</p>
+            <div class="eq">
+              <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span> a<sub>k</sub> z<sup>−k</sup> Y(z)
+              = <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span> b<sub>k</sub> z<sup>−k</sup> X(z)
+            </div>
+            <p class="why">为什么：z 变换是线性的（和、常数都能穿透），所以可以把变换搬到每一项上。</p>
+          </div>
+          <div class="step">
+            <p>两边同除 X(z) 与那个分母和，立刻得到 H(z)：</p>
+            <div class="eq center-eq">
+              H(z) = <span class="frac">
+                <span class="num"><span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span> b<sub>k</sub>z<sup>−k</sup></span>
+                <span class="den"><span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span> a<sub>k</sub>z<sup>−k</sup></span>
+              </span>
+              = <span class="frac"><span class="num">B(z)</span><span class="den">A(z)</span></span>
+            </div>
+            <p class="why">为什么这个结果重要：<b>把 z 代进系数多项式就能得到系统函数，不必解差分方程求 h[n]</b>——
+              与第 6 章"微分方程 → H(jω)"完全平行的技巧。分子根 = 零点，分母根 = 极点。</p>
+          </div>
+        </div>
+      </details>
+
+      <table class="tbl sm">
+        <thead><tr><th>系统类型</th><th>h[n]</th><th>H(z)</th><th>极点</th><th>例子</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b class="term" data-def="FIR, finite impulse response，中文含义：有限冲激响应系统。h[n] 只有有限个非零值，系统函数只有分子多项式、没有非零极点；永远稳定。">FIR</b>（有限冲激响应 finite impulse response）</td>
+            <td>有限长</td>
+            <td>只有分子多项式（A(z)=1）</td>
+            <td>只在 z=0（或没有）</td>
+            <td class="ft">y[n]=x[n]+x[n−1]（滑动平均）</td>
+          </tr>
+          <tr>
+            <td><b class="term" data-def="IIR, infinite impulse response，中文含义：无限冲激响应系统。h[n] 无限长，系统函数有非零极点；可能不稳定，但用更少的运算就能实现很陡的滤波。">IIR</b>（无限冲激响应 infinite impulse response）</td>
+            <td>无限长</td>
+            <td>有理分式，分母非平凡</td>
+            <td>有限个非零极点</td>
+            <td class="ft">y[n]=ay[n−1]+x[n]</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">因果性与稳定性的完整判据（务必分清）</span>
+        <table class="tbl sm" style="margin:10px 0 0">
+          <thead><tr><th>想要</th><th>条件（用 ROC 说）</th><th>条件（用极点说）</th></tr></thead>
+          <tbody>
+            <tr><td>因果</td><td>ROC 是最外极点之外的圆外区域（含 z=∞）</td><td>极点个数 ≥ 零点个数（z=∞ 处不是极点）</td></tr>
+            <tr><td>稳定</td><td>ROC 包含单位圆</td><td>若因果，则<b>全部极点在单位圆内</b>；一般情形要求极点不落在单位圆上、且单位圆在某个 ROC 内</td></tr>
+            <tr><td><b>因果且稳定</b></td><td>ROC 是 |z|&gt;r_max 且 r_max&lt;1</td><td><b>全部极点严格在单位圆内</b></td></tr>
+          </tbody>
+        </table>
+        <p style="margin-bottom:0" class="small">
+          注意"稳定"并不蕴含"因果"：一个左边序列（反因果）也可能稳定（ROC 是圆内且包含单位圆），只是它不能实时实现。
+        </p>
+      </div>
+
+      <h2 id="s11">11. 单边 z 变换：初值定理与终值定理</h2>
+      <p>
+        上面用的都是<b>双边</b> z 变换（n 从 −∞ 加到 +∞）。处理"从 n=0 开始的因果信号 + 初始条件"时，
+        常用<span class="term" data-def="unilateral z-transform，中文含义：单边 z 变换。求和只从 n=0 到 +∞，专门用来解带初始条件的差分方程。">单边 z 变换</span>：
+      </p>
+      <div class="eq center-eq">
+        X<sub>u</sub>(z) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=0</span></span> x[n]z<sup>−n</sup>
+      </div>
+      <div class="box intuition">
+        <span class="tag">两个"不用求逆变换"的技巧</span>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b><span class="term" data-def="initial value theorem，中文含义：初值定理。x[0] = lim_{z→∞} X(z)，不用做逆变换就能读出序列的第一个值。">初值定理</span></b>：<span class="mono">x[0] = lim<sub>z→∞</sub>X<sub>u</sub>(z)</span>。
+            为什么？z→∞ 时 z<sup>−n</sup> 只有 n=0 那一项还活着。</li>
+          <li><b><span class="term" data-def="final value theorem，中文含义：终值定理。lim_{n→∞} x[n] = lim_{z→1}(1−z⁻¹)X(z)，用来直接读出序列最终稳定到哪里；前提是该极限真的存在。">终值定理</span></b>：<span class="mono">lim<sub>n→∞</sub>x[n] = lim<sub>z→1</sub>(1−z<sup>−1</sup>)X<sub>u</sub>(z)</span>。
+            为什么？(1−z<sup>−1</sup>) 相当于"累加"的逆操作，(z→1) 相当于"直流"处取值；<b>前提是极限真的存在</b>
+            （要求极点都在单位圆内，或至多在 z=1 处一个一阶极点，否则会发散或振荡）。</li>
+        </ul>
+      </div>
+
+      <details class="deriv" open>
+        <summary>完整算例：用单边 z 变换解带初始条件的差分方程</summary>
+        <div class="body">
+          <p>解 <span class="mono">y[n] − 0.8y[n−1] = x[n]</span>，输入 <span class="mono">x[n] = u[n]</span>，
+            初始条件 <span class="mono">y[−1] = 2</span>（系统在 n=0 之前已经"带着能量"）。</p>
+          <div class="step">
+            <p><b>第 1 步：用单边 z 变换的时移性质。</b>单边时移要多出一项初始条件：</p>
+            <div class="eq">
+              y[n−1] &nbsp;<span class="op ft">⟷</span>&nbsp; z<sup>−1</sup>Y<sub>u</sub>(z) + y[−1]
+            </div>
+            <p class="why">为什么多一项：双边时移只乘 z<sup>−1</sup>，但单边变换的求和从 n=0 开始，
+              丢掉了 n=−1 那一项，所以要把它补回来。这就是单边变换能"带初始条件"的原因。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：代入并解出 Y<sub>u</sub>(z)。</b>取 <span class="mono">X<sub>u</sub>(z) = 1/(1−z<sup>−1</sup>)</span>：</p>
+            <div class="eq">
+              Y<sub>u</sub>(z) − 0.8[z<sup>−1</sup>Y<sub>u</sub>(z) + y[−1]] = X<sub>u</sub>(z)
+            </div>
+            <div class="eq">
+              Y<sub>u</sub>(z) = <span class="frac"><span class="num">X<sub>u</sub>(z) + 0.8y[−1]</span><span class="den">1 − 0.8z<sup>−1</sup></span></span>
+              = <span class="frac"><span class="num">1</span><span class="den">(1 − z<sup>−1</sup>)(1 − 0.8z<sup>−1</sup>)</span></span>
+              + <span class="frac"><span class="num">1.6</span><span class="den">1 − 0.8z<sup>−1</sup></span></span>
+            </div>
+            <p class="why">为什么要把两项分开：第一项只含输入 <span class="mono">X</span>，是<b>零状态响应</b>；
+              第二项只含初始条件 <span class="mono">y[−1]</span>，是<b>零输入响应</b>。分开算，物理含义立刻清楚。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：部分分式 + 查表。</b>第一项拆成
+              <span class="mono">A/(1−z<sup>−1</sup>) + B/(1−0.8z<sup>−1</sup>)</span>，
+              用"盖住因子代入极点"得 <span class="mono">A = 1/(1−0.8) = 5</span>、
+              <span class="mono">B = 1/(1−1/0.8) = −4</span>。于是</p>
+            <div class="eq center-eq">
+              y[n] = [ 5 − 4(0.8)<sup>n</sup> ]u[n] &nbsp;(零状态)&nbsp; + 1.6(0.8)<sup>n</sup>u[n] &nbsp;(零输入)&nbsp;
+              = [ 5 − 2.4(0.8)<sup>n</sup> ]u[n]
+            </div>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：用初值/终值定理快速验算。</b></p>
+            <ul style="margin:4px 0 0;padding-left:20px">
+              <li>初值：<span class="mono">y[0] = lim<sub>z→∞</sub>Y<sub>u</sub>(z) = 1 + 1.6 = 2.6</span>，
+                与公式代入 n=0 得 <span class="mono">5 − 2.4 = 2.6</span> ✓</li>
+              <li>终值：<span class="mono">lim<sub>z→1</sub>(1−z<sup>−1</sup>)Y<sub>u</sub>(z) = 1/(1−0.8) = 5</span>，
+                公式在 n→∞ 时也趋于 5 ✓（物理上：直流输入 u[n] 经过增益 <span class="mono">1/(1−0.8)=5</span> 的系统）</li>
+            </ul>
+            <p class="why">为什么这个验算有效：系统极点是 0.8（在单位圆内），所以终值确实存在，定理适用。
+              如果极点是 1.2，终值定理就不适用——那时序列在发散，你还会发现 <span class="mono">z→1</span> 的极限根本给不出有限值。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s12">12. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card"><h4 style="margin-top:0">坑 1：只写 X(z)，不写 ROC</h4>
+          <p class="small">同一个 <span class="mono">1/(1−az<sup>−1</sup>)</span> 至少两种序列。ROC 是答案的一部分，漏了就错。</p></div>
+        <div class="card"><h4 style="margin-top:0">坑 2：以为单位圆永远在 ROC 里</h4>
+          <p class="small">只有 |z|=1 落在 ROC 内，DTFT 才存在。讨论"频响"之前先确认这件事。</p></div>
+        <div class="card"><h4 style="margin-top:0">坑 3：把 z 变换与 DTFT 的变量混用</h4>
+          <p class="small">写 <span class="mono">X(z)</span> 时用它自己的变量；只有在单位圆上才能代 <span class="mono">z=e<sup>jω</sup></span> 写成 <span class="mono">X(e<sup>jω</sup>)</span>。</p></div>
+        <div class="card"><h4 style="margin-top:0">坑 4：部分分式后忘了按 ROC 选方向</h4>
+          <p class="small">求系数只是第 2 步；第 3 步必须逐项判断取 u[n] 还是 u[−n−1]。这一步错了整题全错。</p></div>
+        <div class="card"><h4 style="margin-top:0">坑 5：把 <span class="mono">z<sup>−1</sup></span> 当成 <span class="mono">1/z</span> 的"小量"近似</h4>
+          <p class="small">它只是记号：<span class="mono">z<sup>−1</sup></span> 是"延迟一个样本"。它是定义的一部分，不是近似。</p></div>
+        <div class="card"><h4 style="margin-top:0">坑 6：终值定理乱用</h4>
+          <p class="small">如果极点跑到单位圆外（或单位圆上有二阶极点），终值不存在，公式给出的数是无意义的。先查极点。</p></div>
+      </div>
+
+      <h2 id="s13">13. 自测</h2>
+      <div id="quiz13"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 13 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ---------- 实验 1：同一 X(z)，三种序列 ---------- */
+  var roc = SSC.lab({
+    mount: '#lab-roc',
+    title: '实验 1 · X(z) = 1/(1 − a z⁻¹)：ROC 决定答案',
+    hint: '切换三种 ROC，并拖动 a 看极点与序列形状一起变',
+    columns: 2,
+    canvases: [
+      { id: 'zp', label: 'z 平面：极点位置与 ROC（绿）', height: 220 },
+      { id: 'seq', label: '对应的时域序列 x[n]（stem）', height: 220 }
+    ],
+    controls: [
+      {
+        id: 'rocMode', label: '选哪个 ROC', value: 'causal',
+        options: [
+          { v: 'causal', t: '|z| > a ：因果，x[n]=aⁿu[n]' },
+          { v: 'anticausal', t: '|z| < a ：反因果，x[n]=−aⁿu[−n−1]' },
+          { v: 'both', t: 'a < |z| < 1/a ：双边（两者相加）' }
+        ]
+      },
+      { id: 'a', label: '极点位置 a', min: 0.1, max: 0.95, step: 0.01, value: 0.8 }
+    ],
+    draw: function (cv, v) {
+      var a = v.a;
+
+      /* z 平面 */
+      var R = 1.6;
+      var view = SSC.plane(cv.zp, { R: R, unit: true });
+      var ctx = view.ctx;
+      var ROC_FILL = 'rgba(21,128,61,.15)';
+      if (v.rocMode === 'causal') view.outside(a, ROC_FILL);
+      else if (v.rocMode === 'anticausal') view.inside(a, ROC_FILL);
+      else view.annulus(a, 1 / a > R ? R - 0.02 : 1 / a, ROC_FILL);
+      if (v.rocMode === 'both' && 1 / a > R) {
+        /* 环的外边界超出视野时，用文字说明 */
+        ctx.save(); ctx.fillStyle = '#b45309'; ctx.font = '12px ui-monospace, monospace';
+        ctx.fillText('外边界 1/a = ' + SSC.fmt(1 / a, 2) + ' 超出视野', view.X(-R) + 6, view.Y(-R) + 14);
+        ctx.restore();
+      }
+      view.drawPZ([[a, 0]], [[0, 0]]);
+      view.text(a, 0, 'p = ' + SSC.fmt(a, 2));
+      view.text(0, 0, 'z = 0', '#4338ca', 6, 12);
+
+      /* 时域序列 */
+      var N = 15, xs = [], ys = [], i;
+      for (i = -N; i <= N; i++) xs.push(i);
+      for (i = -N; i <= N; i++) {
+        var val = 0;
+        if (v.rocMode === 'causal') val = i >= 0 ? Math.pow(a, i) : 0;
+        else if (v.rocMode === 'anticausal') val = i < 0 ? -Math.pow(a, i) : 0;
+        else val = (i >= 0 ? Math.pow(a, i) : 0) + (i < 0 ? -Math.pow(a, i) : 0);
+        ys.push(val);
+      }
+      var span = 1;
+      ys.forEach(function (y) { span = Math.max(span, Math.abs(y)); });
+      SSC.plot(cv.seq, {
+        xmin: -N - 1, xmax: N + 1, ymin: -span * 1.15, ymax: span * 1.15,
+        xlabel: 'n', ylabel: 'x[n]',
+        stems: [{ xs: xs, ys: ys, color: '#4338ca', label: v.rocMode === 'both' ? '因果 + 反因果' : (v.rocMode === 'causal' ? 'aⁿu[n]' : '−aⁿu[−n−1]') }],
+        legend: true,
+        vlines: [{ x: 0, color: '#c3ccdd' }]
+      });
+    },
+    note: function (v) {
+      var a = v.a;
+      if (v.rocMode === 'causal') {
+        return '<b>因果读法</b>：ROC = { |z| &gt; ' + SSC.fmt(a, 2) + ' }，绿区在最外极点之外。' +
+          '把 1/(1−az⁻¹) 按 z<sup>−1</sup> 的正幂展开得 Σ(az⁻¹)<sup>n</sup>，对应 x[n]=aⁿu[n]：' +
+          'a 越接近 1，衰减越慢、极点越靠近单位圆。' +
+          (a > 0.9 ? '<br>⚠️ 极点已经贴近单位圆：这就是"接近临界"的系统，频响会在直流附近出现尖峰。' : '');
+      }
+      if (v.rocMode === 'anticausal') {
+        return '<b>反因果读法</b>：ROC = { |z| &lt; ' + SSC.fmt(a, 2) + ' }，绿区在最内极点之内。' +
+          '同一个 X(z) 表达式，因为 ROC 换了，答案变成 x[n] = −aⁿu[−n−1]：n 越负越小，是"向左衰减"的序列。' +
+          '<br>这就是铁律 3：<b>X(z) 表达式 + ROC 才等于一个序列</b>。';
+      }
+      return '<b>双边读法</b>：ROC = { ' + SSC.fmt(a, 2) + ' &lt; |z| &lt; ' + SSC.fmt(1 / a, 2) + ' }（圆环）。' +
+        'x[n] 是两个序列的和：n≥0 部分向右衰减，n&lt;0 部分向左衰减。' +
+        '<br>注意环的宽度：a→1 时环被挤扁，趋于"不存在 ROC"（所以 a=1 时 X(z)=1/(1−z⁻¹) 在任何圆上都只在 |z|&gt;1 收敛）。';
+    }
+  });
+
+  /* ---------- 实验 2：部分分式 vs 递推 ---------- */
+  var inv = SSC.lab({
+    mount: '#lab-inverse',
+    title: '实验 2 · 逆 z 变换：闭式公式与迭代递推必须重合',
+    hint: '拖动两个极点，比较两条路径算出的 x[n]',
+    columns: 1,
+    canvases: [{ id: 'seq', label: 'x[n]：部分分式闭式解（蓝圈） vs 差分方程递推（红点）', height: 240 }],
+    controls: [
+      { id: 'p1', label: '极点 p₁', min: 0.1, max: 0.95, step: 0.01, value: 0.5 },
+      { id: 'p2', label: '极点 p₂', min: 0.1, max: 0.95, step: 0.01, value: 0.8 },
+      { id: 'N', label: '画到 n =', min: 5, max: 30, step: 1, value: 15 }
+    ],
+    draw: function (cv, v, api) {
+      var p1 = v.p1, p2 = v.p2, N = Math.max(2, Math.round(v.N));
+      /* X(z) = 1/((1−p1 z^{-1})(1−p2 z^{-1})) = 1/(1 − (p1+p2)z^{-1} + p1p2 z^{-2}) */
+      var A1 = 1 / (1 - p2 / p1), A2 = 1 / (1 - p1 / p2);
+      if (!isFinite(A1)) A1 = 0;
+      if (!isFinite(A2)) A2 = 0;
+
+      var xs = [], closed = [], rec = [];
+      var x0 = new Array(N + 1).fill(0); x0[0] = 1;
+      var it = SSC.diffEq([1], [1, -(p1 + p2), p1 * p2], x0);
+      for (var n = 0; n <= N; n++) {
+        xs.push(n);
+        closed.push(A1 * Math.pow(p1, n) + A2 * Math.pow(p2, n));
+        rec.push(it[n]);
+      }
+      var span = 1;
+      closed.forEach(function (y) { span = Math.max(span, Math.abs(y)); });
+      SSC.plot(cv.seq, {
+        xmin: -0.8, xmax: N + 0.8, ymin: -span * 1.15, ymax: span * 1.15,
+        xlabel: 'n', ylabel: 'x[n]',
+        stems: [
+          { xs: xs, ys: closed, color: '#4338ca', label: '闭式：A₁p₁ⁿ + A₂p₂ⁿ', r: 3.4 },
+          { xs: xs, ys: rec, color: '#dc2626', label: '递推（长除等价）', r: 1.7 }
+        ],
+        legend: true
+      });
+      api.readout(
+        '<div class="stat"><div class="k">A₁</div><div class="v">' + SSC.fmt(A1, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">A₂</div><div class="v">' + SSC.fmt(A2, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">x[0] = A₁+A₂</div><div class="v">' + SSC.fmt(A1 + A2, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">x[1]</div><div class="v">' + SSC.fmt(closed[1] || 0, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">ROC（因果）</div><div class="v" style="font-size:13px">|z| &gt; ' +
+        SSC.fmt(Math.max(p1, p2), 2) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var A1 = 1 / (1 - v.p2 / v.p1), A2 = 1 / (1 - v.p1 / v.p2);
+      return '闭式解由<b>部分分式</b>得到：x[n] = [' + SSC.fmt(A1, 3) + '·(' + SSC.fmt(v.p1, 2) + ')ⁿ + ' +
+        SSC.fmt(A2, 3) + '·(' + SSC.fmt(v.p2, 2) + ')ⁿ]u[n]。递推由差分方程 x[n] = (p₁+p₂)x[n−1] − p₁p₂x[n−2] 逐项算出。' +
+        '两者永远重合——这正是"<b>X(z) 的部分分式展开 = 差分方程的解析解</b>"这件事的数值证据。' +
+        '<br>把两个极点调成相等（p₁=p₂）看会发生什么：部分分式出现<b>二阶极点</b>，闭式解要改写成 (n+1)pⁿu[n] 的形式（见变换对表）。';
+    }
+  });
+
+  /* ---------- 实验 3：极零点拖拽 ---------- */
+  var pz = SSC.pzLab({
+    domain: 'z',
+    canvas: '#pz13', respCanvas: '#resp13', statsEl: '#stats13', noteEl: '#note13',
+    poles: [[0.62, 0.55], [0.62, -0.55]], zeros: [[-1, 0], [0, 0]],
+    K: 0.12, mode: 'causal', snapUnit: true, R: 1.7
+  });
+  var modeSel = document.getElementById('mode13');
+  if (modeSel) modeSel.addEventListener('change', function () { pz.setMode(modeSel.value); });
+  var rs = document.getElementById('reset13');
+  if (rs) rs.addEventListener('click', function () { pz.reset(); });
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz13', [
+    {
+      q: 'X(z) = 1/(1 − 0.5z⁻¹) 的所有可能反变换（对应不同 ROC）中，哪一个的 ROC 是 |z| &lt; 0.5？',
+      opts: ['x[n] = −(0.5)ⁿu[−n−1]', 'x[n] = (0.5)ⁿu[n]', 'x[n] = (0.5)ⁿ', 'x[n] = −(0.5)ⁿu[n]'],
+      a: 0,
+      why: 'ROC 在极点之内（|z|&lt;0.5）说明是左边（反因果）序列。查表：−aⁿu[−n−1] ↔ 1/(1−az⁻¹)，ROC |z|&lt;|a|。'
+    },
+    {
+      q: '因果 LTI 系统 H(z) = 1/(1 − 1.2z⁻¹ + 0.35z⁻²)，极点在哪里？系统稳定吗？',
+      opts: ['p = 0.5, 0.7，都在单位圆内 → 稳定', 'p = 1.2, 0.35 → 都不稳定', 'p = −0.5, −0.7 → 稳定', '无法判断，需要 ROC'],
+      a: 0,
+      why: '分母 z² − 1.2z + 0.35 = (z−0.5)(z−0.7)，两极点 0.5、0.7 都在单位圆内；因果系统 ROC 为 |z|&gt;0.7，包含单位圆 → 稳定。'
+    },
+    {
+      q: 'z 变换退化为 DTFT 的条件是？',
+      opts: ['z 取单位圆上的值，即 z = e^{jω}，且单位圆落在 ROC 内', 'z 取实数且大于 0', 'z → ∞', 'z 取任意值都可'],
+      a: 0,
+      why: 'X(e^{jω}) = X(z)|_{z=e^{jω}}。而且必须单位圆在 ROC 内（级数才收敛），否则 DTFT 不存在。'
+    },
+    {
+      q: '序列 x[n] = 3ⁿu[−n−1] 的 z 变换与 ROC 是？（用 aⁿu[−n−1] ↔ −1/(1−az⁻¹)）',
+      opts: ['−1/(1−3z⁻¹)，ROC |z| &lt; 3', '1/(1−3z⁻¹)，ROC |z| &gt; 3', '−1/(1−3z⁻¹)，ROC |z| &gt; 3', '1/(1−3z⁻¹)，ROC |z| &lt; 3'],
+      a: 0,
+      why: 'a=3 的左边序列：a<sup>n</sup>u[−n−1] ↔ −1/(1−az⁻¹)，ROC |z|&lt;|a|=3。注意此题序列不绝对可和也非因果，但因为 ROC 不含单位圆，DTFT 不存在。'
+    },
+    {
+      q: '已知因果序列的 X(z) = (1 − 0.5z⁻¹)/(1 − 0.9z⁻¹)，x[0] 等于多少？',
+      opts: ['1', '0.5', '0.9', '0'],
+      a: 0,
+      why: '初值定理：x[0] = lim_{z→∞}X(z)。z→∞ 时 z⁻¹→0，X(z)→1/1 = 1。这也说明 x[0] 就是分子分母最高次系数之比。'
+    },
+    {
+      q: '为什么 z 变换的 ROC 一定是"以原点为中心的圆环"形状？',
+      opts: ['因为收敛条件只与 |z|=r 有关，与辐角 ω 无关', '因为 z 变换是周期函数', '因为极点都在实轴上', '因为 z 只能取实数'],
+      a: 0,
+      why: '收敛性取决于 Σ|x[n]|r⁻ⁿ 是否有限，这只跟 r=|z| 有关。同一半径上转一圈（ω 变）收敛性完全相同，所以 ROC 是环形区域。'
+    }
+  ], '第 13 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

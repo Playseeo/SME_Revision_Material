@@ -1,0 +1,981 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 14 章　四大变换总对照：级数 / 变换 / 拉氏 / z｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch14">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第五段 · 两个"万能"变换 · 第 14 章</div>
+        <h1>四大变换总对照：级数 / 变换 / 拉氏 / z</h1>
+        <p class="lede">
+          整门课你已经见过七种"把信号摊开"的工具：CTFS、DTFS、CTFT、DTFT、DFT、拉普拉斯、z 变换。
+          它们不是七个互不相干的知识点，而是<b>同一件事的七张面孔</b>——
+          "把一个信号写成复指数的加权和"。这一章<b>不引入任何新数学</b>，只做三件事：
+          把它们画进同一张关系图、排进同一组对照表、再给你一个"遇到问题该翻哪一页"的决策器。
+          学完这一章，你应该能在三十秒内回答："这个信号该用哪个变换？为什么？"
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch04-ctfs.html">第 4 章 CTFS</a>、<a href="ch06-ctft.html">第 6 章 CTFT</a>、
+          <a href="ch12-laplace.html">第 12 章 拉普拉斯</a>（连续那一路）<br>
+          <a href="ch05-dtfs.html">第 5 章 DTFS</a>、<a href="ch07-dtft.html">第 7 章 DTFT</a>、
+          <a href="ch08-dft.html">第 8 章 DFT/FFT</a>、<a href="ch13-ztransform.html">第 13 章 z 变换</a>（离散那一路）
+        </div>
+        <div class="cell mid"><b>这一站</b>关系总图 + 四张对照表 + s↔z 映射 + 变换选择器 + 决策助手</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch15-applications.html">附 A 应用串讲</a>（滤波、图像、降维）<br>
+          <a href="ch16-cheatsheet.html">附 B 速查表与常见坑</a>（考前翻这一页）
+        </div>
+      </div>
+
+      <div class="box" style="margin-top:0">
+        <span class="tag">关于"四大"这个名字（先把口径说清楚）</span>
+        <p style="margin-bottom:0">
+          这一章传统上叫"四大变换"，指的是<b>四个族</b>：
+          <b>族①傅里叶级数</b>（CTFS / DTFS，处理周期信号）、
+          <b>族②傅里叶变换</b>（CTFT / DTFT / DFT，处理非周期与有限长信号）、
+          <b>族③拉普拉斯变换</b>（连续复频域）、
+          <b>族④z 变换</b>（离散复频域）。
+          但落到具体工具是 <b>7 个</b>。所以本页的图、表、选择器一律按<b>七个具体变换</b>来列，
+          同时用颜色标出它们分别属于哪个族——这样"四大"和"七个"就不再打架：
+          <b>四个族，七个工具。</b>
+        </p>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 一句话记住全部关系</a>
+        <a href="#s2">2. 关系总图（每个方框都能点）</a>
+        <a href="#s3">3. 四张对照表</a>
+        <a href="#s4">4. s 平面 ↔ z 平面：同一件事的两种坐标</a>
+        <a href="#s5">5. 动手：变换选择器</a>
+        <a href="#s6">6. 动手：该用哪个变换？（决策助手）</a>
+        <a href="#s7">7. 跨变换的常见坑</a>
+        <a href="#s8">8. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 一句话记住全部关系</h2>
+      <p>
+        所有关系都出自两个问题的组合：<b>信号是连续的还是离散的？</b>
+        <b>它的频率（复频率）是实数还是复数？</b> 把这两问画成十字，七种变换就各就各位了。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">三条"变形规则"（背这三句就够）</span>
+        <ol style="margin:6px 0 0;padding-left:20px">
+          <li><b>周期 → 非周期：把周期推向无穷（<span class="mono">T→∞</span> 或 <span class="mono">N→∞</span>）。</b>
+            离散的谱线间距趋于 0，线谱"挤成"连续谱。于是级数变成变换：
+            <span class="mono">CTFS → CTFT</span>、<span class="mono">DTFS → DTFT</span>。</li>
+          <li><b>实数频率 → 复数频率：让衰减旋钮自由。</b>
+            傅里叶是"旋钮固定在 σ=0（或 |z|=1）"的特例：<span class="mono">CTFT = X(s)|<sub>s=jω</sub></span>、
+            <span class="mono">DTFT = X(z)|<sub>z=e<sup>jω</sup></sub></span>。代价是多出一个 ROC。</li>
+          <li><b>连续 ↔ 离散：采样（<span class="mono">z = e<sup>sT</sup></span>）。</b>
+            时域离散化会让频谱<b>周期延拓</b>；反过来，频域采样（DFT）会让时域<b>周期延拓</b>。
+            这一条是第 8、9 章的全部内容。</li>
+        </ol>
+      </div>
+
+      <div class="box ok">
+        <span class="tag">越往下越"能打"，但也越"贵"</span>
+        <p style="margin-bottom:0">
+          傅里叶变换要求信号绝对可积/可和；拉普拉斯与 z 变换只要求"乘上某个衰减因子后可积"，
+          所以能处理 <span class="mono">e<sup>at</sup>u(t)</span>、<span class="mono">u(t)</span> 这类发散信号，
+          还能顺手判断系统的因果性与稳定性。代价是：<b>答案里必须多写一个
+          <span class="term" data-def="region of convergence，中文含义：收敛域（缩写 ROC）。使变换积分（级数）收敛的那些 s（或 z）组成的区域；它是拉普拉斯与 z 变换答案的一半。">收敛域（ROC）</span></b>，
+          而且不能像画频谱那样直接"看曲线"，要在复平面里读区域。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 关系总图（每个方框都能点）</h2>
+      <p class="small muted">
+        箭头方向 = <b>"特例 → 推广"</b>：箭头起点是箭头的终点在某个特殊取值下的样子。
+        蓝色实线箭头是极限或取值关系，灰色虚线箭头是"同一件事的两种说法"。
+      </p>
+
+      <div class="mapbox">
+        <svg viewBox="0 0 940 400" width="100%" style="min-width:820px;height:auto" font-family="inherit" role="img" aria-label="七种变换的关系总图">
+          <defs>
+            <marker id="ar14" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#8b96ad"></path>
+            </marker>
+          </defs>
+          <style>
+            .nd14{fill:#fff;stroke:#cfd8e8;stroke-width:1.4;rx:10}
+            .nd14:hover{stroke:#4338ca;stroke-width:2}
+            .lb14{font-size:13px;fill:#1b2436;font-weight:600}
+            .lb14b{font-size:11px;fill:#7b879c}
+            .grp14{font-size:12px;fill:#7b879c;font-weight:700;letter-spacing:.06em}
+            .ln14{stroke:#8b96ad;stroke-width:1.3;fill:none;marker-end:url(#ar14)}
+            .ln14d{stroke:#8b96ad;stroke-width:1.3;fill:none;stroke-dasharray:5 4;marker-end:url(#ar14)}
+            .el14{font-size:11.5px;fill:#4338ca;font-weight:600}
+            .band14{fill:rgba(67,56,202,.05)}
+            .band14b{fill:rgba(14,116,144,.06)}
+          </style>
+
+          <rect class="band14" x="8" y="30" width="924" height="216" rx="12"></rect>
+          <text class="grp14" x="22" y="50">傅里叶家族 · 频率是实数：只有"有哪些频率"的问题</text>
+
+          <a href="ch04-ctfs.html"><rect class="nd14" x="40" y="60" width="200" height="60"></rect>
+            <text class="lb14" x="56" y="86">CTFS 连续时间傅里叶级数</text>
+            <text class="lb14b" x="56" y="106">族① · 周期信号 → 离散线谱 a_k</text></a>
+          <a href="ch05-dtfs.html"><rect class="nd14" x="470" y="60" width="200" height="60"></rect>
+            <text class="lb14" x="486" y="86">DTFS 离散时间傅里叶级数</text>
+            <text class="lb14b" x="486" y="106">族① · 只有 N 个独立谐波 c_k</text></a>
+
+          <a href="ch06-ctft.html"><rect class="nd14" x="40" y="170" width="200" height="60"></rect>
+            <text class="lb14" x="56" y="196">CTFT 连续时间傅里叶变换</text>
+            <text class="lb14b" x="56" y="216">族② · 非周期 → 连续谱 X(jω)</text></a>
+          <a href="ch09-sampling.html"><rect class="nd14" x="290" y="170" width="130" height="60"></rect>
+            <text class="lb14" x="306" y="196">采样</text>
+            <text class="lb14b" x="306" y="216">第 9 章 · 桥</text></a>
+          <a href="ch07-dtft.html"><rect class="nd14" x="470" y="170" width="200" height="60"></rect>
+            <text class="lb14" x="486" y="196">DTFT 离散时间傅里叶变换</text>
+            <text class="lb14b" x="486" y="216">族② · 连续谱，以 2π 为周期</text></a>
+          <a href="ch08-dft.html"><rect class="nd14" x="760" y="170" width="150" height="60"></rect>
+            <text class="lb14" x="776" y="196">DFT / FFT</text>
+            <text class="lb14b" x="776" y="216">族② · DTFT 的采样</text></a>
+
+          <rect class="band14b" x="8" y="284" width="924" height="100" rx="12"></rect>
+          <text class="grp14" x="22" y="304">复频域家族 · 频率是复数：多了衰减旋钮，也多了一个 ROC</text>
+
+          <a href="ch12-laplace.html"><rect class="nd14" x="40" y="314" width="200" height="60"></rect>
+            <text class="lb14" x="56" y="340">拉普拉斯变换</text>
+            <text class="lb14b" x="56" y="360">族③ · s = σ+jω，ROC 是竖条</text></a>
+          <a href="ch13-ztransform.html"><rect class="nd14" x="470" y="314" width="200" height="60"></rect>
+            <text class="lb14" x="486" y="340">z 变换</text>
+            <text class="lb14b" x="486" y="360">族④ · z = re^{jω}，ROC 是圆环</text></a>
+
+          <path class="ln14" d="M140,120 L140,166"></path>
+          <text class="el14" x="148" y="147">T → ∞：谱线间距 2π/T → 0</text>
+
+          <path class="ln14" d="M570,120 L570,166"></path>
+          <text class="el14" x="578" y="147">N → ∞</text>
+
+          <path class="ln14" d="M240,200 L286,200"></path>
+          <path class="ln14" d="M420,200 L466,200"></path>
+          <text class="el14" x="355" y="250" text-anchor="middle">采样（第 9 章）：频谱以 ω_s 为周期延拓</text>
+
+          <path class="ln14" d="M670,200 L756,200"></path>
+          <text class="el14" x="713" y="190" text-anchor="middle">对 ω 采样</text>
+
+          <path class="ln14d" d="M835,170 L835,142 L670,142 L670,124"></path>
+          <text class="el14" x="752" y="134" text-anchor="middle">DFT 就是 DTFS 的算法实现</text>
+
+          <path class="ln14" d="M140,230 L140,310"></path>
+          <text class="el14" x="148" y="272">s = σ + jω：σ 自由（傅里叶是 σ = 0 的特例）</text>
+
+          <path class="ln14" d="M570,230 L570,310"></path>
+          <text class="el14" x="578" y="272">z = r e^{jω}：r 自由（DTFT 是 r = 1 的特例）</text>
+
+          <path class="ln14" d="M240,344 L466,344"></path>
+          <text class="el14" x="353" y="336" text-anchor="middle">z = e^{sT}：连续复平面 → 离散复平面</text>
+        </svg>
+      </div>
+
+      <div class="box warn">
+        <span class="tag">图上还有两条容易漏掉的边</span>
+        <p>
+          <b>① 级数 = 变换的特例，不是另一种东西。</b>周期信号的谱线永远长在那个"非周期极限"的连续包络上
+          （第 6 章实验 2 亲手验证过）：<span class="mono">a<sub>k</sub> = X(jkω<sub>0</sub>)/T</span>。
+          所以"级数"和"变换"之间只差一个"周期有多长"。
+        </p>
+        <p style="margin-bottom:0"><b>② 连续与离散之间只隔一个采样器。</b>
+          采样把连续信号的频谱按 <span class="mono">ω<sub>s</sub>=2π/T</span> 周期延拓，
+          这就是离散信号频谱一定以 <span class="mono">2π</span> 为周期的根源（第 7、9 章）。
+          反过来 DFT 把 DTFT 在 ω 上采样，等价于把时域按 N 周期延拓（第 8 章）。</p>
+      </div>
+
+      <h2 id="s3">3. 四张对照表</h2>
+      <p class="small muted">
+        下面四张表由页面内联脚本里的同一份数据生成（选择和表格共用一套数据，不会出现"表和图说的不一样"）。
+        每一行的变换名都可以点进去看那一章。
+      </p>
+
+      <h3>表 1 · 定义式与变量</h3>
+      <div id="tf-t1"></div>
+
+      <h3>表 2 · 适用信号与谱的形态</h3>
+      <div id="tf-t2"></div>
+
+      <h3>表 3 · 收敛条件与 ROC</h3>
+      <div id="tf-t3"></div>
+
+      <h3>表 4 · 性质与典型应用</h3>
+      <div id="tf-t4"></div>
+
+      <div class="box trap">
+        <span class="tag">看表时最容易看错的三处</span>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>"离散谱 / 连续谱"说的不是信号离散还是连续，而是谱本身长什么样。</b>
+            连续时间周期信号的谱是<b>离散线谱</b>；离散时间非周期序列的谱是<b>连续</b>的（还以 2π 为周期）。</li>
+          <li><b>ROC 只有拉普拉斯与 z 变换才有。</b>傅里叶级数/变换的条件叫"收敛条件"，写成一个积分（求和）是否有限，
+            没有"复平面上的区域"这回事。DFT 是有限求和，永远收敛。</li>
+          <li><b>Parseval 左边是能量还是功率，取决于信号类型。</b>
+            周期信号（级数）用的是
+            <span class="term" data-def="power signal / energy signal，中文含义：功率信号与能量信号。周期信号属于功率信号（能量无限，平均功率有限）；绝对可积的非周期信号属于能量信号。">功率</span>（除以一个周期）；
+            非周期（变换）用的是<b>能量</b>。</li>
+        </ul>
+      </div>
+
+      <h2 id="s4">4. s 平面 ↔ z 平面：同一件事的两种坐标</h2>
+      <p>
+        拉普拉斯和 z 变换的关系只有一行：<b><span class="mono">z = e<sup>sT</sup></span></b>
+        （<span class="mono">T</span> 是采样周期）。把 <span class="mono">s = σ + jω</span> 代进去：
+      </p>
+      <div class="eq center-eq">
+        z = e<sup>(σ+jω)T</sup> = e<sup>σT</sup> · e<sup>jωT</sup>
+        &nbsp;&nbsp;⟹&nbsp;&nbsp;
+        |z| = e<sup>σT</sup>,　∠z = ωT
+      </div>
+      <p>
+        一句话读法：<b>s 的实部 σ 决定"离原点多远"（模），s 的虚部 ω 决定"转角"（辐角）</b>。
+        于是整个 s 平面被"卷"成了 z 平面——这就是下面这张映射图。
+      </p>
+
+      <div class="mapbox">
+        <svg viewBox="0 0 940 400" width="100%" style="min-width:820px;height:auto" font-family="inherit" role="img" aria-label="s 平面到 z 平面的映射图">
+          <defs>
+            <marker id="ar14b" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#4338ca"></path>
+            </marker>
+          </defs>
+          <style>
+            .pz14{fill:#fff;stroke:#cfd8e8;stroke-width:1.4;rx:12}
+            .ax14{stroke:#8b96ad;stroke-width:1.2;fill:none}
+            .dg14{stroke:#c3ccdd;stroke-width:1.2;fill:none;stroke-dasharray:5 4}
+            .uc14{stroke:#0e7490;stroke-width:1.8;fill:none;stroke-dasharray:6 4}
+            .t14{font-size:12.5px;fill:#41506b}
+            .t14b{font-size:11.5px;fill:#7b879c}
+            .hd14{font-size:13.5px;fill:#1b2436;font-weight:700}
+            .big14{font-size:13px;fill:#4338ca;font-weight:700}
+          </style>
+
+          <rect class="pz14" x="30" y="40" width="360" height="300"></rect>
+          <text class="hd14" x="210" y="30" text-anchor="middle">s 平面（连续时间）</text>
+          <rect x="50" y="60" width="160" height="260" fill="rgba(21,128,61,.10)"></rect>
+          <rect x="210" y="60" width="160" height="260" fill="rgba(185,28,28,.07)"></rect>
+          <rect x="50" y="110" width="320" height="40" fill="rgba(67,56,202,.10)"></rect>
+          <text class="t14b" x="54" y="104">条带边界（相邻两条相距 2π/T）</text>
+          <line class="dg14" x1="50" y1="110" x2="370" y2="110"></line>
+          <line class="dg14" x1="50" y1="150" x2="370" y2="150"></line>
+          <line class="ax14" x1="50" y1="190" x2="370" y2="190"></line>
+          <line class="ax14" x1="210" y1="60" x2="210" y2="320"></line>
+          <line class="dg14" x1="170" y1="60" x2="170" y2="320"></line>
+          <line class="dg14" x1="50" y1="130" x2="370" y2="130"></line>
+          <text class="t14b" x="374" y="194">σ</text>
+          <text class="t14b" x="216" y="74">jω</text>
+          <text class="t14b" x="166" y="74" text-anchor="end">等 σ 线</text>
+          <text class="t14b" x="366" y="126" text-anchor="end">等 ω 线</text>
+          <text class="t14" x="62" y="252">左半平面</text>
+          <text class="t14" x="62" y="272">σ &lt; 0</text>
+          <text class="t14" x="222" y="252">右半平面</text>
+          <text class="t14" x="222" y="272">σ &gt; 0</text>
+          <circle cx="170" cy="130" r="4.5" fill="#4338ca"></circle>
+          <circle cx="210" cy="130" r="4.5" fill="#0e7490"></circle>
+          <circle cx="250" cy="130" r="4.5" fill="#b91c1c"></circle>
+          <text class="t14b" x="150" y="120">A</text>
+          <text class="t14b" x="200" y="114">B</text>
+          <text class="t14b" x="256" y="120">C</text>
+          <text class="t14b" x="210" y="368" text-anchor="middle">同一 σ 的所有点 → 同一个半径的圆；同一 ω 的所有点 → 同一条射线</text>
+          <text class="t14b" x="210" y="388" text-anchor="middle">紫色条带（高 2π/T）里的点 → 映满整张 z 平面；再往上的条带只是重复</text>
+
+          <path class="ln14" d="M394,190 L540,190" stroke="#4338ca" stroke-width="1.6" marker-end="url(#ar14b)"></path>
+          <text class="big14" x="467" y="180" text-anchor="middle">z = e^{sT}</text>
+          <text class="t14b" x="467" y="212" text-anchor="middle">多对一：宽 2π/T 的</text>
+          <text class="t14b" x="467" y="228" text-anchor="middle">水平条带都映满 z 平面</text>
+
+          <rect class="pz14" x="550" y="40" width="360" height="300"></rect>
+          <text class="hd14" x="730" y="30" text-anchor="middle">z 平面（离散时间）</text>
+          <circle cx="710" cy="190" r="131.9" fill="rgba(185,28,28,.08)"></circle>
+          <circle cx="710" cy="190" r="80" fill="rgba(21,128,61,.10)"></circle>
+          <circle class="uc14" cx="710" cy="190" r="80"></circle>
+          <circle class="dg14" cx="710" cy="190" r="48.5"></circle>
+          <line class="dg14" x1="710" y1="190" x2="806" y2="100"></line>
+          <line class="ax14" x1="560" y1="190" x2="890" y2="190"></line>
+          <line class="ax14" x1="710" y1="60" x2="710" y2="320"></line>
+          <text class="t14b" x="894" y="194" text-anchor="end">Re</text>
+          <text class="t14b" x="716" y="74">Im</text>
+          <text class="t14" x="680" y="250">|z| &lt; 1</text>
+          <text class="t14" x="848" y="272">|z| &gt; 1</text>
+          <text class="t14b" x="890" y="150" text-anchor="end">单位圆 |z| = 1</text>
+          <circle cx="745.5" cy="156.9" r="4.5" fill="#4338ca"></circle>
+          <circle cx="768.5" cy="135.5" r="4.5" fill="#0e7490"></circle>
+          <circle cx="806.4" cy="100.1" r="4.5" fill="#b91c1c"></circle>
+          <text class="t14b" x="742" y="176">A′</text>
+          <text class="t14b" x="774" y="130">B′</text>
+          <text class="t14b" x="812" y="96">C′</text>
+          <text class="t14b" x="560" y="312">虚线圆：等 σ 线之像（半径 e^{σT}）</text>
+          <text class="t14b" x="560" y="330">虚线射线：等 ω 线之像（角度 ωT）</text>
+        </svg>
+      </div>
+
+      <table class="tbl sm">
+        <thead><tr><th>s 平面里的东西</th><th>z 平面里的像</th><th>公式 / 理由</th></tr></thead>
+        <tbody>
+          <tr><td>虚轴（σ = 0）</td><td class="ft">单位圆 |z| = 1</td><td class="ft">|z| = e<sup>0</sup> = 1；角度仍随 ω 走</td></tr>
+          <tr><td>左半平面（σ &lt; 0）</td><td class="ft">单位圆内 |z| &lt; 1</td><td class="ft">|z| = e<sup>σT</sup> &lt; 1：包络衰减</td></tr>
+          <tr><td>右半平面（σ &gt; 0）</td><td class="ft">单位圆外 |z| &gt; 1</td><td class="ft">|z| = e<sup>σT</sup> &gt; 1：包络增长</td></tr>
+          <tr><td>竖线 σ = c</td><td class="ft">半径 e<sup>cT</sup> 的同心圆</td><td class="ft">σ 只管模，不管角</td></tr>
+          <tr><td>横线 ω = c</td><td class="ft">角度 cT 的射线</td><td class="ft">ω 只管角，不管模</td></tr>
+          <tr><td>高 2π/T 的条带</td><td class="ft">绕单位圆整整一圈</td><td class="ft">e<sup>jωT</sup> 以 2π/T 为周期 ⟹ 映射是多对一的</td></tr>
+          <tr><td>虚轴<b>是否在 ROC 内</b></td><td class="ft">单位圆<b>是否在 ROC 内</b></td><td class="ft">两者都等价于"傅里叶变换/DTFT 存在"</td></tr>
+          <tr><td>因果且稳定：<span class="term" data-def="pole，中文含义：极点。使 X(s) 或 X(z) 变为无穷的取值，即分母多项式的根。有理变换的 ROC 与稳定性完全由极点位置决定。">极点</span>全在左半平面</td><td class="ft">因果且稳定：极点全在单位圆内</td><td class="ft">由 z = e<sup>sT</sup> 直接把左半平面搬到圆内</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <span class="tag">这张映射图顺手解释了"离散频谱为什么以 2π 为周期"</span>
+        <p style="margin-bottom:0">
+          <span class="mono">e<sup>jωT</sup></span> 每走 <span class="mono">ωT = 2π</span>（即 <span class="mono">ω</span> 走 <span class="mono">2π/T</span>）
+          就转回原处。所以 DTFT 一定满足 <span class="mono">X(e<sup>j(ω+2π)</sup>) = X(e<sup>jω</sup>)</span>——
+          频率轴上"多出来的那些圈"不是新信息，只是同一根单位圆在反复被走。
+          这也是<span class="term" data-def="aliasing，中文含义：混叠。采样率不够时高频成分冒充低频成分的现象；在 s↔z 映射里表现为不同 ω 被卷到同一个 z 上。">混叠</span>的复平面解释：不同的 ω 被卷到了同一个 z。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>推导：区域与边界的对应关系是怎么来的（含"为什么是多对一"）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：把 <span class="mono">s</span> 拆成实部与虚部，代进 <span class="mono">z = e<sup>sT</sup></span>。</b></p>
+            <div class="eq">
+              z = e<sup>sT</sup> = e<sup>(σ+jω)T</sup> = e<sup>σT</sup> · e<sup>jωT</sup>
+            </div>
+            <p class="why">为什么：指数相加对应幂相乘（<span class="mono">e<sup>a+b</sup> = e<sup>a</sup>e<sup>b</sup></span>）。
+              这一步把 s 的两个自由度分离成了"模"和"角"两件事。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：取模、取角，得到两条互相独立的对应关系。</b></p>
+            <div class="eq center-eq">
+              |z| = e<sup>σT</sup>（只与 σ 有关），　∠z = ωT（只与 ω 有关）
+            </div>
+            <p class="why">为什么可以分开看：<span class="mono">e<sup>jωT</sup></span> 的模恒为 1，所以模只由
+              <span class="mono">e<sup>σT</sup></span> 贡献；而 <span class="mono">e<sup>σT</sup></span> 是个正实数，不改变角度。
+              两个自由度各管一件事，这正是"<b>竖线 → 同心圆、横线 → 射线</b>"的原因。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：把三个区域分别代进去。</b></p>
+            <p><span class="mono">σ = 0 ⟹ |z| = 1</span>（虚轴 → 单位圆）；
+              <span class="mono">σ &lt; 0 ⟹ |z| = e<sup>σT</sup> &lt; 1</span>（左半平面 → 单位圆内）；
+              <span class="mono">σ &gt; 0 ⟹ |z| &gt; 1</span>（右半平面 → 单位圆外）。</p>
+            <p class="why">为什么稳定性判据能整体"搬家"：因果系统的 ROC 是最右极点右侧的半平面，
+              而"稳定"要求虚轴在 ROC 内，也就是所有极点 <span class="mono">Re{p} &lt; 0</span>；
+              经 <span class="mono">e<sup>σT</sup></span> 映射后左半平面变成单位圆内，判据就变成
+              "<b>极点全部落在单位圆内</b>"（第 13 章）。两条判据是同一句话的两种坐标写法。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：为什么这个映射是"多对一"？顺带解释频谱的 2π 周期。</b></p>
+            <p>让 <span class="mono">ω</span> 增加 <span class="mono">2π/T</span>，角度 <span class="mono">ωT</span> 就增加 <span class="mono">2π</span>：</p>
+            <div class="eq">
+              e<sup>j(ωT+2π)</sup> = e<sup>jωT</sup> · e<sup>j2π</sup> = e<sup>jωT</sup>
+            </div>
+            <p class="why">为什么：<span class="mono">e<sup>j2π</sup> = 1</span>，转一整圈回到原处。
+              所以<b>高度为 <span class="mono">2π/T</span> 的一条水平条带就映满整张 z 平面</b>，其余条带只是重复。
+              换到离散频率轴上，就是 <span class="mono">X(e<sup>j(ω+2π)</sup>) = X(e<sup>jω</sup>)</span>——
+              第 7 章那条"频谱以 2π 为周期"的结论，本质是复平面上单位圆只有一圈。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s5">5. 动手：变换选择器</h2>
+      <p>
+        下面这个实验台把七个变换的全部要点压进一块面板。用下拉框切换变换，
+        <b>左上图</b>给出它"谱长什么样"，<b>右上图</b>给出"变量住在什么空间里"（k 轴 / ω 轴 / s 平面 / z 平面），
+        下面的面板同步刷新定义式、适用信号、收敛/ROC 条件、常用变换对、典型应用与易错点。
+      </p>
+
+      <div id="lab-select"></div>
+
+      <div class="box intuition">
+        <span class="tag">切换时请专门盯这四处</span>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>谱的横轴</b>：是离散的 k（级数/DFT）还是连续的 ω？</li>
+          <li><b>谱有没有周期</b>：离散时间的两个变换（DTFT、以及 x[n] 周期延拓后的 DFT）一定以 2π 为周期。</li>
+          <li><b>变量空间</b>：一旦换成 s 平面或 z 平面，就会出现绿色的 ROC；前五个则完全没有 ROC 这回事。</li>
+          <li><b>易错点</b>：七个变换的"坑"高度雷同（忘 ROC、忘周期、忘 1/2π 或 1/N），说明它们真的是同一件事。</li>
+        </ul>
+      </div>
+
+      <h2 id="s6">6. 动手：该用哪个变换？（决策助手）</h2>
+      <p>
+        做题时最常卡住的不是公式，而是"这一步我该用哪个变换"。下面三个下拉框对应三个判断题，
+        回答完，决策助手就告诉你用哪个工具、以及为什么。
+      </p>
+
+      <div id="lab-decide"></div>
+
+      <table class="tbl sm">
+        <thead><tr><th>你要解决的问题</th><th>用哪个</th><th>为什么是它</th></tr></thead>
+        <tbody>
+          <tr><td>周期信号的谐波成分、稳态响应</td><td>CTFS / DTFS</td><td>周期信号的谱天生是离散线谱，级数就是它的自然语言。</td></tr>
+          <tr><td>非周期信号的频谱、滤波、调制</td><td>CTFT / DTFT</td><td>只要绝对可积/可和，频谱就是连续曲线，卷积变乘法。</td></tr>
+          <tr><td>计算机要真的算出来</td><td>DFT / FFT</td><td>只有有限长、有限个频率点的东西能被算法计算；FFT 把 N² 降到 N log N。</td></tr>
+          <tr><td>信号发散、或要判因果/稳定</td><td>拉普拉斯 / z</td><td>只有复频域能"压住"增长的指数信号，并给出 ROC 这一判据。</td></tr>
+          <tr><td>解带初始条件的微分/差分方程</td><td>单边拉普拉斯 / 单边 z</td><td>微分性质会把初值自动带进代数方程（第 12、13 章）。</td></tr>
+          <tr><td>串联/并联/反馈系统的整体特性</td><td>拉普拉斯 / z（系统函数）</td><td>卷积变成乘法，整个系统化成一个有理函数，极点位置直接告诉你稳定性。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s7">7. 跨变换的常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：把"级数系数"和"变换频谱"直接对比</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">a<sub>k</sub></span> 是"第 k 次谐波的复振幅"，量纲是信号本身；
+            <span class="mono">X(jω)</span> 是<b>密度</b>，量纲是"信号 × 时间"。两者由
+            <span class="mono">T·a<sub>k</sub> = X(jkω<sub>0</sub>)</span> 联系。混用会差一个 T。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：忘了离散谱以 N 为周期 / 连续谱以 2π 为周期</h4>
+          <p class="small" style="margin-bottom:0">
+            DTFS 只有 N 个独立谐波（<span class="mono">c<sub>k</sub></span> 以 N 为周期），
+            DTFT 以 2π 为周期。写"唯一一段"时要指明范围（如 <span class="mono">k=0…N−1</span>、<span class="mono">ω∈[−π,π)</span>）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：常数因子放错位置</h4>
+          <p class="small" style="margin-bottom:0">
+            CTFT/DTFT 的<b>反</b>变换才带 <span class="mono">1/2π</span>；DFT 的<b>反</b>变换带 <span class="mono">1/N</span>；
+            级数的正变换带 <span class="mono">1/T</span> 或 <span class="mono">1/N</span>。正变换一般不需要系数。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：拉氏/z 的答案不写 ROC</h4>
+          <p class="small" style="margin-bottom:0">
+            同一个 <span class="mono">X(s)</span> 或 <span class="mono">X(z)</span> 配不同 ROC，对应完全不同的信号。
+            ROC 是答案的一部分，不是备注。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：无条件地把 s = jω / z = e^{jω} 代进去</h4>
+          <p class="small" style="margin-bottom:0">
+            前提是<b>虚轴（单位圆）落在 ROC 内</b>。<span class="mono">u(t) ⟷ 1/s</span>（Re{s}&gt;0）
+            就是标准反例：直接代会丢掉 <span class="mono">πδ(ω)</span>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：把 s↔z 当成一一对应</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">z = e<sup>sT</sup></span> 是<b>多对一</b>：<span class="mono">ω</span> 与
+            <span class="mono">ω + 2π/T</span> 映到同一个 z。多出来的那些"圈"就是混叠的来源。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：循环卷积当线性卷积用</h4>
+          <p class="small" style="margin-bottom:0">
+            DFT 做乘法等价于
+            <span class="term" data-def="circular convolution，中文含义：循环卷积。把序列看成周期为 N 的延拓后再做卷积，下标对 N 取模；DFT 的乘法性质对应的就是它。">循环卷积</span>。
+            要等于线性卷积，必须把两个序列都补零到长度
+            <span class="mono">≥ N<sub>1</sub>+N<sub>2</sub>−1</span>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：以为 DFT 的 X[k] 就是"第 k 个频率"</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">X[k]</span> 是 DTFT 在 <span class="mono">ω=2πk/N</span> 上的<b>采样值</b>。
+            分辨率由观测时长决定，补零只能加密采样点、不能让两条靠得很近的谱线分开。
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s8">8. 自测</h2>
+      <p class="small muted">六道题把七个变换的关系串一遍。答完再走下一站。</p>
+      <div id="quiz14"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 14 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ============================================================
+     一份数据，同时驱动：变换选择器 + 四张对照表
+     ============================================================ */
+  var F1 = '族① 傅里叶级数', F2 = '族② 傅里叶变换', F3 = '族③ 拉普拉斯', F4 = '族④ z 变换';
+
+  var TF = [
+    {
+      k: 'ctfs', short: 'CTFS', name: '连续时间傅里叶级数', en: 'continuous-time Fourier series',
+      family: F1, ch: 4, href: 'ch04-ctfs.html', kind: 'ctfs',
+      varv: 'k（谐波序号，取整数）',
+      def: 'x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> a<sub>k</sub> e<sup>jkω<sub>0</sub>t</sup>',
+      inv: 'a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span> <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span> x(t) e<sup>−jkω<sub>0</sub>t</sup> d<i>t</i>',
+      sig: '连续时间、<b>周期</b>信号（周期 T）',
+      specText: '离散线谱：只在 ω = kω<sub>0</sub> 这些点上非零',
+      specPeriod: '离散谱线',
+      conv: '周期卷积：输出谐波 = a<sub>k</sub>·H(jkω<sub>0</sub>)',
+      parseval: '(1/T)∫<sub>T</sub>|x|²dt = Σ<sub>k</sub>|a<sub>k</sub>|²（<b>功率</b>）',
+      rocDetail: '没有 ROC：只要一个周期内可积（Dirichlet 条件）就收敛',
+      hasROC: '无',
+      pairs: [['e<sup>jkω<sub>0</sub>t</sup>', 'a<sub>k</sub> = 1（单根谱线）'],
+        ['cos ω<sub>0</sub>t', '±ω<sub>0</sub> 处一对谱线'],
+        ['方波（占空比 d）', 'a<sub>k</sub> = 2sin(kπd)/(kπ)']],
+      apps: '周期信号的谐波分析、稳态响应、方波/锯齿波频谱',
+      traps: ['把 a<sub>k</sub> 和 T·a<sub>k</sub> 混为一谈', '忘了 a<sub>0</sub> 是直流分量（平均功率要单独算）']
+    },
+    {
+      k: 'dtfs', short: 'DTFS', name: '离散时间傅里叶级数', en: 'discrete-time Fourier series',
+      family: F1, ch: 5, href: 'ch05-dtfs.html', kind: 'dtfs',
+      varv: 'k = 0…N−1（<b>只有 N 个</b>独立值）',
+      def: 'x[n] = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span> c<sub>k</sub> e<sup>jk(2π/N)n</sup>',
+      inv: 'c<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">N</span></span> <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span> x[n] e<sup>−jk(2π/N)n</sup>',
+      sig: '离散时间、<b>周期</b>序列（周期 N）',
+      specText: '离散线谱：只有 N 根，且 c<sub>k</sub> 以 N 为周期重复',
+      specPeriod: '离散谱线',
+      conv: '周期卷积（下标对 N 取模）',
+      parseval: '(1/N)Σ<sub>n=&lt;N&gt;</sub>|x[n]|² = Σ<sub>k=&lt;N&gt;</sub>|c<sub>k</sub>|²（<b>功率</b>）',
+      rocDetail: '没有 ROC：有限个有限值的和，永远收敛',
+      hasROC: '无',
+      pairs: [['e<sup>jk(2π/N)n</sup>', '一根线谱'],
+        ['δ 型脉冲串（一个周期一个 1）', 'c<sub>k</sub> 全相等']],
+      apps: '离散周期信号的谐波分析；DFT 的理论原型',
+      traps: ['以为有无穷多根独立谱线（实际只有 N 个）', '忘记 c<sub>k</sub> 以 N 为周期']
+    },
+    {
+      k: 'ctft', short: 'CTFT', name: '连续时间傅里叶变换', en: 'continuous-time Fourier transform',
+      family: F2, ch: 6, href: 'ch06-ctft.html', kind: 'ctft',
+      varv: 'ω（实数角频率，rad/s），取遍全实轴',
+      def: 'X(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t) e<sup>−jωt</sup> d<i>t</i>',
+      inv: 'x(t) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span> <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> X(jω) e<sup>jωt</sup> d<i>ω</i>',
+      sig: '连续时间、<b>非周期</b>、绝对可积（或满足 Dirichlet 条件）',
+      specText: '连续谱，一般非周期',
+      specPeriod: '连续谱',
+      conv: '时域卷积 ⟷ 频域<b>相乘</b>',
+      parseval: '∫|x(t)|²dt = (1/2π)∫|X(jω)|²dω（<b>能量</b>）',
+      rocDetail: '没有 ROC：收敛条件是 ∫|x(t)|dt &lt; ∞（充分条件）；不满足时可用含 δ 的广义变换',
+      hasROC: '无',
+      pairs: [['δ(t)', '1'], ['e<sup>−at</sup>u(t)', '1/(a+jω)'], ['rect(t/τ)', 'τ·sinc(ωτ/2)']],
+      apps: '滤波、调制、采样、频谱分析（第 9–11 章全部建立在它上面）',
+      traps: ['反变换忘掉 1/2π', 'sinc 定义不统一（sin x/x 还是 sin πx/πx）', '把绝对可积当成必要条件']
+    },
+    {
+      k: 'dtft', short: 'DTFT', name: '离散时间傅里叶变换', en: 'discrete-time Fourier transform',
+      family: F2, ch: 7, href: 'ch07-dtft.html', kind: 'dtft',
+      varv: 'ω（rad/样本），<b>以 2π 为周期</b>，通常只看 [−π, π)',
+      def: 'X(e<sup>jω</sup>) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> x[n] e<sup>−jωn</sup>',
+      inv: 'x[n] = <span class="frac"><span class="num">1</span><span class="den">2π</span></span> <span class="integral"><span class="sym">∫</span><span class="lim"><span>2π</span></span></span> X(e<sup>jω</sup>) e<sup>jωn</sup> d<i>ω</i>',
+      sig: '离散时间、<b>非周期</b>、绝对可和 Σ|x[n]| &lt; ∞',
+      specText: '连续谱，但<b>以 2π 为周期</b>（ω=π 是最高频率）',
+      specPeriod: '连续 + 周期 2π',
+      conv: '时域卷积 ⟷ 频域相乘',
+      parseval: 'Σ|x[n]|² = (1/2π)∫<sub>2π</sub>|X(e<sup>jω</sup>)|²dω（<b>能量</b>）',
+      rocDetail: '没有 ROC：收敛条件是 Σ|x[n]| &lt; ∞',
+      hasROC: '无',
+      pairs: [['δ[n]', '1'], ['a<sup>n</sup>u[n]（|a|&lt;1）', '1/(1−ae<sup>−jω</sup>)'], ['矩形序列', 'Dirichlet 核']],
+      apps: '离散滤波器的频率响应、语音/音频与图像分析',
+      traps: ['忘了频谱以 2π 为周期（以为 ω 可以到 ∞）', '把 ω=π 当成"无穷大频率"']
+    },
+    {
+      k: 'dft', short: 'DFT / FFT', name: '离散傅里叶变换（FFT 是它的快速算法）', en: 'discrete Fourier transform',
+      family: F2, ch: 8, href: 'ch08-dft.html', kind: 'dft',
+      varv: 'k = 0…N−1（N 个离散频率点：ω<sub>k</sub> = 2πk/N）',
+      def: 'X[k] = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">n=0</span></span> x[n] e<sup>−j2πkn/N</sup>',
+      inv: 'x[n] = <span class="frac"><span class="num">1</span><span class="den">N</span></span> <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">k=0</span></span> X[k] e<sup>j2πkn/N</sup>',
+      sig: '有限长序列（隐含把它当成周期 N 的延拓）',
+      specText: '离散谱：就是 DTFT 在 N 个等间隔频率上的<b>采样</b>',
+      specPeriod: '离散 + 隐含周期 N',
+      conv: '<b>循环</b>卷积（补零到 N ≥ N₁+N₂−1 才等于线性卷积）',
+      parseval: 'Σ<sub>n=0</sub><sup>N−1</sup>|x[n]|² = (1/N)Σ<sub>k=0</sub><sup>N−1</sup>|X[k]|²',
+      rocDetail: '没有 ROC：有限项求和，永远收敛',
+      hasROC: '无',
+      pairs: [['δ[n]', 'X[k] = 1'], ['常数 1', 'X[0] = N，其余为 0'], ['实序列 x[n]', 'X[k] = X*[(N−k) mod N]']],
+      apps: '计算机频谱分析、FFT 快速卷积、OFDM、图像变换',
+      traps: ['把 X[k] 当成"真实频率的连续值"', '不补零就做乘法（得到的是循环卷积）', '以为补零能提高真实分辨率']
+    },
+    {
+      k: 'lt', short: '拉普拉斯', name: '拉普拉斯变换', en: 'Laplace transform',
+      family: F3, ch: 12, href: 'ch12-laplace.html', kind: 'lt',
+      varv: 's = σ + jω（整个复平面，但只在 ROC 上有定义）',
+      def: 'X(s) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t) e<sup>−st</sup> d<i>t</i>',
+      inv: 'x(t) = <span class="frac"><span class="num">1</span><span class="den">2πj</span></span> <span class="integral"><span class="sym">∫</span><span class="lim"><span>σ+j∞</span><span>σ−j∞</span></span></span> X(s) e<sup>st</sup> d<i>s</i>',
+      sig: '连续时间、可含增长指数（如 e<sup>at</sup>u(t)）：只要存在 σ 让它可积就行',
+      specText: '复平面 s 上的函数；<b>在虚轴上取值</b>才是傅里叶变换',
+      specPeriod: '复平面上的函数',
+      conv: '卷积 ⟷ 相乘（ROC 至少取交集）',
+      parseval: '一般不单独讲（能量可用围道积分，工程里很少用）',
+      rocDetail: 'ROC 是<b>竖条/半平面</b>，由极点划界、不含极点；<b>虚轴在 ROC 内 ⟺ 傅里叶变换存在 ⟺ 系统稳定</b>',
+      hasROC: '有（竖条/半平面）',
+      pairs: [['u(t)', '1/s（Re{s} &gt; 0）'], ['e<sup>−at</sup>u(t)', '1/(s+a)（Re{s} &gt; −a）'],
+        ['cos(ω<sub>0</sub>t)u(t)', 's/(s²+ω<sub>0</sub>²)']],
+      apps: '解微分方程（含初值，用单边）、系统函数与方框图、稳定性与反馈分析',
+      traps: ['求完 X(s) 忘写 ROC', '虚轴不在 ROC 里却硬代 s = jω', '非真分式不先做长除']
+    },
+    {
+      k: 'zt', short: 'z 变换', name: 'z 变换', en: 'z-transform',
+      family: F4, ch: 13, href: 'ch13-ztransform.html', kind: 'zt',
+      varv: 'z = re<sup>jω</sup>（整个 z 平面，但只在 ROC 上有定义）',
+      def: 'X(z) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> x[n] z<sup>−n</sup>',
+      inv: 'x[n] = <span class="frac"><span class="num">1</span><span class="den">2πj</span></span> <span class="sym" style="font-size:20px">∮</span> X(z) z<sup>n−1</sup> d<i>z</i>（在 ROC 内逆时针绕一圈）',
+      sig: '离散时间、可含增长几何序列：存在某个半径使级数收敛即可',
+      specText: '复平面 z 上的函数；<b>在单位圆上取值</b>才是 DTFT',
+      specPeriod: '复平面上的函数',
+      conv: '卷积 ⟷ 相乘（ROC 至少取交集）',
+      parseval: '围道积分形式（考试与工程中都少用）',
+      rocDetail: 'ROC 是<b>圆环</b>（或圆内/圆外），由极点所在半径划界；<b>单位圆在 ROC 内 ⟺ DTFT 存在 ⟺ 稳定</b>',
+      hasROC: '有（圆环/圆内/圆外）',
+      pairs: [['δ[n]', '1（全平面）'], ['u[n]', '1/(1−z<sup>−1</sup>)（|z| &gt; 1）'],
+        ['a<sup>n</sup>u[n]', '1/(1−az<sup>−1</sup>)（|z| &gt; |a|）']],
+      apps: '差分方程与数字滤波器、离散系统稳定性、算法复杂度与生成函数',
+      traps: ['忘写 ROC（同一 X(z) 配不同 ROC 是不同序列）', '把 z 与 z<sup>−1</sup> 写混',
+        '以为 s↔z 是一一对应（其实多对一，会混叠）']
+    }
+  ];
+
+  function byKey(k) {
+    for (var i = 0; i < TF.length; i++) if (TF[i].k === k) return TF[i];
+    return TF[2];
+  }
+
+  /* ---------- 谱的形态示意图 ---------- */
+  function drawSpec(cv, t) {
+    var i, k, n, re, im, xs = [], ys = [];
+    if (t.kind === 'ctfs') {
+      for (k = 1; k <= 9; k++) {
+        xs.push(k);
+        ys.push(Math.abs(4 * Math.sin(k * Math.PI * 0.5) / (k * Math.PI)));
+      }
+      SSC.plot(cv, {
+        xmin: 0, xmax: 10, ymin: 0, ymax: 1.35,
+        xlabel: '谐波序号 k（频率 = kω₀）', ylabel: '|a_k|',
+        stems: [{ xs: xs, ys: ys, color: '#dc2626', label: '离散线谱（偶数次谐波为 0）' }],
+        legend: true
+      });
+    } else if (t.kind === 'dtfs') {
+      var N = 8, L = 2;
+      for (k = 0; k < N; k++) {
+        re = 0; im = 0;
+        for (n = 0; n < L; n++) { re += Math.cos(-2 * Math.PI * k * n / N); im += Math.sin(-2 * Math.PI * k * n / N); }
+        xs.push(k); ys.push(Math.hypot(re, im) / N);
+      }
+      SSC.plot(cv, {
+        xmin: -0.5, xmax: N - 0.5, ymin: 0, ymax: 1.05,
+        xlabel: 'k = 0…N−1（只有 N 个独立值，N = 8）', ylabel: '|c_k|',
+        stems: [{ xs: xs, ys: ys, color: '#dc2626', label: '离散线谱（共 N 根）' }],
+        legend: true
+      });
+    } else if (t.kind === 'ctft') {
+      SSC.plot(cv, {
+        xmin: -14, xmax: 14, ymin: -0.08,
+        xlabel: 'ω (rad/s)', ylabel: '|X(jω)|',
+        curves: [{ f: function (w) { return Math.abs(SSC.sinc(w / 2)); }, color: '#0e7490', width: 2.2, label: '连续谱（矩形脉冲的 |X(jω)|）' }],
+        vlines: [{ x: 2 * Math.PI, color: '#c3ccdd', dash: [4, 4], label: '2π' }, { x: -2 * Math.PI, color: '#c3ccdd', dash: [4, 4] }],
+        legend: true
+      });
+    } else if (t.kind === 'dtft') {
+      var M = 4;
+      var g = function (w) {
+        var d = Math.sin(w / 2);
+        if (Math.abs(d) < 1e-9) return 1;
+        return Math.abs(Math.sin(w * M / 2) / (M * d));
+      };
+      SSC.plot(cv, {
+        xmin: -2 * Math.PI, xmax: 2 * Math.PI, ymin: -0.05, ymax: 1.15, symmetric: false,
+        xlabel: 'ω (rad/样本)：整段波形以 2π 为周期重复', ylabel: '|X(e^{jω})|',
+        curves: [{ f: g, color: '#0e7490', width: 2.2, samples: 900, label: '连续 + 周期 2π' }],
+        vlines: [{ x: -2 * Math.PI, color: '#dc2626', label: '−2π' },
+          { x: -Math.PI, color: '#c3ccdd', dash: [4, 4], label: '−π' },
+          { x: 0, color: '#c3ccdd', dash: [4, 4] },
+          { x: Math.PI, color: '#c3ccdd', dash: [4, 4], label: 'π' },
+          { x: 2 * Math.PI, color: '#dc2626', label: '2π' }],
+        legend: true
+      });
+    } else if (t.kind === 'dft') {
+      var x = [1, 1, 1, 1, 0, 0, 0, 0], X = SSC.dft(x), sxs = [], sys = [];
+      for (k = 0; k < X.length; k++) { sxs.push(2 * Math.PI * k / X.length); sys.push(Math.hypot(X[k].re, X[k].im) / 4); }
+      var M2 = 4;
+      var g2 = function (w) {
+        var d = Math.sin(w / 2);
+        if (Math.abs(d) < 1e-9) return 1;
+        return Math.abs(Math.sin(w * M2 / 2) / (M2 * d));
+      };
+      SSC.plot(cv, {
+        xmin: 0, xmax: 2 * Math.PI, ymin: -0.05, ymax: 1.15,
+        xlabel: 'ω = 2πk/N（N = 8）', ylabel: '|X[k]| / 4',
+        curves: [{ f: g2, color: '#c3ccdd', width: 1.6, dash: [6, 4], samples: 900, label: 'DTFT 连续曲线（被采样的对象）' }],
+        stems: [{ xs: sxs, ys: sys, color: '#dc2626', label: 'DFT 的 N 个采样点' }],
+        legend: true
+      });
+    } else if (t.kind === 'lt') {
+      var v1 = SSC.plane(cv, { R: 2.2, unit: false, axesLabel: ['σ', 'jω'] });
+      v1.halfplane('right', -0.6, 'rgba(21,128,61,.13)');
+      v1.line(0, -2.2, 0, 2.2, '#dc2626', [5, 4]);
+      v1.drawPZ([[-0.6, 0.9], [-0.6, -0.9]], [[0, 0]]);
+      v1.text(-0.6, 0.9, '极点', '#dc2626');
+      v1.text(0, 1.55, '虚轴 σ=0：傅里叶变换住这里', '#b45309', 6, 0);
+      v1.text(0.15, -1.75, '绿色 = ROC（竖条/半平面）', '#15803d', 6, 0);
+    } else {
+      var v2 = SSC.plane(cv, { R: 1.75, unit: true, axesLabel: ['Re', 'Im'] });
+      var r = 0.78, a1 = 0.7;
+      v2.outside(r, 'rgba(21,128,61,.13)');
+      v2.drawPZ([[r * Math.cos(a1), r * Math.sin(a1)], [r * Math.cos(-a1), r * Math.sin(-a1)]], [[0, 0]]);
+      v2.text(r * Math.cos(a1), r * Math.sin(a1), '极点', '#dc2626');
+      v2.text(0, 1.5, '虚线 = 单位圆 |z|=1（DTFT 住这里）', '#0e7490', 6, 0);
+      v2.text(-1.6, -1.35, '绿色 = ROC（圆环/圆外）', '#15803d', 6, 0);
+    }
+  }
+
+  /* ---------- 变量空间示意图的说明文字 ---------- */
+  function spaceWord(t) {
+    if (t.kind === 'ctfs' || t.kind === 'dtfs' || t.kind === 'dft') return '离散频率点（k 轴）';
+    if (t.kind === 'ctft' || t.kind === 'dtft') return '实数频率轴（ω 轴）';
+    if (t.kind === 'lt') return '复平面 s = σ + jω';
+    return '复平面 z = re^{jω}';
+  }
+
+  /* ---------- 选择器面板 HTML ---------- */
+  function panel(t) {
+    var h = '';
+    h += '<div style="font-size:15.5px"><b>' + t.name + '</b> ' +
+      '<span class="muted small">（' + t.en + '）</span> · ' +
+      '<span class="badge cy">' + t.family + '</span> · <a href="' + t.href + '">去第 ' + t.ch + ' 章细读</a></div>';
+    h += '<div style="margin-top:10px"><b>定义式</b><div class="eq" style="margin:6px 0;font-size:17px">' + t.def + '</div></div>';
+    h += '<div><b>反变换</b><div class="eq" style="margin:6px 0;font-size:16px">' + t.inv + '</div></div>';
+    h += '<p style="margin:10px 0 4px"><b>适用信号</b>：' + t.sig + '</p>';
+    h += '<p style="margin:4px 0"><b>谱的形态</b>：' + t.specText + '</p>';
+    h += '<p style="margin:4px 0"><b>收敛 / ROC</b>：' + t.rocDetail + '</p>';
+    h += '<p style="margin:10px 0 4px"><b>常用变换对</b></p><ul style="margin:0;padding-left:20px">';
+    for (var i = 0; i < t.pairs.length; i++) {
+      h += '<li><span class="mono">' + t.pairs[i][0] + ' &nbsp;<span class="op ft">⟷</span>&nbsp; ' + t.pairs[i][1] + '</span></li>';
+    }
+    h += '</ul>';
+    h += '<p style="margin:10px 0 4px"><b>典型应用</b>：' + t.apps + '</p>';
+    h += '<p style="margin:10px 0 4px"><b>易错点</b></p><ul style="margin:0;padding-left:20px">';
+    for (var j = 0; j < t.traps.length; j++) h += '<li>' + t.traps[j] + '</li>';
+    h += '</ul>';
+    return h;
+  }
+
+  /* ================= 实验 1：变换选择器 ================= */
+  SSC.lab({
+    mount: '#lab-select',
+    title: '实验 1 · 变换选择器（七个变换逐个看）',
+    hint: '下拉切换：谱的形态、变量空间、定义式、ROC、常用对、应用与坑会一起换',
+    columns: 2,
+    canvases: [
+      { id: 'spec', label: '谱的形态（示意）', height: 220 },
+      { id: 'space', label: '变量住在哪里', height: 220 }
+    ],
+    controls: [{
+      id: 'tf', label: '选择变换', value: 'ctft',
+      options: TF.map(function (t) { return { v: t.k, t: t.short + '　' + t.name }; })
+    }],
+    draw: function (cv, v, api) {
+      var t = byKey(v.tf);
+      drawSpec(cv.spec, t);
+      drawSpec(cv.space, t);
+      api.readout(
+        '<div class="stat"><div class="k">变量</div><div class="v" style="font-size:12.5px">' + t.varv + '</div></div>' +
+        '<div class="stat"><div class="k">谱的形态</div><div class="v" style="font-size:12.5px">' + t.specPeriod + '</div></div>' +
+        '<div class="stat"><div class="k">ROC</div><div class="v" style="font-size:12.5px">' + t.hasROC + '</div></div>' +
+        '<div class="stat"><div class="k">变量空间</div><div class="v" style="font-size:12.5px">' + spaceWord(t) + '</div></div>' +
+        '<div class="stat"><div class="k">卷积性质</div><div class="v" style="font-size:12.5px">' + t.conv + '</div></div>' +
+        '<div class="stat"><div class="k">Parseval</div><div class="v" style="font-size:12.5px">' + t.parseval + '</div></div>'
+      );
+      api.note(panel(t));
+    }
+  });
+
+  /* ================= 实验 2：决策助手 ================= */
+  function decide(v) {
+    var dt = v.domain === 'dt', per = v.shape === 'per', ok = v.beh === 'ok', comp = v.comp === 'y';
+    if (dt && comp && !ok) {
+      return { key: 'zt', why: '离散 + 信号发散（不可和）+ 要用算法实现：先用 z 变换拿到系统函数/差分方程，再落到具体算法上。' };
+    }
+    if (dt && comp) {
+      return { key: 'dft', why: '离散 + 要被计算机真的算出来 ⟹ 只有 DFT/FFT：它只在 N 个频率点上取值，用 N log N 就能算完。' +
+        '（若信号本来是周期的，它的解析形式就是 DTFS，DFT 只是 DTFS 的算法实现。）' };
+    }
+    if (dt && per) return { key: 'dtfs', why: '离散 + 周期 ⟹ DTFS：时域周期 N，频域就只有 N 根独立谱线，正好一一对应。' };
+    if (dt && ok) return { key: 'dtft', why: '离散 + 非周期 + 绝对可和 ⟹ DTFT：频谱连续但以 2π 为周期，卷积变乘法。' };
+    if (dt) return { key: 'zt', why: '离散 + 非周期 + 会发散（例如 a^n u[n]，|a|>1）⟹ 只能用 z 变换：用 ROC 的半径把级数"压住"。' };
+    if (per) return { key: 'ctfs', why: '连续 + 周期 ⟹ CTFS：谱是离散线谱 a_k，稳态响应按谐波逐个乘 H(jkω₀)。' };
+    if (ok) return { key: 'ctft', why: '连续 + 非周期 + 绝对可积 ⟹ CTFT：频谱是连续曲线，这在第 6–11 章已经用了一路。' };
+    return { key: 'lt', why: '连续 + 非周期 + 会发散（例如 e^{at}u(t) 或 u(t)）⟹ 只能用拉普拉斯：' +
+      '乘上 e^{−σt} 之后再变换，ROC 的竖条告诉你哪些 σ 能用。' };
+  }
+
+  SSC.lab({
+    mount: '#lab-decide',
+    title: '实验 2 · 决策助手：这个信号该用哪个变换？',
+    hint: '回答三个问题（连续还是离散 / 周期性 / 会不会发散 / 要不要交给算法），下面同步给出推荐与理由',
+    columns: 2,
+    canvases: [
+      { id: 'wave', label: '你这类信号的典型波形（示意）', height: 210 },
+      { id: 'spec', label: '推荐变换给出的谱（示意）', height: 210 }
+    ],
+    controls: [
+      { id: 'domain', label: '① 信号是连续的还是离散的', value: 'ct',
+        options: [{ v: 'ct', t: '连续时间 x(t)' }, { v: 'dt', t: '离散时间 x[n]' }] },
+      { id: 'shape', label: '② 它是周期的吗', value: 'aper',
+        options: [{ v: 'aper', t: '非周期（一段脉冲 / 衰减型）' }, { v: 'per', t: '周期的' }] },
+      { id: 'beh', label: '③ 它会发散吗（绝对可积/可和吗）', value: 'ok',
+        options: [{ v: 'ok', t: '不会：绝对可积 / 可和' }, { v: 'grow', t: '会：如 e^{at}u(t)、a^n u[n]' }] },
+      { id: 'comp', label: '④ 要交给计算机算吗', value: 'n',
+        options: [{ v: 'n', t: '不用，纸笔解析' }, { v: 'y', t: '要，算法实现' }] }
+    ],
+    draw: function (cv, v, api) {
+      var dt = v.domain === 'dt', per = v.shape === 'per', ok = v.beh === 'ok';
+      var rec = decide(v), t = byKey(rec.key);
+
+      /* 左图：典型波形 */
+      if (dt) {
+        var xs = [], ys = [], n;
+        for (n = 0; n <= 20; n++) {
+          xs.push(n);
+          ys.push(per ? ((n % 8) < 4 ? 1 : -1) : (ok ? Math.pow(0.7, n) * Math.cos(0.6 * n) : Math.pow(1.25, n) * 0.5));
+        }
+        SSC.plot(cv.wave, {
+          xmin: -1, xmax: 21, xlabel: 'n（样本序号）', ylabel: 'x[n]',
+          stems: [{ xs: xs, ys: ys, color: '#4338ca', label: '离散序列' }],
+          hlines: [{ y: 0, color: 'rgba(110,130,165,.55)', width: 1 }],
+          legend: true
+        });
+      } else {
+        SSC.plot(cv.wave, {
+          xmin: -1, xmax: 6, ymin: per ? -1.45 : -0.15, ymax: per ? 1.45 : 3.2,
+          xlabel: 't (s)', ylabel: 'x(t)',
+          curves: [{
+            f: function (tt) {
+              if (per) return SSC.squarePartial(tt, 9, 2, 0.5);
+              return ok ? (tt < 0 ? 0 : Math.exp(-tt)) : (tt < 0 ? 0 : Math.exp(0.8 * tt) * 0.4);
+            }, color: '#4338ca', width: 2.4, label: per ? '周期方波' : (ok ? 'e^{−t}u(t)（衰减）' : 'e^{0.8t}u(t)（发散）')
+          }],
+          legend: true
+        });
+      }
+
+      /* 右图：推荐变换的谱 */
+      drawSpec(cv.spec, t);
+
+      api.readout(
+        '<div class="stat" style="grid-column:1/-1;background:var(--ok-soft);border-color:var(--ok)">' +
+        '<div class="k">推荐使用</div><div class="v" style="font-size:15px">' + t.short + '　' + t.name + '</div></div>' +
+        '<div class="stat"><div class="k">属于</div><div class="v" style="font-size:13px">' + t.family + '</div></div>' +
+        '<div class="stat"><div class="k">变量</div><div class="v" style="font-size:12.5px">' + t.varv + '</div></div>' +
+        '<div class="stat"><div class="k">ROC</div><div class="v" style="font-size:12.5px">' + t.hasROC + '</div></div>' +
+        '<div class="stat"><div class="k">章节</div><div class="v" style="font-size:13px"><a href="' + t.href + '">第 ' + t.ch + ' 章</a></div></div>'
+      );
+      api.note('<b>为什么是它：</b>' + rec.why +
+        '<br><b>它的收敛/ROC 条件：</b>' + t.rocDetail +
+        '<br><b>别忘了：</b>' + t.traps[0] + '。');
+    }
+  });
+
+  /* ================= 四张对照表（与选择器共用 TF 数据） ================= */
+  function nameCell(t) {
+    return '<a href="' + t.href + '">' + t.short + '</a>' +
+      '<div class="tiny muted">' + t.family + ' · 第 ' + t.ch + ' 章</div>';
+  }
+  function buildTable(head, rowFn) {
+    var h = '<table class="tbl sm"><thead><tr><th>变换</th>';
+    head.forEach(function (x) { h += '<th>' + x + '</th>'; });
+    h += '</tr></thead><tbody>';
+    TF.forEach(function (t) {
+      h += '<tr><td>' + nameCell(t) + '</td>';
+      rowFn(t).forEach(function (c) { h += '<td>' + c + '</td>'; });
+      h += '</tr>';
+    });
+    return h + '</tbody></table>';
+  }
+
+  var t1 = document.getElementById('tf-t1');
+  if (t1) t1.innerHTML = buildTable(['正向定义式', '反变换', '变量与取值域'], function (t) {
+    return ['<span class="ft">' + t.def + '</span>', '<span class="ft">' + t.inv + '</span>', t.varv];
+  });
+
+  var t2 = document.getElementById('tf-t2');
+  if (t2) t2.innerHTML = buildTable(['适用信号', '谱的形态', '谱是离散还是连续'], function (t) {
+    return [t.sig, t.specText, t.specPeriod];
+  });
+
+  var t3 = document.getElementById('tf-t3');
+  if (t3) t3.innerHTML = buildTable(['收敛条件 / ROC', '有没有 ROC'], function (t) {
+    return [t.rocDetail, '<b>' + t.hasROC + '</b>'];
+  });
+
+  var t4 = document.getElementById('tf-t4');
+  if (t4) t4.innerHTML = buildTable(['卷积性质', 'Parseval', '典型应用', '最常踩的坑'], function (t) {
+    var traps = t.traps.map(function (x) { return '· ' + x; }).join('<br>');
+    return [t.conv, t.parseval, t.apps, '<span class="small">' + traps + '</span>'];
+  });
+
+  /* ================= 自测 ================= */
+  SSC.quiz('#quiz14', [
+    {
+      q: '关系总图里，从 CTFS 走到 CTFT 的那一步靠什么实现？',
+      opts: ['让周期 T → ∞（谱线间距 2π/T → 0，离散谱挤成连续谱）',
+        '让 ω → 0', '把 s 换成 jω', '把求和换成有限项求和'],
+      a: 0,
+      why: '周期信号的谱线间距是 ω₀ = 2π/T。T→∞ 时间距趋于 0，求和 Σ 变成积分 ∫，级数就过渡成傅里叶变换。这就是"级数是变换的特例"的全部内容。',
+      tag: '关系图'
+    },
+    {
+      q: '为什么离散时间信号的频谱一定以 2π 为周期？',
+      opts: ['因为 X(e^{jω}) 里的 e^{−jωn} 当 ω 增加 2π 时每个 n 上取值都不变（等价说法：z 变换在单位圆上绕一圈就回到原处）',
+        '因为离散信号的频率最高只到 π',
+        '因为采样率总是有限的', '因为离散序列一定是周期的'],
+      a: 0,
+      why: 'e^{−j(ω+2π)n} = e^{−jωn}·e^{−j2πn} = e^{−jωn}（n 是整数，e^{−j2πn}=1），所以整个求和不变。从 s↔z 映射看：e^{jωT} 每走 2π 就转回原处——同一根单位圆被反复走。这就是第 7、9 章反复出现的"周期 2π"。',
+      tag: '周期性'
+    },
+    {
+      q: '在 z = e^{sT} 的映射下，s 平面的左半平面（σ < 0）映射到 z 平面的哪里？',
+      opts: ['单位圆内 |z| < 1', '单位圆外 |z| > 1', '单位圆上 |z| = 1', '整个 z 平面'],
+      a: 0,
+      why: '|z| = |e^{(σ+jω)T}| = e^{σT}。σ<0 使 e^{σT}<1，所以在单位圆内；σ=0（虚轴）落在单位圆上；σ>0 落在单位圆外。这也解释了稳定性判据的搬家：因果+稳定 ⟺ 拉氏极点全在左半平面 ⟺ z 极点全在单位圆内。',
+      tag: 's↔z 映射'
+    },
+    {
+      q: '一个连续时间信号在 t→+∞ 时按 e^{2t} 增长。想分析它，应该用哪个变换？',
+      opts: ['拉普拉斯变换（取 ROC 为 Re{s} > 2）', 'CTFT（因为它是连续信号）',
+        'CTFS（先把它当成周期信号）', '全都不行，这种信号没有任何变换'],
+      a: 0,
+      why: 'e^{2t}u(t) 不绝对可积，CTFT 不存在。但乘上 e^{−σt}（σ>2）后可积，于是拉氏变换 X(s)=1/(s−2) 在 ROC Re{s}>2 上成立。注意虚轴不在 ROC 内，这正是它没有傅里叶变换的复平面表述。',
+      tag: '什么时候用拉氏'
+    },
+    {
+      q: '同一个 DFT 长度 N 下，X[k] 与 DTFT 的 X(e^{jω}) 是什么关系？',
+      opts: ['X[k] 是 X(e^{jω}) 在 ω = 2πk/N 上的采样（前提是 x[n] 长度不超过 N）',
+        'X[k] 是 X(e^{jω}) 的平均值', '两者相等，只是记号不同',
+        'X[k] 是 X(e^{jω}) 的反变换'],
+      a: 0,
+      why: '把 ω = 2πk/N 代进 DTFT 定义式，指数变成 e^{−j2πkn/N}，求和形式就是 DFT 定义。所以 DFT 是 DTFT 在 N 个等间隔频率上的采样；反过来"频域采样"等价于"时域按 N 周期延拓"。',
+      tag: 'DFT'
+    },
+    {
+      q: '下面哪一条是"拉普拉斯/z 变换比傅里叶变换多出 ROC"的直接后果？',
+      opts: ['同一个 X(s)（或 X(z)）配不同 ROC 会对应完全不同的信号，因此答案必须连 ROC 一起给',
+        'ROC 决定了信号的单位', '有 ROC 就可以不写反变换',
+        'ROC 只对周期信号有意义'],
+      a: 0,
+      why: '因为复频域里同一个代数式可以由多个信号产生（例如 1/(s+1) 既可以是 e^{−t}u(t)，也可以是 −e^{−t}u(−t)），ROC 就是区分它们的唯一信息。同理，系统的因果性与稳定性全靠 ROC 是否包含虚轴（或单位圆）来判断。',
+      tag: 'ROC'
+    }
+  ], '第 14 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1181 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>附 B　速查表与常见坑｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch16">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">附录 · 附 B · 考前与工程现场的最后一页</div>
+        <h1>速查表与常见坑</h1>
+        <p class="lede">
+          这一页不推新东西，只做三件事：<b>把四大变换的定义、性质、常用对收在一张能搜的表里</b>；
+          给你一个<b>三秒判定因果/稳定</b>的小工具；把全站最容易踩的 <b>15 个坑</b>逐条写成"错在哪 → 正确做法"，
+          每条都能点回对应章节复习。公式不用背，但要能<b>一眼认出它属于谁、什么条件下成立</b>。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch06-ctft.html">第 6 章 CTFT</a>与<a href="ch12-laplace.html">第 12 章 拉普拉斯</a>（本页把它们并排放在一起）<br>
+          <a href="ch13-ztransform.html">第 13 章 z 变换</a>（稳定性判据的来源）
+        </div>
+        <div class="cell mid"><b>这一站</b>四大变换速查 + 稳定性速判 + 常见坑 Top 15</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch14-atlas.html">第 14 章 四大变换总对照</a>（想看关系图与决策表时）<br>
+          <a href="ch15-applications.html">附 A 应用串讲</a>（想看这些公式怎么用出去）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 怎么用这一页</a>
+        <a href="#s2">2. 速查筛选器（输入关键词实时过滤）</a>
+        <a href="#s3">3. 表 1 · 四大变换的定义与适用信号</a>
+        <a href="#s4">4. 表 2 · 常用变换对（连续 + 离散）</a>
+        <a href="#s5">5. 表 3 · 性质对照表</a>
+        <a href="#s6">6. 表 4 · 符号表与常用公式（含采样、系统、稳定性）</a>
+        <a href="#s7">7. 工具 1 · 三秒判断因果与稳定（单位圆上点极点）</a>
+        <a href="#s8">8. 工具 2 · 给系数求极零点（含 s 域对照）</a>
+        <a href="#s9">9. 常见坑 Top 15</a>
+        <a href="#s10">10. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 怎么用这一页</h2>
+
+      <p>
+        前面十五章是按"理解顺序"写的，这一页按"查表顺序"重排。建议的用法是：
+      </p>
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">① 先定性，再套公式</h4>
+          <p class="small" style="margin-bottom:0">
+            遇到题目先问三句话：信号是<b>周期还是非周期</b>？是<b>连续还是离散</b>？是求<b>瞬态/稳态</b>还是求<b>频率成分</b>？
+            答案决定用表 1 里的哪一行。选错变换是最贵的错误。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">② 表 2 当"单词本"</h4>
+          <p class="small" style="margin-bottom:0">
+            复杂信号都是基本信号拼出来的。<b>先把信号拆成表 2 里的几项，再用表 3 的性质搬运</b>——
+            这就是整门课最省力的解题路径。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">③ 表 3 只记"结构"，细节现查</h4>
+          <p class="small" style="margin-bottom:0">
+            比如"时移 → 乘 <span class="mono">e<sup>−jωt₀</sup></span>"，
+            你只要记住<b>时移只动相位不动幅度</b>，具体指数长什么样现查这一页就行。
+          </p>
+        </div>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">全站三条主线（背不下来表时，靠它们把表推出来）</span>
+        <p>
+          <b>① 特征函数</b>：<span class="mono">e<sup>st</sup> → H(s)e<sup>st</sup></span>、
+          <span class="mono">z<sup>n</sup> → H(z)z<sup>n</sup></span>。一切"时域卷积 = 频域相乘"都是从这儿来的。
+        </p>
+        <p>
+          <b>② 离散频谱必周期、周期信号频谱必离散</b>。这条能帮你立刻判断一张频谱图画得对不对
+          （DTFT 以 2π 为周期、DFT 以 N 为周期、CTFS 是离散线谱）。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ <span class="term" data-def="region of convergence (ROC)，中文含义：收敛域。使变换积分/求和收敛的那些 s（或 z）的集合。同一个 X(s)/X(z) 配不同 ROC 对应完全不同的信号，所以 ROC 是答案的一部分，不能省。">ROC 收敛域</span>与极点</b>：拉普拉斯看虚轴、z 变换看单位圆；
+          <b>"ROC 包含虚轴/单位圆"才是稳定，加上"因果"才是可实现的稳定系统</b>。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 速查筛选器（输入关键词实时过滤）</h2>
+      <p>
+        在下面这个框里打字，第 3–6 节的所有表格行会<b>实时过滤</b>：
+        只有包含关键词的行留下。试试输入
+        <span class="mono">卷积</span>、<span class="mono">Parseval</span>、
+        <span class="mono">sinc</span>、<span class="mono">u[n]</span>、
+        <span class="mono">ROC</span>、<span class="mono">稳定</span>、<span class="mono">采样</span> 看看会发生什么。
+      </p>
+      <p class="small muted">
+        小技巧：输入多个词用空格分开，是"<b>且</b>"的关系（例：<span class="mono">z 卷积</span> 只留同时含这两个词的行）。
+        点错字也没关系，清空输入框就全部恢复。
+      </p>
+
+      <div class="card" style="position:sticky;top:8px;z-index:5">
+        <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center">
+          <b style="font-size:15px">🔍 过滤表格行</b>
+          <input id="qfilter" type="text" placeholder="例如：卷积 / Parseval / sinc / u[n] / ROC / 稳定 / 采样"
+            style="flex:1 1 320px;min-width:220px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:14.5px"
+            aria-label="关键词过滤">
+          <button class="btn ghost sm" id="qclear">清空</button>
+          <span id="qcount" class="pill on" style="font-size:13px">—</span>
+        </div>
+        <div id="qnoscript" class="small muted" style="margin-top:8px">
+          没有开启 JavaScript 时筛选器不可用，但下面的表格本身是完整可读的。
+        </div>
+      </div>
+
+      <h2 id="s3">3. 表 1 · 四大变换的定义与适用信号</h2>
+      <p class="small muted">"四大变换"指 CTFT、DTFT、拉普拉斯、z 变换；但级数（CTFS/DTFS）与 DFT 也必须一起记住，否则会搞混"离散谱"和"连续谱"。</p>
+
+      <table class="tbl sm qtable" data-tbl="1">
+        <thead><tr><th>变换</th><th>分析式（正变换）</th><th>综合式（反变换）</th><th>适合什么信号</th><th>谱长什么样</th></tr></thead>
+        <tbody>
+          <tr data-k="CTFS 连续时间傅里叶级数 周期 谐波 a_k">
+            <td><a href="ch04-ctfs.html">CTFS</a><br><span class="tiny muted">连续时间傅里叶级数</span></td>
+            <td class="ft c">a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span> <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span> x(t)e<sup>−jkω<sub>0</sub>t</sup>d<i>t</i></td>
+            <td class="ft c">x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> a<sub>k</sub>e<sup>jkω<sub>0</sub>t</sup></td>
+            <td class="c">连续、<b>周期</b>（周期 T）</td>
+            <td class="c"><b>离散</b>线谱，间距 ω<sub>0</sub>=2π/T</td>
+          </tr>
+          <tr data-k="DTFS 离散时间傅里叶级数 周期 N c_k">
+            <td><a href="ch05-dtfs.html">DTFS</a><br><span class="tiny muted">离散时间傅里叶级数</span></td>
+            <td class="ft c">c<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">N</span></span> <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span> x[n]e<sup>−jk(2π/N)n</sup></td>
+            <td class="ft c">x[n] = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span> c<sub>k</sub>e<sup>jk(2π/N)n</sup></td>
+            <td class="c">离散、周期（周期 N）</td>
+            <td class="c">只有 <b>N 根</b>独立谱线，且以 N 为周期</td>
+          </tr>
+          <tr data-k="CTFT 连续时间傅里叶变换 非周期 X(jω)">
+            <td><a href="ch06-ctft.html">CTFT</a><br><span class="tiny muted">连续时间傅里叶变换</span></td>
+            <td class="ft c">X(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t)e<sup>−jωt</sup>d<i>t</i></td>
+            <td class="ft c">x(t) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span> <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> X(jω)e<sup>jωt</sup>d<i>ω</i></td>
+            <td class="c">连续、非周期</td>
+            <td class="c"><b>连续</b>、非周期</td>
+          </tr>
+          <tr data-k="DTFT 离散时间傅里叶变换 2π 周期 X(e^jω)">
+            <td><a href="ch07-dtft.html">DTFT</a><br><span class="tiny muted">离散时间傅里叶变换</span></td>
+            <td class="ft c">X(e<sup>jω</sup>) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> x[n]e<sup>−jωn</sup></td>
+            <td class="ft c">x[n] = <span class="frac"><span class="num">1</span><span class="den">2π</span></span> <span class="integral"><span class="sym">∫</span><span class="lim"><span>2π</span></span></span> X(e<sup>jω</sup>)e<sup>jωn</sup>d<i>ω</i></td>
+            <td class="c">离散、非周期（绝对可和）</td>
+            <td class="c"><b>连续且以 2π 为周期</b>；ω=π 是最高频率</td>
+          </tr>
+          <tr data-k="DFT 离散傅里叶变换 有限长 N 点 计算机">
+            <td><a href="ch08-dft.html">DFT</a><br><span class="tiny muted">离散傅里叶变换（计算机用的）</span></td>
+            <td class="ft c">X[k] = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">n=0</span></span> x[n]e<sup>−j2πkn/N</sup></td>
+            <td class="ft c">x[n] = <span class="frac"><span class="num">1</span><span class="den">N</span></span> <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">k=0</span></span> X[k]e<sup>j2πkn/N</sup></td>
+            <td class="c">有限长 N 点序列（隐含周期延拓）</td>
+            <td class="c">N 点<b>离散</b>谱 = DTFT 在 N 个等间隔频率上的采样</td>
+          </tr>
+          <tr data-k="拉普拉斯 Laplace s 平面 ROC 微分方程">
+            <td><a href="ch12-laplace.html">拉普拉斯</a><br><span class="tiny muted">Laplace transform</span></td>
+            <td class="ft c">X(s) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t)e<sup>−st</sup>d<i>t</i>, &nbsp;s=σ+jω</td>
+            <td class="ft c">部分分式 + 查表；<br>或围线积分 <span class="frac"><span class="num">1</span><span class="den">2πj</span></span><span class="integral"><span class="sym">∮</span></span>X(s)e<sup>st</sup>d<i>s</i></td>
+            <td class="c">连续信号，可含 e<sup>at</sup>u(t) 这类不绝对可积的</td>
+            <td class="c">复平面上的函数 + 一块 <b>ROC</b>（竖直条带/半平面）</td>
+          </tr>
+          <tr data-k="z 变换 z-transform 单位圆 ROC 差分方程">
+            <td><a href="ch13-ztransform.html">z 变换</a><br><span class="tiny muted">z-transform</span></td>
+            <td class="ft c">X(z) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> x[n]z<sup>−n</sup></td>
+            <td class="ft c">部分分式 / 幂级数长除 / 留数法</td>
+            <td class="c">离散信号（含 a<sup>n</sup>u[n] 这类）</td>
+            <td class="c">复平面上的函数 + 一块 <b>ROC</b>（圆环/圆外/圆内）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">表 1 的使用纪律：三句话锁死该用谁</span>
+        <p style="margin-bottom:0">
+          <b>① 周期 + 连续 → CTFS</b>（谱是离散线谱）；
+          <b>② 非周期 + 连续 → CTFT</b>（谱是连续曲线）；
+          <b>③ 离散 + 只要一段有限长 → DFT</b>（计算机唯一能真正算的）。
+          而拉普拉斯和 z 变换是"升级版"：当你需要把<b>衰减率</b>、<b>初始条件</b>、<b>稳定性</b>一起管进来时用它们。
+          第 14 章有一张决策表可以对照。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 表 2 · 常用变换对（连续 + 离散）</h2>
+      <p class="small muted">
+        约定（全站统一）：<span class="mono">sinc(x) = sin x / x</span>（Oppenheim 约定，<span class="mono">sinc(0)=1</span>）；
+        <span class="mono">rect(u)=1</span> 当 <span class="mono">|u|&lt;1/2</span>；
+        <span class="mono">tri(u)=1−|u|</span> 当 <span class="mono">|u|&lt;1</span>；
+        <span class="mono">u(t)/u[n]</span> 是阶跃，<span class="mono">δ(t)/δ[n]</span> 是冲激。
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">连续时间（CTFS + CTFT）</h4>
+          <table class="tbl sm qtable" data-tbl="2a">
+            <thead><tr><th class="c">x(t)</th><th class="c">X(jω) / a<sub>k</sub></th><th>要点</th></tr></thead>
+            <tbody>
+              <tr data-k="冲激 delta 常数 全频段"><td class="ft c">δ(t)</td><td class="ft c">1</td><td>全频段等强度</td></tr>
+              <tr data-k="常数 直流 冲激"><td class="ft c">1</td><td class="ft c">2πδ(ω)</td><td>只有直流</td></tr>
+              <tr data-k="复指数 频移"><td class="ft c">e<sup>jω<sub>0</sub>t</sup></td><td class="ft c">2πδ(ω−ω<sub>0</sub>)</td><td>单一复频率</td></tr>
+              <tr data-k="余弦 cos 调制 两根谱线"><td class="ft c">cos ω<sub>0</sub>t</td><td class="ft c">π[δ(ω−ω<sub>0</sub>)+δ(ω+ω<sub>0</sub>)]</td><td>两根谱线；调制的核心</td></tr>
+              <tr data-k="正弦 sin"><td class="ft c">sin ω<sub>0</sub>t</td><td class="ft c"><span class="frac"><span class="num">π</span><span class="den">j</span></span>[δ(ω−ω<sub>0</sub>)−δ(ω+ω<sub>0</sub>)]</td><td>与 cos 相差 90°</td></tr>
+              <tr data-k="矩形 rect sinc 时宽带宽"><td class="ft c">rect(t/τ)</td><td class="ft c">τ·sinc(ωτ/2)</td><td>零点在 2π/τ；时宽↔带宽</td></tr>
+              <tr data-k="三角 tri sinc平方"><td class="ft c">tri(t/τ)</td><td class="ft c">τ·sinc<sup>2</sup>(ωτ/2)</td><td>矩形自卷积</td></tr>
+              <tr data-k="单边指数 衰减 a"><td class="ft c">e<sup>−at</sup>u(t), a&gt;0</td><td class="ft c">1/(a+jω)</td><td>极点在 −a</td></tr>
+              <tr data-k="t 乘指数 频域微分"><td class="ft c">t e<sup>−at</sup>u(t)</td><td class="ft c">1/(a+jω)<sup>2</sup></td><td>频域微分得来</td></tr>
+              <tr data-k="阶跃 u(t) 直流 1/jω"><td class="ft c">u(t)</td><td class="ft c">1/(jω) + πδ(ω)</td><td>别忘了 δ 项（直流）</td></tr>
+              <tr data-k="sinc 理想低通"><td class="ft c">sin(Wt)/(πt)</td><td class="ft c">rect(ω/2W)</td><td>理想低通的时域形状</td></tr>
+              <tr data-k="高斯 gaussian 自对偶"><td class="ft c">e<sup>−t²/2σ²</sup></td><td class="ft c">σ√(2π)·e<sup>−σ²ω²/2</sup></td><td>高斯变高斯</td></tr>
+              <tr data-k="方波 CTFS a_k 占空比 谐波"><td class="ft c">周期方波<br><span class="tiny muted">周期 T，占空比 d</span></td>
+                <td class="ft c">a<sub>0</sub>=2d−1<br>a<sub>k</sub>=<span class="frac"><span class="num">4 sin(kπd)</span><span class="den">kπ</span></span></td>
+                <td>衰减 <b>1/k</b>；跳变处吉布斯过冲 ~9%</td></tr>
+              <tr data-k="三角波 CTFS 1/k^2 衰减"><td class="ft c">周期三角波</td><td class="ft c">∝ 1/k<sup>2</sup></td><td>连续但导数跳变 → 衰减快一档</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">离散时间（DTFT + z 变换）</h4>
+          <table class="tbl sm qtable" data-tbl="2b">
+            <thead><tr><th class="c">x[n]</th><th class="c">X(e<sup>jω</sup>) / X(z)</th><th>ROC 与要点</th></tr></thead>
+            <tbody>
+              <tr data-k="冲激 delta"><td class="ft c">δ[n]</td><td class="ft c">1</td><td>全 z 平面；全频段</td></tr>
+              <tr data-k="延迟冲激 时移"><td class="ft c">δ[n−n<sub>0</sub>]</td><td class="ft c">z<sup>−n<sub>0</sub></sup></td><td>纯延时</td></tr>
+              <tr data-k="阶跃 u[n] 右边"><td class="ft c">u[n]</td><td class="ft c"><span class="frac"><span class="num">1</span><span class="den">1−z<sup>−1</sup></span></span></td><td>ROC: |z|&gt;1（单位圆上那条不算）</td></tr>
+              <tr data-k="反因果阶跃 左边 u[-n-1]"><td class="ft c">−u[−n−1]</td><td class="ft c"><span class="frac"><span class="num">1</span><span class="den">1−z<sup>−1</sup></span></span></td><td>ROC: |z|&lt;1；<b>同一个 X(z)，不同 ROC = 不同序列</b></td></tr>
+              <tr data-k="指数 an u[n] 几何"><td class="ft c">a<sup>n</sup>u[n]</td><td class="ft c"><span class="frac"><span class="num">1</span><span class="den">1−az<sup>−1</sup></span></span></td><td>ROC: |z|&gt;|a|；极点 z=a</td></tr>
+              <tr data-k="反因果指数"><td class="ft c">−a<sup>n</sup>u[−n−1]</td><td class="ft c"><span class="frac"><span class="num">1</span><span class="den">1−az<sup>−1</sup></span></span></td><td>ROC: |z|&lt;|a|</td></tr>
+              <tr data-k="n 乘指数 z 域微分"><td class="ft c">n a<sup>n</sup>u[n]</td><td class="ft c"><span class="frac"><span class="num">a z<sup>−1</sup></span><span class="den">(1−az<sup>−1</sup>)<sup>2</sup></span></span></td><td>ROC: |z|&gt;|a|；二阶极点</td></tr>
+              <tr data-k="余弦 cos DTFT 实信号"><td class="ft c">cos(ω<sub>0</sub>n)u[n]</td>
+                <td class="ft c"><span class="frac"><span class="num">1−z<sup>−1</sup>cos ω<sub>0</sub></span><span class="den">1−2z<sup>−1</sup>cos ω<sub>0</sub>+z<sup>−2</sup></span></span></td>
+                <td>ROC: |z|&gt;1；共轭极点对</td></tr>
+              <tr data-k="矩形窗 序列 Dirichlet"><td class="ft c">矩形序列<br><span class="tiny muted">长 2M+1</span></td><td class="ft c">Dirichlet 核<br><span class="tiny muted">sin(ω(2M+1)/2)/sin(ω/2)</span></td>
+                <td>周期方波的 DTFS 系数也是它</td></tr>
+              <tr data-k="DTFS 系数 周期脉冲串"><td class="ft c">周期脉冲串<br><span class="tiny muted">周期 N</span></td><td class="ft c">c<sub>k</sub> 全相等 = 1/N</td><td>时域越"窄"，频域越"平"（对偶）</td></tr>
+              <tr data-k="离散正弦 DTFT 冲激串"><td class="ft c">cos(ω<sub>0</sub>n)<br><span class="tiny muted">非周期、单频</span></td>
+                <td class="ft c">π<span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">l</span></span>[δ(ω−ω<sub>0</sub>−2πl)+δ(ω+ω<sub>0</sub>−2πl)]</td>
+                <td>以 2π 重复的冲激串</td></tr>
+              <tr data-k="差分方程 一阶 IIR 低通"><td class="ft c">一阶差分方程<br><span class="tiny muted">y[n]=ay[n−1]+x[n]</span></td>
+                <td class="ft c">H(z)=<span class="frac"><span class="num">1</span><span class="den">1−az<sup>−1</sup></span></span></td>
+                <td>因果稳定 ⇔ |a|&lt;1</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <h2 id="s5">5. 表 3 · 性质对照表</h2>
+      <p class="small muted">左边是连续世界的四个性质，右边是离散世界的对应版本。写法上"+"号表示该性质在此变换下不变（不失一般性）。</p>
+
+      <table class="tbl sm qtable" data-tbl="3">
+        <thead><tr><th>性质</th><th class="c">CTFT（连续）</th><th class="c">DTFT（离散）</th><th class="c">DFT（N 点）</th><th class="c">拉普拉斯 / z</th><th>一句话理解</th></tr></thead>
+        <tbody>
+          <tr data-k="线性 叠加">
+            <td>线性</td>
+            <td class="ft c">ax₁+bx₂ ↔ aX₁+bX₂</td>
+            <td class="ft c">同左</td>
+            <td class="ft c">同左</td>
+            <td class="ft c">同左（ROC 至多缩小）</td>
+            <td>加法与数乘能穿过变换号。</td>
+          </tr>
+          <tr data-k="时移 延时 相位">
+            <td>时移</td>
+            <td class="ft c">x(t−t₀) ↔ e<sup>−jωt₀</sup>X(jω)</td>
+            <td class="ft c">x[n−n₀] ↔ e<sup>−jωn₀</sup>X(e<sup>jω</sup>)</td>
+            <td class="ft c">x[n−n₀] ↔ e<sup>−j2πkn₀/N</sup>X[k] <span class="tiny">（循环移位）</span></td>
+            <td class="ft c">x(t−t₀) ↔ e<sup>−st₀</sup>X(s)<br>x[n−n₀] ↔ z<sup>−n₀</sup>X(z)</td>
+            <td><b>幅度不变，只加线性相位</b>——这是"纯延时不失真"的根源。</td>
+          </tr>
+          <tr data-k="频移 调制 搬移">
+            <td>频移 / 调制</td>
+            <td class="ft c">e<sup>jω₀t</sup>x(t) ↔ X(j(ω−ω₀))</td>
+            <td class="ft c">e<sup>jω₀n</sup>x[n] ↔ X(e<sup>j(ω−ω₀)</sup>)</td>
+            <td class="ft c">e<sup>j2πk₀n/N</sup>x[n] ↔ X[k−k₀] <span class="tiny">（循环）</span></td>
+            <td class="ft c">e<sup>s₀t</sup>x(t) ↔ X(s−s₀)<br>z₀<sup>n</sup>x[n] ↔ X(z/z₀)</td>
+            <td>乘复指数 = 频谱整体搬家。通信调制全靠它。</td>
+          </tr>
+          <tr data-k="共轭 实信号 对称">
+            <td>共轭</td>
+            <td class="ft c">x*(t) ↔ X*(−jω)</td>
+            <td class="ft c">x*[n] ↔ X*(e<sup>−jω</sup>)</td>
+            <td class="ft c">x*[n] ↔ X*[−k]<sub>N</sub></td>
+            <td class="ft c">x*(t) ↔ X*(s*)</td>
+            <td><b>实信号 ⇒ 幅度谱偶对称、相位谱奇对称</b>，负频是镜像。</td>
+          </tr>
+          <tr data-k="时间反转 倒放">
+            <td>时间反转</td>
+            <td class="ft c">x(−t) ↔ X(−jω)</td>
+            <td class="ft c">x[−n] ↔ X(e<sup>−jω</sup>)</td>
+            <td class="ft c">x[−n mod N] ↔ X[−k]<sub>N</sub></td>
+            <td class="ft c">x(−t) ↔ X(−s)<br>x[−n] ↔ X(1/z)</td>
+            <td>时间倒放 = 频率轴左右翻转。</td>
+          </tr>
+          <tr data-k="尺度 缩放 压缩 展宽">
+            <td>尺度</td>
+            <td class="ft c">x(at) ↔ (1/|a|)X(jω/a)</td>
+            <td class="ft c"><b>离散没有连续尺度</b>；只有抽取/内插（见第 9 章）</td>
+            <td class="ft c">—</td>
+            <td class="ft c">x(at) ↔ (1/a)X(s/a)（a&gt;0）</td>
+            <td>播放加速 a 倍 ⇒ 频谱展宽 a 倍、高度变矮 1/a。离散信号做不到"0.5 倍速"。</td>
+          </tr>
+          <tr data-k="卷积 相乘 时域频域">
+            <td><b>卷积</b></td>
+            <td class="ft c">x*h ↔ X·H</td>
+            <td class="ft c">x[n]*h[n] ↔ X(e<sup>jω</sup>)H(e<sup>jω</sup>)</td>
+            <td class="ft c">x ⊛ h ↔ X[k]H[k] <span class="tiny">（<b><span class="term" data-def="circular convolution，中文含义：循环卷积。把两个有限长序列都看成以 N 为周期，卷积结果首尾相接、绕回叠加；只有补零到 N ≥ N₁+N₂−1 时才等于线性卷积。">循环</span></b>卷积）</span></td>
+            <td class="ft c">x*h ↔ X(s)H(s)<br>x*h ↔ X(z)H(z)</td>
+            <td><b>整门课最有用的性质</b>：时域卷积难算，频域相乘好算。</td>
+          </tr>
+          <tr data-k="相乘 加窗 频域卷积">
+            <td>相乘</td>
+            <td class="ft c">x·y ↔ (1/2π)X*Y</td>
+            <td class="ft c">x[n]y[n] ↔ (1/2π)∫X(e<sup>jθ</sup>)Y(e<sup>j(ω−θ)</sup>)dθ</td>
+            <td class="ft c">x·y ↔ (1/N)X ⊛ Y</td>
+            <td class="ft c">x·y ↔ (1/2πj)X*Y</td>
+            <td>加窗、调制都靠它；<b>连续域别忘了 1/2π</b>。</td>
+          </tr>
+          <tr data-k="微分 差分 频域乘">
+            <td>微分 / 差分</td>
+            <td class="ft c">dx/dt ↔ jωX(jω)</td>
+            <td class="ft c">x[n]−x[n−1] ↔ (1−e<sup>−jω</sup>)X</td>
+            <td class="ft c">循环差分</td>
+            <td class="ft c">dx/dt ↔ sX(s)<br>x[n]−x[n−1] ↔ (1−z<sup>−1</sup>)X(z)</td>
+            <td>时域微分 = 频域乘 jω ⇒ <b>高频被放大</b>，所以差分是天然的高通。</td>
+          </tr>
+          <tr data-k="积分 累加 除以">
+            <td>积分 / 累加</td>
+            <td class="ft c">∫<sub>−∞</sub><sup>t</sup>x dτ ↔ X/(jω) + πX(0)δ(ω)</td>
+            <td class="ft c">Σ<sub>k=−∞</sub><sup>n</sup>x[k] ↔ X/(1−e<sup>−jω</sup>) <span class="tiny">+ 直流项</span></td>
+            <td class="ft c">累加</td>
+            <td class="ft c">∫ ↔ X(s)/s；累加 ↔ X(z)/(1−z<sup>−1</sup>)</td>
+            <td>积分 = 除以 jω ⇒ <b>低频被放大</b>；连续域要补直流 δ 项。</td>
+          </tr>
+          <tr data-k="频域微分 时域乘 t n">
+            <td>频域微分</td>
+            <td class="ft c">(−jt)x(t) ↔ dX/dω</td>
+            <td class="ft c">n x[n] ↔ j dX/dω</td>
+            <td class="ft c">—</td>
+            <td class="ft c">(−t)x(t) ↔ dX/ds；n x[n] ↔ −z dX/dz</td>
+            <td>乘以"位置/序号" = 频域求导，用来造二阶极点。</td>
+          </tr>
+          <tr data-k="对偶 时频互换">
+            <td>对偶</td>
+            <td class="ft c">X(jt) ↔ 2πx(−ω)</td>
+            <td class="ft c">—（DTFT 是周期的，不能直接对偶）</td>
+            <td class="ft c">X[n] ↔ N x[−k]<sub>N</sub></td>
+            <td class="ft c">—</td>
+            <td>时频两域公式形式互换，用来"白捡"变换对。</td>
+          </tr>
+          <tr data-k="Parseval 能量 功率 守恒">
+            <td><b><span class="term" data-def="Parseval's relation，中文含义：帕塞瓦尔关系/能量守恒。时域算出的能量与频域按 |X|² 算出的能量相等，只是连续域要带 1/2π、DFT 要带 1/N。">Parseval</span></b></td>
+            <td class="ft c">∫|x|²dt = (1/2π)∫|X(jω)|²dω</td>
+            <td class="ft c">Σ|x[n]|² = (1/2π)∫<sub>2π</sub>|X(e<sup>jω</sup>)|²dω</td>
+            <td class="ft c">Σ|x[n]|² = (1/N)Σ|X[k]|²</td>
+            <td class="ft c">CTFS：P = Σ|a<sub>k</sub>|²<br>DTFS：P = Σ|c<sub>k</sub>|²</td>
+            <td><b>能量守恒</b>：时域算和频域算结果一样。低通砍掉高频 = 真的丢掉了那部分能量。</td>
+          </tr>
+          <tr data-k="初值 终值 定理 单边">
+            <td>初值 / 终值</td>
+            <td class="ft c">—（需要单边拉普拉斯）</td>
+            <td class="ft c">—</td>
+            <td class="ft c">—</td>
+            <td class="ft c">x(0<sup>+</sup>)=lim<sub>s→∞</sub>sX(s)<br>x(∞)=lim<sub>s→0</sub>sX(s)<br>x[0]=lim<sub>z→∞</sub>X(z)</td>
+            <td>不反变换也能问"起点在哪、终点稳到哪"。终值定理要求极点都在左半平面（z 域则是单位圆内）。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">这张表里最容易记反的四条</span>
+        <p style="margin-bottom:0">
+          <b>① 时域卷积 ↔ 频域相乘</b>（不是相除）；
+          <b>② 时域相乘 ↔ 频域卷积</b>，而且连续域<b>带 1/2π</b>、DFT 带 <b>1/N</b>；
+          <b>③ 时移不改幅度谱</b>（只加线性相位）；
+          <b>④ 微分乘 jω、积分除 jω</b>（离散对应 <span class="mono">1−e<sup>−jω</sup></span> 与 <span class="mono">1/(1−e<sup>−jω</sup>)</span>）。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 表 4 · 符号表与常用公式（含采样、系统、稳定性）</h2>
+
+      <h4>4a · 符号约定（全站统一，混用会直接做错题）</h4>
+      <table class="tbl sm qtable" data-tbl="4a">
+        <thead><tr><th class="c">符号</th><th>含的变换 / 含义</th><th>取值范围与注意</th></tr></thead>
+        <tbody>
+          <tr data-k="omega 角频率 rad/s f Hz"><td class="ft c">ω</td><td>连续时间角频率（CTFS / CTFT）</td><td>单位 rad/s，<span class="mono">ω=2πf</span>，f 的单位是 Hz。连续时 ω 可以任意大。</td></tr>
+          <tr data-k="omega 离散频率 rad/样本 DTFT"><td class="ft c">ω</td><td>离散时间角频率（DTFT）</td><td>单位 <b>rad/样本</b>，只需看 <span class="mono">[−π, π)</span> 或 <span class="mono">[0, 2π)</span>；ω=π 是最高频率。</td></tr>
+          <tr data-k="Omega DTFS 基波 2pi/N"><td class="ft c">Ω<sub>0</sub> / 2π/N</td><td>离散周期信号的基波频率</td><td>周期 N 时 <span class="mono">Ω<sub>0</sub>=2π/N</span>，只有 N 个独立谐波。</td></tr>
+          <tr data-k="k 谐波序号 DFT 序号"><td class="ft c">k</td><td>谐波序号 / DFT 频率序号</td><td>整数；DTFS/DFT 里以 N 为周期。</td></tr>
+          <tr data-k="s 复频率 sigma jomega"><td class="ft c">s = σ + jω</td><td>拉普拉斯复频率</td><td>σ 是衰减率，ω 是振荡频率。<span class="mono">X(jω)=X(s)|<sub>s=jω</sub></span>（前提：ROC 含虚轴）。</td></tr>
+          <tr data-k="z 复变量 单位圆 半径"><td class="ft c">z = re<sup>jω</sup></td><td>z 变换复变量</td><td>r 是"衰减旋钮"，ω 是频率。<span class="mono">DTFT = X(z)|<sub>|z|=1</sub></span>（前提：ROC 含单位圆）。</td></tr>
+          <tr data-k="T Ts 周期 采样间隔"><td class="ft c">T / T<sub>s</sub></td><td>周期 / 采样间隔</td><td><span class="mono">ω<sub>s</sub> = 2π/T<sub>s</sub></span>；离散频率与连续频率的桥梁是 <span class="mono">ω = ΩT<sub>s</sub></span>。</td></tr>
+          <tr data-k="a_k CTFS 系数"><td class="ft c">a<sub>k</sub></td><td>CTFS 系数（连续周期）</td><td>随 T 变化；真正稳定的是 <span class="mono">T·a<sub>k</sub> = X(jkω<sub>0</sub>)</span>。</td></tr>
+          <tr data-k="c_k DTFS 系数"><td class="ft c">c<sub>k</sub></td><td>DTFS 系数（离散周期）</td><td>以 N 为周期，只有 N 个独立值。</td></tr>
+          <tr data-k="X(jω) X(e^jω) X[k] X(s) X(z)"><td class="ft c">X(jω) / X(e<sup>jω</sup>) / X[k] / X(s) / X(z)</td><td>五种"频谱"的记号</td><td>看括号里的自变量就知道是哪一个变换——<b>这是分辨变换类型最快的办法</b>。</td></tr>
+          <tr data-k="h(t) h[n] H 冲激响应 频响"><td class="ft c">h(t), h[n], H(·)</td><td>冲激响应与频率响应 / 系统函数</td><td><span class="mono">H = 对 h 做变换</span>；<span class="mono">Y = H·X</span>。</td></tr>
+          <tr data-k="sinc rect tri u delta 约定"><td class="ft c">sinc, rect, tri, u, δ</td><td>基本函数约定</td><td><span class="mono">sinc(x)=sin x/x</span>（<b>不是</b> sin πx/πx）；<span class="mono">rect(u)=1 (|u|&lt;1/2)</span>；<span class="mono">tri(u)=1−|u| (|u|&lt;1)</span>。</td></tr>
+        </tbody>
+      </table>
+
+      <h4>4b · 常用公式（定义之外的那些"必须记住"）</h4>
+      <table class="tbl sm qtable" data-tbl="4b">
+        <thead><tr><th>主题</th><th class="c">公式</th><th>条件 / 注意</th></tr></thead>
+        <tbody>
+          <tr data-k="能量 power 能量信号 功率信号"><td>能量 / 功率</td>
+            <td class="ft c">E = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>|x(t)|²d<i>t</i> 或
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>|x[n]|² <br>
+              P = lim<sub>T→∞</sub><span class="frac"><span class="num">1</span><span class="den">2T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span><span>−T</span></span></span>|x|²d<i>t</i></td>
+            <td>能量信号 ⇔ 0&lt;E&lt;∞；周期信号是功率信号（P 有限、E 无限）。</td></tr>
+          <tr data-k="奇偶分解 even odd"><td>奇偶分解</td>
+            <td class="ft c">Ev{x} = <span class="frac"><span class="num">x(t)+x(−t)</span><span class="den">2</span></span>, &nbsp;
+              Od{x} = <span class="frac"><span class="num">x(t)−x(−t)</span><span class="den">2</span></span></td>
+            <td>实信号的 CTFT：<b>实部偶、虚部奇</b>；幅度偶、相位奇。</td></tr>
+          <tr data-k="冲激 尺度 delta 筛选"><td>δ 的性质</td>
+            <td class="ft c">δ(at) = <span class="frac"><span class="num">1</span><span class="den">|a|</span></span>δ(t), &nbsp;
+              <span class="integral"><span class="sym">∫</span></span>x(t)δ(t−t₀)d<i>t</i> = x(t₀)</td>
+            <td>"筛选性质"；注意 δ[n] 没有尺度性质（离散只在整数点取值）。</td></tr>
+          <tr data-k="采样定理 奈奎斯特 aliasing 混叠"><td><span class="term" data-def="sampling theorem，中文含义：采样定理。要能从样本无失真地重建连续信号，采样角频率必须大于信号最高频率的两倍（ω_s &gt; 2ω_M）；否则高频会被"折"成低频，即混叠。">采样定理</span></td>
+            <td class="ft c">ω<sub>s</sub> &gt; 2ω<sub>M</sub>（即 f<sub>s</sub> &gt; 2f<sub>M</sub>）</td>
+            <td>不满足就混叠；混叠后的表观频率 <span class="mono">ω<sub>alias</sub> = |ω − kω<sub>s</sub>|</span> 取最小。</td></tr>
+          <tr data-k="频谱延拓 采样 周期"><td>采样的频域图像</td>
+            <td class="ft c">X<sub>s</sub>(jω) = <span class="frac"><span class="num">1</span><span class="den">T<sub>s</sub></span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> X(j(ω−kω<sub>s</sub>))</td>
+            <td>时域乘冲激串 ⇒ 频域<b>以 ω<sub>s</sub> 为周期延拓并叠加</b>；这就是混叠的来源。</td></tr>
+          <tr data-k="理想重建 sinc 内插"><td>理想重建</td>
+            <td class="ft c">x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]·sinc<span style="font-size:19px">(</span><span class="frac"><span class="num">t−nT<sub>s</sub></span><span class="den">T<sub>s</sub></span></span><span style="font-size:19px">)</span>
+              <span class="tiny">（即 sin(π·)/π·）</span></td>
+            <td>理想内插需要无限长 sinc；实际用零阶保持（平顶采样）。</td></tr>
+          <tr data-k="抽取 内插 下采样 上采样"><td>抽取 / 内插</td>
+            <td class="ft c">x[M n] ⇒ 频谱展宽 M 倍；<br>插零 ⇒ 频谱压缩 + 镜像</td>
+            <td>下采样前必须抗混叠低通，上采样后必须内插低通。</td></tr>
+          <tr data-k="循环卷积 线性卷积 补零"><td>循环 = 线性</td>
+            <td class="ft c">N ≥ N₁ + N₂ − 1</td>
+            <td>补零到这个长度，DFT 的循环卷积才等于线性卷积。</td></tr>
+          <tr data-k="FFT 复杂度 NlogN"><td>FFT 复杂度</td>
+            <td class="ft c">O(N log N) &nbsp;vs&nbsp; 直接 DFT 的 O(N²)</td>
+            <td>N 是 2 的幂时最好用；实序列可用一个 N 点 FFT 同时算两个实序列。</td></tr>
+          <tr data-k="群延迟 线性相位 不失真"><td><span class="term" data-def="group delay，中文含义：群延迟。相位谱对频率的负导数 −d∠H/dω，表示该频率附近的"包络"被延迟了多久。群延迟为常数 ⇔ 线性相位 ⇔ 各频率延迟一致、波形不失真。">群延迟</span> / 不失真</td>
+            <td class="ft c">τ<sub>g</sub> = −<span class="frac"><span class="num">d∠H</span><span class="den">dω</span></span></td>
+            <td><b>幅度恒定 + 相位是 ω 的线性函数</b> ⇔ 输出只是输入的延时，波形不变。</td></tr>
+          <tr data-k="稳定性 判据 极点 单位圆 虚轴"><td>稳定性判据</td>
+            <td class="ft c">连续：因果 + 极点全在<b>左半平面</b><br>离散：因果 + 极点全在<b>单位圆内</b></td>
+            <td>等价说法：<b>ROC 包含虚轴 / 单位圆</b>。注意"稳定"与"因果"是两件事（见下面工具 1）。</td></tr>
+          <tr data-k="巴特沃斯 butterworth 最大平坦"><td>巴特沃斯</td>
+            <td class="ft c">|H(jω)|² = <span class="frac"><span class="num">1</span><span class="den">1+(ω/ω<sub>c</sub>)<sup>2n</sup></span></span></td>
+            <td>ω<sub>c</sub> 处恒为 −3 dB；高频按 <span class="mono">(ω<sub>c</sub>/ω)<sup>n</sup></span> 衰减；通带无波纹。</td></tr>
+          <tr data-k="希尔伯特 s平面 z平面 映射"><td>s ↔ z 映射</td>
+            <td class="ft c">z = e<sup>sT</sup></td>
+            <td>左半平面 → 单位圆内；虚轴 → 单位圆；右半平面 → 单位圆外。映射以 <span class="mono">j2π/T</span> 为周期（条带重叠）。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s7">7. 工具 1 · 三秒判断因果与稳定（单位圆上点极点）</h2>
+
+      <p>
+        稳定性的全部内容其实只有一句话——但它极其容易和"因果"混在一起。先看判据：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">判据（离散时间 z 变换）</span>
+        <p>
+          <b>① <span class="term" data-def="causality，中文含义：因果性。系统当前时刻的输出只依赖当前与过去的输入，不依赖未来。离散时间 LTI 系统的充要条件是 h[n]=0（n&lt;0），等价于 ROC 取"最外极点之外"。">因果</span></b>：ROC 是"最外极点之外"（<span class="mono">|z| &gt; r<sub>max</sub></span>），对应右边序列；
+          <b>② <span class="term" data-def="BIBO stability，中文含义：有界输入有界输出稳定。任何有界输入都产生有界输出。对 LTI 系统等价于冲激响应绝对可和/可积；在 s/z 域上等价于 ROC 包含虚轴/单位圆。">稳定</span></b>：ROC 包含<b>单位圆</b> <span class="mono">|z| = 1</span>。
+        </p>
+        <p style="margin-bottom:0">
+          两条合起来才得到那句最常考的话：<b>因果且稳定 ⇔ 全部极点严格在单位圆内</b>。
+          注意：<b>极点恰好落在单位圆上</b>时，ROC 永远不包含单位圆（ROC 的边界由极点界定、且不含极点），
+          这时系统只是<b>临界</b>（冲激响应不衰减也不发散，例如 <span class="mono">u[n]</span>），
+          工程上算"不稳定"。连续时间把"单位圆"换成"虚轴"、"圆内"换成"左半平面"即可。
+        </p>
+      </div>
+
+      <p>
+        下面这个工具就是让你<b>用手点出极点</b>，看结论怎么变。圆点表示可供选择的位置：<b>最内圈 = 稳定，最外圈 = 不稳定，中间一整圈 = 临界</b>。
+      </p>
+
+      <div id="lab-stab"></div>
+
+      <div class="card">
+        <h4 style="margin-top:0">点极点：横轴 = 角度 ∠z，纵轴 = 半径 |z|（勾选 = 在该位置放一个极点）</h4>
+        <p class="small muted" style="margin-top:-4px">
+          下面这张表格就是"单位圆上的取点盘"：<b>|z| = 1.00 那一行整行都是临界位置</b>；
+          半径 &lt; 1 的行在单位圆内（稳定），&gt; 1 的行在单位圆外（不稳定）。
+          勾选后上面的 z 平面图、频响曲线和结论会立刻更新（同一行/列可以勾多个，形成共轭对或重极点）。
+        </p>
+        <div id="stabpicks" class="grid g3">
+          <div>
+            <div class="tiny muted">|z| = 0.30（内圈）</div>
+            <div id="pickrow0"></div>
+          </div>
+          <div>
+            <div class="tiny muted">|z| = 0.55</div>
+            <div id="pickrow1"></div>
+          </div>
+          <div>
+            <div class="tiny muted">|z| = 0.80</div>
+            <div id="pickrow2"></div>
+          </div>
+          <div>
+            <div class="tiny muted">|z| = 1.00（<b>临界</b>）</div>
+            <div id="pickrow3"></div>
+          </div>
+          <div>
+            <div class="tiny muted">|z| = 1.30</div>
+            <div id="pickrow4"></div>
+          </div>
+          <div>
+            <div class="tiny muted">|z| = 1.60（最外圈）</div>
+            <div id="pickrow5"></div>
+          </div>
+        </div>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">三个必须记住的对照（点一下就能验证）</span>
+        <p>
+          <b>① 只点一个半径 0.5 的极点</b> → 因果 + 稳定。这是"能用"的系统，例如
+          <span class="mono">h[n]=0.5<sup>n</sup>u[n]</span>，冲激响应衰减到 0。
+        </p>
+        <p>
+          <b>② 只点一个半径 1.5 的极点</b> → 因果 + 不稳定。冲激响应按 <span class="mono">1.5<sup>n</sup></span> 爆炸。
+          但同一条 <span class="mono">|H|</span> 曲线并没有变——<b>稳定性不是从频响曲线上"看"出来的，而是极点位置决定的</b>。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ 只点一个半径 1.0 的极点</b> → 临界。注意此时频响在极点所在频率处<b>冲到无穷</b>（图上的尖峰），
+          这对应"正弦输入会激起无界输出"，也就是共振。
+        </p>
+      </div>
+
+      <h2 id="s8">8. 工具 2 · 给系数求极零点（含 s 域对照）</h2>
+
+      <p>
+        考试和工程里更常见的是反过来：给差分方程（或系统函数的分母多项式），求极点、判断稳定。
+        输入格式：<b>从最高次到最低次的系数，用逗号或空格分隔</b>。
+      </p>
+
+      <div class="box">
+        <span class="tag">输入约定（照着写，别乱）</span>
+        <p style="margin-bottom:0">
+          z 域：差分方程 <span class="mono">y[n] = −a<sub>1</sub>y[n−1] − … + b<sub>0</sub>x[n] + …</span> 的分母系数写成
+          <span class="mono">[a<sub>0</sub>, a<sub>1</sub>, …, a<sub>N</sub>]</span>（对应
+          <span class="mono">H(z)=(b<sub>0</sub>+b<sub>1</sub>z<sup>−1</sup>+…)/(a<sub>0</sub>+a<sub>1</sub>z<sup>−1</sup>+…)</span>）。
+          s 域同理，写 <span class="mono">[a<sub>0</sub>, a<sub>1</sub>, a<sub>2</sub>]</span> 对应
+          <span class="mono">a<sub>0</sub>s<sup>2</sup>+a<sub>1</sub>s+a<sub>2</sub></span>。
+        </p>
+      </div>
+
+      <div id="lab-coef"></div>
+
+      <div class="card">
+        <h4 style="margin-top:0">手动输入系数（改完按回车或点「计算」）</h4>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center">
+          <span class="mono" style="font-size:14px">分母系数（从最高次到最低次）：</span>
+          <input id="coefin" type="text" value="1, -0.5"
+            style="flex:1 1 280px;min-width:200px;padding:8px 11px;border:1px solid var(--line);border-radius:10px;background:var(--panel);color:var(--ink);font:inherit;font-size:14.5px"
+            aria-label="分母多项式系数">
+          <button class="btn" id="coefgo">计算</button>
+        </div>
+        <p class="small muted" style="margin-bottom:0">
+          例：z 域输入 <span class="mono">1, -1.9, 0.995</span>（二阶，极点在单位圆外一点点）；
+          s 域先把上面的「域」切成 s 域，再输入 <span class="mono">1, 2, 5</span>（极点 −1±2j）。
+          输入框里用<b>逗号或空格</b>分隔都行；非数字的字符会被自动忽略。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 常见坑 Top 15</h2>
+      <p class="small muted">每条都写成"<b>错在哪 → 正确做法</b>"，并链回对应章节。建议考前把这一节从头到尾读一遍。</p>
+
+      <div class="grid g2">
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 1 · 忘了反变换的 1/2π / 1/N</h4>
+          <p class="small">
+            <b>错在哪：</b>把 <span class="mono">x(t) = ∫X(jω)e<sup>jωt</sup>dω</span> 直接当反变换（丢了 <span class="mono">1/2π</span>），
+            或者 DFT 反变换忘了 <span class="mono">1/N</span>，结果整体差一个常数倍，还被误判成"能量不守恒"。
+            <br><b>正确做法：</b>记住本页的约定——<b>正变换不带系数，系数全在反变换上</b>：
+            CTFT/DTFT 是 <span class="mono">1/2π</span>，DFT 是 <span class="mono">1/N</span>，二维 CTFT 是 <span class="mono">1/4π²</span>。
+            不同教材可能把 2π 放在正变换或两边各放 <span class="mono">1/√(2π)</span>，用之前先确认对方的约定。
+            详见 <a href="ch06-ctft.html">第 6 章</a>、<a href="ch08-dft.html">第 8 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 2 · 把"稳定"和"因果"当成一回事</h4>
+          <p class="small">
+            <b>错在哪：</b>看到极点都在左半平面就答"因果稳定"；或者把"稳定"直接等同于"因果"。
+            <br><b>正确做法：</b>分开判。① 因果看 <b>ROC 是右边（圆外/右半平面）</b>；
+            ② 稳定看 <b>ROC 是否包含虚轴 / 单位圆</b>。只有两条同时成立才有"因果且稳定 ⇔ 极点全在左半平面 / 单位圆内"。
+            反因果系统也可以稳定（极点全在右半平面 / 单位圆外）。详见 <a href="ch12-laplace.html">第 12 章</a>、<a href="ch13-ztransform.html">第 13 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 3 · 同一个 X(z) 不问 ROC 就反变换</h4>
+          <p class="small">
+            <b>错在哪：</b>看到 <span class="mono">1/(1−az<sup>−1</sup>)</span> 就写 <span class="mono">a<sup>n</sup>u[n]</span>。
+            <br><b>正确做法：</b>同一个 X(z) 配不同 ROC 是<b>完全不同的序列</b>：
+            <span class="mono">|z|&gt;|a|</span> → <span class="mono">a<sup>n</sup>u[n]</span>（右边、因果）；
+            <span class="mono">|z|&lt;|a|</span> → <span class="mono">−a<sup>n</sup>u[−n−1]</span>（左边、反因果）。
+            <b>先写 ROC，再反变换。</b>详见 <a href="ch13-ztransform.html">第 13 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 4 · 把 ROC 画到极点上</h4>
+          <p class="small">
+            <b>错在哪：</b>写 ROC 时用 <span class="mono">≥</span>（例如 <span class="mono">|z| ≥ 0.5</span>），
+            或把条带写成闭区间，把极点"包"了进去。
+            <br><b>正确做法：</b>ROC <b>永远不含任何极点</b>（在极点处 X(z) 发散），边界由极点界定但用<b>严格不等号</b>。
+            另外：<span class="mono">|z|&gt;0.5</span> 这种"圆外到无穷"的 ROC 要画成整个外部区域，不是一条线。
+            详见 <a href="ch12-laplace.html">第 12 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 5 · 离散卷积忘了翻转与移位</h4>
+          <p class="small">
+            <b>错在哪：</b>算 <span class="mono">y[n]=Σ<sub>k</sub>x[k]h[n−k]</span> 时把 <span class="mono">h[n−k]</span> 当成
+            <span class="mono">h[k−n]</span>，或者只平移不翻转，算出来整个左右颠倒。
+            <br><b>正确做法：</b>严格按"<b>翻转 → 平移 → 相乘 → 求和</b>"四步走；先把 <span class="mono">h[k]</span> 关于纵轴翻成
+            <span class="mono">h[−k]</span>，再把 <span class="mono">n</span> 从 −∞ 滑到 +∞。
+            有限长序列的结果长度是 <span class="mono">N₁+N₂−1</span>，可以用这条先自检。详见 <a href="ch02-convolution.html">第 2 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 6 · 把循环卷积当线性卷积</h4>
+          <p class="small">
+            <b>错在哪：</b>直接用 N 点 DFT 相乘再反变换，就当成线性卷积的结果；
+            结果序列首尾"绕"到了一起，出现莫名的高值。
+            <br><b>正确做法：</b>DFT 相乘对应的是 <b>循环卷积</b>。要它等于线性卷积，必须先把两个序列补零到
+            <span class="mono">N ≥ N₁+N₂−1</span> 再做 N 点 DFT。图像滤波里忘了补零，就会出现"右边内容绕回左边"的空间混叠。
+            详见 <a href="ch08-dft.html">第 8 章</a>、<a href="ch15-applications.html">附 A</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 7 · 忘了 DTFT 是以 2π 为周期的</h4>
+          <p class="small">
+            <b>错在哪：</b>把 <span class="mono">|X(e<sup>jω</sup>)|</span> 画在 <span class="mono">ω∈(−∞,∞)</span> 上当成一条非周期曲线，
+            或者在 <span class="mono">ω&gt;π</span> 处"又发现了一个新频率"。
+            <br><b>正确做法：</b>离散时间信号的频谱<b>永远以 2π 为周期</b>，只需要看 <span class="mono">[−π, π)</span>；
+            <span class="mono">ω=π</span> 就是最高频率（对应交替序列 <span class="mono">(−1)<sup>n</sup></span>）。
+            "高于 π 的频率"只是负频率的别名，这就是混叠的根源。详见 <a href="ch07-dtft.html">第 7 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 8 · 采样时把奈奎斯特率记成 f<sub>s</sub> = f<sub>M</sub> 或漏了严格不等式</h4>
+          <p class="small">
+            <b>错在哪：</b>认为"采样率只要不低于最高频率就行"，或写成 <span class="mono">f<sub>s</sub> ≥ 2f<sub>M</sub></span> 后对恰好取等的情形不作说明。
+            <br><b>正确做法：</b>条件是 <b><span class="mono">ω<sub>s</sub> &gt; 2ω<sub>M</sub></span></b>（严格大于）。
+            取等号时，<span class="mono">ω<sub>M</sub></span> 处那两个搬移后的副本会正好在边界相接，一般频响在边界不为零，仍会混叠。
+            判断是否混叠：把频率折叠回去 <span class="mono">ω<sub>alias</sub> = |ω − kω<sub>s</sub>|</span> 取最小。详见 <a href="ch09-sampling.html">第 9 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 9 · 把 sinc 的定义搞混</h4>
+          <p class="small">
+            <b>错在哪：</b>一边用 <span class="mono">rect(t/τ) ↔ τ·sinc(ωτ/2)</span>，一边把 sinc 当成
+            <span class="mono">sin(πx)/(πx)</span>，于是零点位置全部错一倍。
+            <br><b>正确做法：</b>全站统一 <b><span class="mono">sinc(x) = sin x / x</span></b>（Oppenheim 约定，<span class="mono">sinc(0)=1</span>），
+            零点在 <span class="mono">x = kπ</span>。另有归一化定义 <span class="mono">sinc(x)=sin(πx)/(πx)</span>（零点在整数处），
+            两者相差一个 π：写答案时要明确是哪一种。详见 <a href="ch06-ctft.html">第 6 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 10 · CTFT 与 DTFT 的卷积/相乘性质系数乱套</h4>
+          <p class="small">
+            <b>错在哪：</b>写"时域相乘 ↔ 频域卷积"时漏掉 <span class="mono">1/2π</span>（离散）或写成
+            <span class="mono">1/N</span>（DFT）；或者把"时域卷积 ↔ 频域相乘"和它互换了。
+            <br><b>正确做法：</b>口诀：<b>卷积在时域 ⇒ 频域纯相乘（无系数）；相乘在时域 ⇒ 频域要卷积，且带 1/2π（连续）/ 1/N（DFT）</b>。
+            用 Parseval 可以快速校验系数对不对。详见 <a href="ch06-ctft.html">第 6 章</a>、<a href="ch07-dtft.html">第 7 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 11 · 用傅里叶变换去分析不稳定信号</h4>
+          <p class="small">
+            <b>错在哪：</b>对 <span class="mono">e<sup>2t</sup>u(t)</span> 硬套 <span class="mono">1/(2+jω)</span>，或者对
+            <span class="mono">1.5<sup>n</sup>u[n]</span> 求 DTFT。
+            <br><b>正确做法：</b>傅里叶变换要求信号绝对可积/可和（或允许广义冲激）。
+            <span class="mono">e<sup>2t</sup>u(t)</span> 的拉普拉斯变换 <span class="mono">1/(s−2)</span> 只在 <span class="mono">Re{s}&gt;2</span> 成立，
+            <b>ROC 不含虚轴</b>，所以它的傅里叶变换根本不存在。
+            正确顺序是先看 ROC 再谈 <span class="mono">s=jω</span>。详见 <a href="ch12-laplace.html">第 12 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 12 · 分不清离散和连续频率</h4>
+          <p class="small">
+            <b>错在哪：</b>把 DTFT 的自变量写成 <span class="mono">X(ω)</span> 却按 rad/s 代入物理频率；
+            或者用 <span class="mono">ω = 2πf</span> 去换算离散频率 Ω。
+            <br><b>正确做法：</b>离散频率单位是 <b>rad/样本</b>，与物理频率的关系是
+            <span class="mono">Ω = ωT<sub>s</sub> = 2πf/f<sub>s</sub></span>；只有 <span class="mono">Ω∈[−π,π)</span> 有意义。
+            连续时间数字处理里还有一条 <span class="mono">H<sub>d</sub>(e<sup>jΩ</sup>) = H<sub>c</sub>(jΩ/T)</span>。
+            详见 <a href="ch07-dtft.html">第 7 章</a>、<a href="ch09-sampling.html">第 9 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 13 · 以为补零能提高分辨率</h4>
+          <p class="small">
+            <b>错在哪：</b>把 100 点的信号补零到 1000 点做 FFT，就宣称"分辨率提高了 10 倍"。
+            <br><b>正确做法：</b>补零只是让 DTFT 被<b>采样得更密</b>（频域插值），
+            真正的频率分辨率由<b>观测时长</b>决定（<span class="mono">Δf ≈ 1/T<sub>obs</sub></span>）。
+            补零能让本来被"栅栏"挡住的两个谱峰显现出来，但两个靠得很近的真实谱峰不会因为补零而分开。
+            详见 <a href="ch08-dft.html">第 8 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 14 · 以为"时移不改频谱"就等于相位也没变</h4>
+          <p class="small">
+            <b>错在哪：</b>说"时移对频谱没有影响"。
+            <br><b>正确做法：</b>精确说法是<b>幅度谱不变，相位谱加上一个线性斜坡</b>
+            <span class="mono">−ωt₀</span>。这不是细节——线性相位正是"纯延时、不失真"的定义（群延迟恒为 <span class="mono">t₀</span>）。
+            反过来，看到相位是 ω 的线性函数，就该立刻想到"这是一段纯延时"。详见 <a href="ch06-ctft.html">第 6 章</a>、<a href="ch10-filters.html">第 10 章</a>。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">坑 15 · 把非零初始条件当成零（单边变换用错）</h4>
+          <p class="small">
+            <b>错在哪：</b>解 <span class="mono">y′+2y=x</span> 时直接写 <span class="mono">H(s)=1/(s+2)</span>、
+            <span class="mono">Y=HX</span>，忽略了 <span class="mono">y(0<sup>−</sup>)≠0</span> 带来的附加项。
+            <br><b>正确做法：</b>用<b>单边拉普拉斯</b>且微分性质要带初值：
+            <span class="mono">L{y′} = sY(s) − y(0<sup>−</sup>)</span>。
+            于是 <span class="mono">Y(s) = H(s)X(s) + </span>（初值项），总响应 = <b>零输入响应 + <span class="term" data-def="zero-state response，中文含义：零状态响应。初始条件全为 0 时，仅由输入引起的响应；它才等于 H(s)X(s)。加上"零输入响应"（仅由初始储能引起）才是完整解。">零状态响应</span></b>。
+            <span class="mono">Y=HX</span> 这个漂亮公式只描述<b>零状态</b>部分。详见 <a href="ch12-laplace.html">第 12 章</a>。
+          </p>
+        </div>
+
+      </div>
+
+      <div class="box ok">
+        <span class="tag">如果只来得及记三件事</span>
+        <p style="margin-bottom:0">
+          <b>①</b> 时域卷积 ⇒ 频域相乘（无系数）；时域相乘 ⇒ 频域卷积（带 1/2π 或 1/N）。<br>
+          <b>②</b> 因果看 ROC 方向，稳定看 ROC 是否含虚轴/单位圆；两者合起来才是"极点全在左半平面/单位圆内"。<br>
+          <b>③</b> 离散频谱必周期、周期信号频谱必离散——用它一眼检查答案的形态对不对。
+        </p>
+      </div>
+
+      <h2 id="s10">10. 自测</h2>
+      <p class="small muted">6 题覆盖本页四个表最容易记错的点。先自己答，再看解释。</p>
+      <div id="quiz16"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 附 B 速查表与常见坑 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* =====================================================================
+     工具 1 · 单位圆上点极点 → 三秒判定因果 / 稳定
+     ===================================================================== */
+  var RADII = [0.3, 0.55, 0.8, 1.0, 1.3, 1.6];
+  var ANGLES = [0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330];
+  var picked = { '2|0': 1 };                 /* 默认选中半径 0.8、角度 0°（一个稳定的实极点） */
+
+  function pickedList() {
+    var out = [];
+    RADII.forEach(function (r, ri) {
+      ANGLES.forEach(function (a, ai) {
+        if (picked[ri + '|' + ai]) out.push([r * Math.cos(a * Math.PI / 180), r * Math.sin(a * Math.PI / 180)]);
+      });
+    });
+    return out;
+  }
+
+  SSC.lab({
+    mount: '#lab-stab',
+    title: '工具 1 · 单位圆上点极点：因果 / 稳定 三秒判定',
+    hint: '点一下格子放/收一个极点（z 平面共轭对称）。内圈绿=稳定，中间一圈黄=临界，外圈红=不稳定',
+    columns: 2,
+    canvases: [
+      { id: 'zplane', label: 'z 平面：极点位置与 ROC（绿色区域）', height: 240 },
+      { id: 'resp', label: '频率响应 |H(e^{jω})| = 1 / Π|e^{jω} − p_k|（只有极点、没有零点）', height: 240 }
+    ],
+    controls: [
+      { id: 'mode', label: 'ROC 取法（决定系统是否因果）', options: [
+        { v: 'causal', t: '因果：ROC = |z| > max|p|（右边序列）' },
+        { v: 'anticausal', t: '反因果：ROC = |z| < min|p|（左边序列）' },
+        { v: 'both', t: '双边：ROC = 环形（两极之间）' }
+      ], value: 'causal' }
+    ],
+    buttons: [
+      { label: '清空', onClick: function (v, api) { picked = {}; api.redraw(); } },
+      { label: '示例：稳定（|p|=0.8）', onClick: function (v, api) { picked = { '2|0': 1 }; api.redraw(); } },
+      { label: '示例：临界（|p|=1.0）', onClick: function (v, api) { picked = { '3|0': 1 }; api.redraw(); } },
+      { label: '示例：不稳定（|p|=1.6）', onClick: function (v, api) { picked = { '5|0': 1 }; api.redraw(); } },
+      { label: '示例：共轭对（0.8∠±60°）', onClick: function (v, api) { picked = {}; picked['2|2'] = 1; picked['2|10'] = 1; api.redraw(); } }
+    ],
+    draw: function (cv, v, api) {
+      var P = pickedList();
+      var isCausal = v.mode !== 'anticausal';
+      var rmax = 0, rmin = Infinity;
+      P.forEach(function (p) { var r = Math.hypot(p[0], p[1]); rmax = Math.max(rmax, r); rmin = Math.min(rmin, r); });
+      var onCircle = P.some(function (p) { return Math.abs(Math.hypot(p[0], p[1]) - 1) < 1e-6; });
+
+      /* ---- z 平面 ---- */
+      var view = SSC.plane(cv.zplane, { R: 1.95, unit: true, axesLabel: ['Re', 'Im'] });
+      var FILL = 'rgba(21,128,61,.13)';
+      if (!P.length) {
+        view.ctx.save(); view.ctx.fillStyle = FILL; view.ctx.fillRect(0, 0, view.W, view.H); view.ctx.restore();
+      } else if (v.mode === 'causal') view.outside(rmax, FILL);
+      else if (v.mode === 'anticausal') view.inside(rmin, FILL);
+      else view.annulus(rmin, rmax, FILL);
+      view.drawPZ(P, []);
+
+      /* ---- 频响：无零点，K=1，极点在 P 上 ---- */
+      var N = 400, mags = [], mx = 0;
+      for (var i = 0; i <= N; i++) {
+        var w = Math.PI * i / N, re = Math.cos(w), im = Math.sin(w), den = 1;
+        for (var k = 0; k < P.length; k++) den *= Math.hypot(re - P[k][0], im - P[k][1]);
+        var m = P.length === 0 ? 1 : (den === 0 ? 1e6 : 1 / den);
+        mags.push(m); mx = Math.max(mx, m);
+      }
+      var cap = Math.min(60, Math.max(1.2, mx));
+      SSC.plot(cv.resp, {
+        xmin: 0, xmax: Math.PI, ymin: 0, ymax: cap,
+        xticks: [0, Math.PI / 2, Math.PI], tickFmt: function (z) {
+          return z === 0 ? '0' : (Math.abs(z - Math.PI / 2) < 1e-9 ? 'π/2' : (Math.abs(z - Math.PI) < 1e-9 ? 'π' : SSC.fmt(z, 2)));
+        },
+        xlabel: 'ω (rad/样本)', ylabel: '|H(e^{jω})|',
+        curves: [{ f: function (w) {
+          var idx = SSC.clamp(Math.round(w / Math.PI * N), 0, N);
+          return Math.min(cap, mags[idx]);
+        }, color: '#0e7490', width: 2.2, samples: N }]
+      });
+
+      /* ---- 判定 ---- */
+      var stable, verdict;
+      if (!P.length) { stable = true; verdict = '稳定（FIR：无极点，ROC 是整个 z 平面）'; }
+      else if (v.mode === 'causal') { stable = rmax < 1; verdict = stable ? '因果且稳定（极点全在单位圆内 → P 有界）' : (onCircle ? '临界（极点在单位圆上）' : '因果但不稳定（极点跑出单位圆）'); }
+      else if (v.mode === 'anticausal') { stable = rmin > 1; verdict = stable ? '反因果但稳定（ROC |z|<min|p| 含单位圆）' : '反因果、不稳定'; }
+      else { stable = (rmin < 1 && rmax > 1); verdict = stable ? '双边序列、稳定（单位圆夹在两条极点圆之间）' : '双边序列：ROC 环形不含单位圆 → 不稳定'; }
+
+      api.readout(
+        '<div class="stat"><div class="k">极点数</div><div class="v">' + P.length + '</div></div>' +
+        '<div class="stat"><div class="k">max|p|</div><div class="v">' + (P.length ? SSC.fmt(rmax, 3) : '（无）') + '</div></div>' +
+        '<div class="stat"><div class="k">min|p|</div><div class="v">' + (P.length ? SSC.fmt(rmin, 3) : '（无）') + '</div></div>' +
+        '<div class="stat"><div class="k">ROC 含单位圆？</div><div class="v" style="color:' + (stable ? '#15803d' : '#b91c1c') + '">' + (stable ? '是（稳定）' : '否（不稳定）') + '</div></div>' +
+        '<div class="stat"><div class="k">结论</div><div class="v" style="font-size:13px">' + verdict + '</div></div>'
+      );
+      return void api;
+    },
+    note: function (v) {
+      return '<b>因果看 ROC 的方向，稳定看 ROC 含不含单位圆</b>，这是两条独立的判据。' +
+        '把「ROC 取法」从因果切到反因果，同样的极点位置会给出不同的稳定性结论——' +
+        '因为决定系统的是 <span class="mono">(X(z) 的表达式 + ROC)</span> 这一对，缺一不可。' +
+        '<br>试试点一个 <b>|p|=1.0</b> 的极点：频响会在该极点对应的频率处冲出一个尖峰（图的上限被截断了），' +
+        '物理含义是"输入这个频率的正弦，输出会无界增长"——这就是共振，工程上算不稳定。' +
+        '<br>再试试<b>共轭对 0.8∠±60°</b>：两个极点各自贡献一个尖峰，合起来就是一个带通/谐振特性。';
+    }
+  });
+
+  /* 生成"点极点"勾选盘（放在 lab-stab 下方） */
+  (function () {
+    function build(elId, ri) {
+      var row = document.getElementById(elId);
+      if (!row) return;
+      var wrap = document.createElement('div');
+      wrap.style.cssText = 'display:flex;flex-wrap:wrap;gap:2px 8px;font-size:12px';
+      ANGLES.forEach(function (a, ai) {
+        var lab = document.createElement('label');
+        lab.style.cssText = 'white-space:nowrap;display:inline-flex;align-items:center;gap:3px';
+        var cb = document.createElement('input');
+        cb.type = 'checkbox';
+        cb.className = 'stabpick';
+        cb.setAttribute('data-r', String(ri));
+        cb.setAttribute('data-a', String(ai));
+        cb.setAttribute('aria-label', '极点 |z|=' + RADII[ri] + ' 角度 ' + a + '°');
+        if (picked[ri + '|' + ai]) cb.checked = true;
+        cb.addEventListener('change', function () {
+          if (cb.checked) picked[ri + '|' + ai] = 1; else delete picked[ri + '|' + ai];
+          SSC.redrawAll();
+        });
+        lab.appendChild(cb);
+        var txt = document.createElement('span');
+        txt.textContent = a + '°';
+        lab.appendChild(txt);
+        wrap.appendChild(lab);
+      });
+      row.appendChild(wrap);
+    }
+    RADII.forEach(function (r, ri) { build('pickrow' + ri, ri); });
+  })();
+
+  /* =====================================================================
+     工具 2 · 给系数求极零点（含 s 域对照）
+     ===================================================================== */
+  function parseCoef(s) {
+    return String(s).split(/[,，\s;]+/).filter(function (t) { return t.length; })
+      .map(function (t) { return parseFloat(t); })
+      .filter(function (x) { return isFinite(x); });
+  }
+  /* z 域：a = [a0,a1,...]（按 z^-k 的系数），多项式升幂 = 反转 */
+  function polesZ(a) { return SSC.polyRoots(a.slice().reverse()).map(function (p) { return [p.re, p.im]; }); }
+  /* s 域：a = [a0,a1,...] 是降幂系数，直接交给 polyRoots */
+  function polesS(a) { return SSC.polyRoots(a.slice()).map(function (p) { return [p.re, p.im]; }); }
+
+  var EXAMPLES = [
+    { v: 'z|1,-0.5|0|1', t: 'z 域：y[n]=0.5y[n−1]+x[n]（H(z)=z/(z−0.5)，稳定）', dom: 'z', a: [1, -0.5] },
+    { v: 'z|1,-1.5|0|1', t: 'z 域：y[n]=1.5y[n−1]+x[n]（极点在 2/3，稳定）', dom: 'z', a: [1, -1.5] },
+    { v: 'z|1,-0.5,-0.25|0|1', t: 'z 域：二阶，极点 1.236 与 −0.809（不稳定）', dom: 'z', a: [1, -0.5, -0.25] },
+    { v: 'z|1,-1.9,0.995|0|1', t: 'z 域：二阶，|p|=1.0025（临界，工程上算不稳定）', dom: 'z', a: [1, -1.9, 0.995] },
+    { v: 'z|1,-1,0|0|1', t: 'z 域：y[n]=y[n−1]+x[n]（累加器，极点在 1，临界）', dom: 'z', a: [1, -1, 0] },
+    { v: 's|1,2,1|1|1', t: 's 域：(s+1)²（重极点在 −1，稳定但临界阻尼）', dom: 's', a: [1, 2, 1] },
+    { v: 's|1,2,5|1|1', t: 's 域：s²+2s+5（极点 −1±2j，稳定）', dom: 's', a: [1, 2, 5] },
+    { v: 's|1,-2,5|1|1', t: 's 域：s²−2s+5（极点 1±2j，不稳定）', dom: 's', a: [1, -2, 5] }
+  ];
+
+  var coefState = { dom: 'z', a: [1, -0.5] };
+  var wired = false;
+
+  SSC.lab({
+    mount: '#lab-coef',
+    title: '工具 2 · 输入分母多项式系数 → 求极点 → 判因果/稳定',
+    hint: '在下面的输入框里改系数（逗号或空格分隔，从最高次到最低次），按回车或点「计算」',
+    columns: 2,
+    canvases: [
+      { id: 'pz', label: '极点零点图（z 域画单位圆；s 域画虚轴）', height: 240 },
+      { id: 'resp', label: '频率响应 |H|（z 域 |H(e^{jω})|；s 域 |H(jω)|）', height: 240 }
+    ],
+    controls: [
+      { id: 'dom', label: '域', options: [{ v: 'z', t: 'z 域（离散，判单位圆）' }, { v: 's', t: 's 域（连续，判虚轴）' }], value: 'z' }
+    ],
+    buttons: EXAMPLES.map(function (ex) {
+      return {
+        label: ex.t.split('（')[0],
+        onClick: function (vals, api) {
+          coefState = { dom: ex.dom, a: ex.a.slice() };
+          vals.dom = ex.dom;
+          if (typeof api.set === 'function') api.set('dom', ex.dom);
+          var inp = document.getElementById('coefin');
+          if (inp) inp.value = ex.a.join(', ');
+          api.redraw();
+        }
+      };
+    }),
+    draw: function (cv, v, api) {
+      if (v.dom !== coefState.dom) { coefState.dom = v.dom; }
+      var a = coefState.a, dom = coefState.dom;
+      var pr = (dom === 'z') ? polesZ(a) : polesS(a);
+
+      /* 由极点位置直接构造频响（归一化到低频增益 1） */
+      var K = 1, i;
+      if (dom === 'z') {
+        var den0 = 1;
+        pr.forEach(function (p) { den0 *= Math.hypot(1 - p[0], 0 - p[1]); });
+        K = den0 || 1;
+      } else {
+        var den0s = 1;
+        pr.forEach(function (p) { den0s *= Math.hypot(0 - p[0], 0 - p[1]); });
+        K = den0s || 1;
+      }
+      function magAt(w) {
+        var den = 1;
+        if (dom === 'z') {
+          var re = Math.cos(w), im = Math.sin(w);
+          pr.forEach(function (p) { den *= Math.hypot(re - p[0], im - p[1]); });
+        } else {
+          pr.forEach(function (p) { den *= Math.hypot(0 - p[0], w - p[1]); });
+        }
+        return den < 1e-12 ? 1e6 : K / den;
+      }
+      var wmax = (dom === 'z') ? Math.PI : 6, Nn = 500, mxm = 0;
+      for (i = 0; i <= Nn; i++) mxm = Math.max(mxm, magAt(wmax * i / Nn));
+      var cap = Math.min(40, Math.max(1.2, mxm));
+
+      /* 极点零点图：用 SSC.plot 保证在桩 DOM 下也安全 */
+      var R = 1.7;
+      var pxs = pr.map(function (p) { return SSC.clamp(p[0], -R, R); });
+      var pys = pr.map(function (p) { return SSC.clamp(p[1], -R, R); });
+      SSC.plot(cv.pz, {
+        xmin: -R, xmax: R, ymin: -R, ymax: R, symmetric: false,
+        xlabel: 'Re', ylabel: 'Im',
+        curves: (dom === 'z') ? [{ f: function (x) { return Math.sqrt(Math.max(0, 1 - x * x)); }, color: '#0e7490', width: 1.6, dash: [5, 4], samples: 400, label: '单位圆 |z|=1' },
+          { f: function (x) { return -Math.sqrt(Math.max(0, 1 - x * x)); }, color: '#0e7490', width: 1.6, dash: [5, 4], samples: 400 }]
+          : [{ f: function () { return 0; }, color: '#0e7490', width: 1.6, dash: [5, 4], samples: 2, label: '虚轴 σ=0' }],
+        points: pxs.map(function (x, k) { return { x: x, y: pys[k], color: '#dc2626', r: 5 }; }),
+        hlines: [{ y: 0, color: 'rgba(110,130,165,.55)' }],
+        vlines: [{ x: 0, color: 'rgba(110,130,165,.55)' }],
+        legend: true
+      });
+      /* 在 s 域另画一条竖直虚轴标记 */
+      try {
+        if (dom === 's') {
+          var ct = cv.pz.getContext('2d');
+          if (ct && ct.beginPath) {
+            var cw = +cv.pz.width, chh = +cv.pz.height;
+            if (!isFinite(cw) || cw <= 0) cw = 300;
+            if (!isFinite(chh) || chh <= 0) chh = 150;
+            var W = cw, H = chh, pad = { l: 54, r: 16, t: 16, b: 34 };
+            var X = function (x) { return pad.l + (x + R) / (2 * R) * (W - pad.l - pad.r); };
+            var Y = function (y) { return H - pad.b - (y + R) / (2 * R) * (H - pad.t - pad.b); };
+            ct.save(); ct.setLineDash([5, 4]); ct.strokeStyle = '#0e7490'; ct.lineWidth = 1.6;
+            ct.beginPath(); ct.moveTo(X(0), Y(-R)); ct.lineTo(X(0), Y(R)); ct.stroke(); ct.restore();
+          }
+        }
+      } catch (e) { /* 忽略 */ }
+
+      SSC.plot(cv.resp, {
+        xmin: 0, xmax: wmax, ymin: 0, ymax: cap,
+        xlabel: (dom === 'z') ? 'ω (rad/样本)' : 'ω (rad/s)', ylabel: '|H|（归一化低频增益为 1）',
+        curves: [{ f: function (w) { return Math.min(cap, magAt(w)); }, color: '#4338ca', width: 2.2, samples: Nn }]
+      });
+
+      var rmax = 0, rmin = Infinity, onAxis = false;
+      pr.forEach(function (p) {
+        var rr = (dom === 'z') ? Math.hypot(p[0], p[1]) : Math.abs(p[0]);
+        rmax = Math.max(rmax, rr);
+        if (dom === 'z') rmin = Math.min(rmin, Math.hypot(p[0], p[1]));
+        if (Math.abs(rr - 1) < 1e-6 && dom === 'z') onAxis = true;
+        if (Math.abs(p[0]) < 1e-6 && dom === 's') onAxis = true;
+      });
+      var verdict;
+      if (!pr.length) verdict = (dom === 'z') ? '无极点（FIR）→ 恒稳定' : '无极点 → 恒稳定';
+      else if (dom === 'z') verdict = onAxis ? '临界：极点在单位圆上' : (rmax < 1 ? '因果且稳定（极点全在单位圆内）' : '不稳定（有极点在单位圆外）');
+      else verdict = onAxis ? '临界：极点在虚轴上' : (rmax < 0 ? '因果且稳定（极点全在左半平面）' : '不稳定（有极点在右半平面）');
+
+      var pstr = pr.length ? pr.map(function (p) { return SSC.cstr(p); }).join(' , ') : '（无）';
+      var diff = (dom === 'z')
+        ? 'y[n] = ' + a.slice(1).map(function (c, k) { return (c === 0 ? '' : (SSC.fmt(-c, 3) + ' y[n−' + (k + 1) + ']')); }).filter(String).join(' + ') + ' + (x 项)'
+        : '（s 域：对应微分方程 ' + a.map(function (c, k) { return SSC.fmt(c, 3) + ' d' + (a.length - 1 - k) + 'y/dt' + (a.length - 1 - k); }).join(' + ') + '）';
+      api.readout(
+        '<div class="stat"><div class="k">极点</div><div class="v" style="font-size:13px">' + pstr + '</div></div>' +
+        '<div class="stat"><div class="k">' + (dom === 'z' ? 'max|p|' : 'max Re{p}') + '</div><div class="v">' + (pr.length ? SSC.fmt(dom === 'z' ? rmax : Math.max.apply(null, pr.map(function (p) { return p[0]; })), 4) : '—') + '</div></div>' +
+        '<div class="stat"><div class="k">判定</div><div class="v" style="font-size:13px;color:' + (verdict.indexOf('不稳定') >= 0 ? '#b91c1c' : (verdict.indexOf('临界') >= 0 ? '#b45309' : '#15803d')) + '">' + verdict + '</div></div>' +
+        '<div class="stat"><div class="k">还原出的方程</div><div class="v" style="font-size:12.5px">' + diff + '</div></div>'
+      );
+      return void api;
+    },
+    note: function () {
+      return '判定的全部依据就是<b>极点的模</b>（z 域）或<b>极点的实部</b>（s 域）——' +
+        '和零点无关，和增益 K 无关，也和频响曲线看起来"凶不凶"无关。' +
+        '<br>注意本工具默认取<b>因果</b>系统（右边序列）。如果题目说明是反因果或双边，结论会变——' +
+        '这时要回到上一条判据："ROC 是否包含虚轴/单位圆"。';
+    }
+  });
+
+  /* 把文本输入框接上（lab 的 controls 只支持 range / select） */
+  (function () {
+    var inp = document.getElementById('coefin');
+    var btn = document.getElementById('coefgo');
+    if (!inp || !btn) return;
+    inp.value = coefState.a.join(', ');
+    function apply() {
+      var a = parseCoef(inp.value);
+      if (!a.length) return;
+      coefState.a = a;
+      SSC.redrawAll();
+    }
+    if (!wired) {
+      inp.addEventListener('keydown', function (e) { if (e.key === 'Enter') apply(); });
+      btn.addEventListener('click', apply);
+      wired = true;
+    }
+  })();
+
+  /* =====================================================================
+     速查筛选器：实时过滤所有 .qtable 的行
+     ===================================================================== */
+  (function () {
+    var inp = document.getElementById('qfilter');
+    var clr = document.getElementById('qclear');
+    var cnt = document.getElementById('qcount');
+    var hint = document.getElementById('qnoscript');
+    var tables = document.querySelectorAll('table.qtable');
+    if (!inp || !tables || !tables.length) return;
+
+    var rows = [];
+    Array.prototype.forEach.call(tables, function (tb) {
+      var tbody = tb.querySelectorAll ? tb.querySelectorAll('tbody tr') : [];
+      Array.prototype.forEach.call(tbody, function (tr) { rows.push(tr); });
+    });
+
+    function apply() {
+      var terms = String(inp.value || '').toLowerCase().split(/\s+/).filter(function (t) { return t.length; });
+      var shown = 0;
+      rows.forEach(function (tr) {
+        var hay = ((tr.textContent || '') + ' ' + (tr.getAttribute('data-k') || '')).toLowerCase();
+        var ok = terms.every(function (t) { return hay.indexOf(t) >= 0; });
+        tr.style.display = ok ? '' : 'none';
+        if (ok) shown++;
+      });
+      if (cnt) cnt.textContent = shown + ' / ' + rows.length + ' 行';
+      if (hint) hint.style.display = 'none';
+    }
+    inp.addEventListener('input', apply);
+    inp.addEventListener('change', apply);
+    if (clr) clr.addEventListener('click', function () { inp.value = ''; apply(); });
+    apply();
+
+    /* 让用户一眼看到哪些表被筛选了：给空表加个提示 */
+    var style = document.createElement('style');
+    style.textContent = '.qtable tbody tr{transition:none}';
+    document.head.appendChild(style);
+  })();
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz16', [
+    {
+      q: '某离散时间 LTI 系统的系统函数 H(z) = 1/[(1−0.5z⁻¹)(1−2z⁻¹)]，且已知系统因果。关于它的稳定性：',
+      opts: ['不稳定——极点 0.5 在单位圆内、极点 2 在单位圆外，因果时 ROC 是 |z|>2，不含单位圆',
+        '稳定——只要有一个极点在单位圆内就稳定',
+        '稳定——两个极点都有正实数部分',
+        '无法判断，还需要知道零点位置'],
+      a: 0,
+      why: '因果 ⇒ ROC = {|z| > max|p|} = {|z| > 2}，单位圆不在其中 ⇒ 不稳定。判稳定只看 ROC 是否含单位圆，与零点、增益无关。若允许反因果（ROC = |z|<0.5），则同一个 H(z) 是稳定的——这正是"ROC 是表达式的一部分"。',
+      tag: '稳定性'
+    },
+    {
+      q: '关于"时域相乘"，下列说法正确的是：',
+      opts: ['对应频域卷积，连续时间要带 1/2π，DFT 要带 1/N',
+        '对应频域相乘，不需要任何系数',
+        '对应频域相除', '对应频域的时移'],
+      a: 0,
+      why: '公式是 x(t)y(t) ↔ (1/2π)X(jω)*Y(jω)。离散版本是 (1/2π)∫X(e^{jθ})Y(e^{j(ω−θ)})dθ，DFT 是 (1/N)X ⊛ Y。反过来"时域卷积 ↔ 频域相乘"才是不带系数的那个。',
+      tag: '性质'
+    },
+    {
+      q: '一个实信号 x(t) 的 CTFT 记作 X(jω)。下列正确的是：',
+      opts: ['|X(jω)| = |X(−jω)| 且 ∠X(−jω) = −∠X(jω)',
+        'X(jω) 本身一定是实数', '|X(jω)| 是奇函数', '实信号的频谱只在 ω>0 才有值'],
+      a: 0,
+      why: '实信号满足 X(−jω)=X*(jω)：取模长得幅度谱偶对称，取辐角得相位谱奇对称。所以画图时只画 ω≥0 也够，负频是镜像。X(jω) 一般是复数（除非 x 是偶函数）。',
+      tag: '对称性'
+    },
+    {
+      q: '把 100 点的信号补零到 1000 点再做 FFT，会发生什么？',
+      opts: ['频谱被采样得更密（频域插值），但真实频率分辨率不变，仍由观测时长决定',
+        '频率分辨率提高 10 倍', '信号能量增大 10 倍', '等价于把信号采样率提高了 10 倍'],
+      a: 0,
+      why: '补零 = 在时域多加了零样本，DTFT 没有变化，只是被采样得更密，所以谱线看起来更"平滑"、被栅栏挡住的峰可能显出来。但两个靠得很近的真实谱峰能否分开，取决于 Δf ≈ 1/T_obs，与补零无关。能量按 Parseval 也不变（补零不增加任何非零样本）。',
+      tag: 'DFT'
+    },
+    {
+      q: '信号 x(t) 的最高频率为 3 kHz。要能无混叠地重建，采样率至少应满足：',
+      opts: ['f_s > 6 kHz（严格大于）', 'f_s ≥ 3 kHz', 'f_s ≥ 1.5 kHz', 'f_s = 3 kHz 就够'],
+      a: 0,
+      why: '采样定理要求 ω_s > 2ω_M，即 f_s > 2f_M = 6 kHz，且是严格不等式：取等号时最高频的搬移副本恰好相接，通常仍会混叠。实际工程还要留余量（并配抗混叠低通）。',
+      tag: '采样'
+    },
+    {
+      q: '已知 X(s) = 1/(s+2)。关于它的傅里叶变换 X(jω)：',
+      opts: ['只在 ROC 包含虚轴时才等于 X(s)|_{s=jω}，即要求 Re{s} > −2',
+        '永远等于 1/(2+jω)，不需要任何条件', '不存在', '等于 1/(jω−2)'],
+      a: 0,
+      why: 'X(s)=1/(s+2) 的因果 ROC 是 Re{s} > −2，包含虚轴，所以傅里叶变换存在且等于 1/(2+jω)。但如果极点在右半平面（例如 1/(s−2)，ROC 是 Re{s}>2，不含虚轴），就不能代 s=jω——那时傅里叶变换不存在。这正是"先看 ROC 再代 jω"的原因。',
+      tag: '拉普拉斯'
+    }
+  ], '附 B 自测 · 6 题');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,880 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 6 章　连续时间傅里叶变换（CTFT）｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch06">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第二段 · 傅里叶家族 · 第 6 章</div>
+        <h1>连续时间傅里叶变换（CTFT）</h1>
+        <p class="lede">
+          傅里叶级数只能对付<b>周期</b>信号。可现实里的信号大多不周期——一段话、一个脉冲、一次心跳。
+          这一章做一件事：<b>让周期 T 趋于无穷</b>，看傅里叶级数会变成什么。
+          答案就是傅里叶变换：离散的谱线挤成了连续的谱曲线，求和变成了积分。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch04-ctfs.html">第 4 章 傅里叶级数</a>（要会用 <span class="mono">a<sub>k</sub></span> 表示周期信号）<br>
+          <a href="ch03-eigenfunction.html">第 3 章 复指数是特征函数</a>（要知道为什么频域值得去）
+        </div>
+        <div class="cell mid"><b>这一站</b>CTFT 的定义、性质、常用对、时宽带宽积</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch07-dtft.html">第 7 章 离散时间傅里叶变换</a>（同一件事在离散时间怎么做）<br>
+          <a href="ch14-atlas.html">第 14 章 总对照</a>（想先看全局关系图）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 为什么非要"非周期"的版本</a>
+        <a href="#s2">2. 核心推导：T→∞ 把级数变成变换</a>
+        <a href="#s3">3. 定义式里每个符号的含义</a>
+        <a href="#s4">4. 五个必须记住的变换对（含推导）</a>
+        <a href="#s5">5. 动手：时宽与带宽的取舍</a>
+        <a href="#s6">6. 性质表与关键性质的证明</a>
+        <a href="#s7">7. 动手：线谱落在连续包络上</a>
+        <a href="#s8">8. 动手：频移与调制</a>
+        <a href="#s9">9. 用 CTFT 分析 LTI 系统</a>
+        <a href="#s10">10. 常见坑</a>
+        <a href="#s11">11. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 为什么非要"非周期"的版本</h2>
+
+      <p>
+        先回忆第 4 章的结论。一个周期为 <span class="mono">T</span> 的信号可以写成
+      </p>
+      <div class="eq center-eq">
+        x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+        a<sub>k</sub> e<sup>jkω<sub>0</sub>t</sup>,
+        &nbsp;&nbsp; ω<sub>0</sub> = <span class="frac"><span class="num">2π</span><span class="den">T</span></span>
+        <span class="lbl">(6-1)</span>
+      </div>
+      <p>
+        这里 <span class="mono">ω<sub>0</sub></span> 叫<span class="term" data-def="fundamental frequency，中文含义：基波角频率。周期信号的"最低频率"，单位是 rad/s；它和周期 T 的关系是 ω₀=2π/T。所有谐波频率都是它的整数倍。">基波角频率</span>
+        （fundamental frequency），
+        <span class="mono">kω<sub>0</sub></span> 是第 k 次<span class="term" data-def="harmonic，中文含义：谐波。频率为基频整数倍的成分；k=1 叫基波，k=2 叫二次谐波，依此类推。">谐波</span>的频率。
+      </p>
+
+      <div class="box trap">
+        <span class="tag">级数卡在哪</span>
+        <p>
+          回头看式 (6-1) 的频谱：谐波频率只能取 <span class="mono">ω<sub>0</sub>, 2ω<sub>0</sub>, 3ω<sub>0</sub>, …</span>，
+          而 <span class="mono">ω<sub>0</sub> = 2π/T</span>。也就是说，谱线之间的<b>间距等于 2π/T</b>。
+          周期越长，谱线越密；一旦信号不周期，"周期 T"都不存在了，谱线间距无从谈起——离散谱线这套语言直接失效。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">关键一招：把非周期信号"看成"周期无穷大的周期信号</span>
+        <p>
+          取一个孤立的脉冲 x(t)，只在一个有限区间内不为零。现在把它每 T 秒复制一份，得到周期信号 x̃(t)（这个操作叫
+          <span class="term" data-def="periodic extension，中文含义：周期延拓。把一个有限长信号按周期 T 反复复制，得到一个周期信号。">周期延拓</span>，英文 periodic extension）。
+        </p>
+        <p>
+          当 <b>T 越来越大</b>：延拓得到的波形彼此越离越远（在局部看和原信号越像），
+          而谱线间距 <span class="mono">2π/T</span> 越来越小——<b>离散谱线在变密</b>。
+          取 <span class="mono">T→∞</span>，谱线间距 → 0，离散谱线就"挤成"了一条连续曲线。这就是傅里叶变换。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 核心推导：T→∞ 把级数变成变换</h2>
+      <p class="small muted">这段是本章的骨架。每一步都逐字解释了"为什么可以这样写"，不要跳。</p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：从级数定义到变换对</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：写出周期信号的级数，并写出系数公式。</b></p>
+            <div class="eq">
+              x̃(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              a<sub>k</sub> e<sup>jkω<sub>0</sub>t</sup>,
+              &nbsp;&nbsp;
+              a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span></span></span>
+              x̃(t) e<sup>−jkω<sub>0</sub>t</sup> d<i>t</i>
+            </div>
+            <p class="why">为什么：a<sub>k</sub> 的公式来自"用 e<sup>−jkω₀t</sup> 去乘两边再在一个周期内积分"，
+              利用不同谐波在一个周期内积分为 0（正交性），只剩 k 那一项。∫<sub>T</sub> 表示"在任意一个长度为 T 的区间上积分"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：定义一个"与 T 无关"的量 X(jω)。</b></p>
+            <p>注意到 a<sub>k</sub> 的积分区间只有一个周期，而 x̃ 在这一个周期里等于 x（只要你选的周期包含信号的非零部分）。于是令</p>
+            <div class="eq">
+              X(jω) ≜ <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              x(t) e<sup>−jωt</sup> d<i>t</i>
+              <span class="lbl">(6-2)</span>
+            </div>
+            <p>把这个定义套回 a<sub>k</sub> 的公式：取 <span class="mono">ω = kω<sub>0</sub></span>，得到</p>
+            <div class="eq">a<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span> X(jkω<sub>0</sub>)</div>
+            <div class="eq">即 &nbsp; T·a<sub>k</sub> = X(jkω<sub>0</sub>) &nbsp;&nbsp;<span class="lbl">(6-3)</span></div>
+            <p class="why">为什么重要：<b>T·a<sub>k</sub> 不随 T 变化</b>。周期越拉越长，单个谱线的高度 a<sub>k</sub> 会被"摊薄"（乘 1/T），
+              但 X(jkω<sub>0</sub>) 保持稳定——它才是真正的"频谱密度"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：把 a<sub>k</sub> = X(jkω<sub>0</sub>)/T 代回级数，凑出"求和 → 积分"的形状。</b></p>
+            <div class="eq">
+              x̃(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              <span class="frac"><span class="num">1</span><span class="den">T</span></span> X(jkω<sub>0</sub>) e<sup>jkω<sub>0</sub>t</sup>
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              X(jkω<sub>0</sub>) e<sup>jkω<sub>0</sub>t</sup> · ω<sub>0</sub>
+            </div>
+            <p class="why">为什么：因为 <span class="mono">1/T = ω<sub>0</sub>/2π</span>（用 T = 2π/ω<sub>0</sub>），把 1/2π 提到外面，
+              就凭空多出一个 ω<sub>0</sub>。这个 ω<sub>0</sub> 是故意留下的，下一步要用。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：让 T→∞，把求和看成黎曼和。</b></p>
+            <p>令 <span class="mono">ω<sub>k</sub> = kω<sub>0</sub></span>，相邻两点间距就是 <span class="mono">Δω = ω<sub>0</sub> = 2π/T</span>。于是上式是</p>
+            <div class="eq">
+              x(t) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              X(jω<sub>k</sub>) e<sup>jω<sub>k</sub>t</sup> Δω
+              &nbsp;&nbsp;⟶<sub>T→∞</sub>&nbsp;&nbsp;
+              <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(jω) e<sup>jωt</sup> dω
+              <span class="lbl">(6-4)</span>
+            </div>
+            <p class="why">为什么能这样换：<b>黎曼和的定义</b>——把函数在等间距点上的取值乘以间距再求和，当间距趋于 0 时极限就是积分。
+              这里"函数"是 <span class="mono">X(jω)e<sup>jωt</sup></span>，"间距"是 Δω=ω<sub>0</sub>→0。所以 T→∞ 的极限正好把求和变成积分。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">结论：傅里叶变换对</span>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>分析式（正变换）</b>　X(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t) e<sup>−jωt</sup> d<i>t</i>
+            </div>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>综合式（反变换）</b>　x(t) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> X(jω) e<sup>jωt</sup> dω
+            </div>
+            <p style="margin-bottom:0" class="small">
+              记号：<span class="mono">x(t) <span class="op ft">⟷</span> X(jω)</span>。
+              "分析"是把信号拆开、看清有哪些频率；"综合"是把各频率按权重拼回去。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s3">3. 定义式里每个符号的含义</h2>
+
+      <table class="tbl">
+        <thead><tr><th>符号</th><th>中文名 / 含义</th><th>直观理解</th></tr></thead>
+        <tbody>
+          <tr><td class="ft">t</td><td>时间 / 自变量</td><td>秒。信号在"哪一刻"的取值。</td></tr>
+          <tr><td class="ft">ω</td><td><span class="term" data-def="angular frequency，中文含义：角频率。单位 rad/s，ω = 2πf，f 是以 Hz 为单位的频率。">角频率</span>（angular frequency）</td><td>"振荡得多快"的连续量，单位 rad/s。</td></tr>
+          <tr><td class="ft">j</td><td>虚数单位（j² = −1）</td><td>工科习惯写 j（数学里写 i），避免和电流 i 混淆。</td></tr>
+          <tr><td class="ft">e<sup>−jωt</sup></td><td>分析用的"探针"</td><td>用它乘信号再积分，等于"问：信号里 ω 这个频率的成分有多大"。</td></tr>
+          <tr><td class="ft">X(jω)</td><td><span class="term" data-def="spectrum，中文含义：频谱。X(jω) 是复数，模长告诉你该频率成分的"量"，辐角告诉你该成分的"起始相位"。">频谱</span>（复函数）</td><td>在每个频率 ω 上放一个复数：大小 = 该频率有多强，角度 = 该频率的相位。</td></tr>
+          <tr><td class="ft">|X(jω)|</td><td><span class="term" data-def="magnitude spectrum，中文含义：幅度谱。各频率成分的强度分布曲线。">幅度谱</span>（magnitude spectrum）</td><td>只看"哪个频率强、哪个弱"。</td></tr>
+          <tr><td class="ft">∠X(jω)</td><td><span class="term" data-def="phase spectrum，中文含义：相位谱。各频率成分的相位（相对时间原点延迟了多少）。">相位谱</span>（phase spectrum）</td><td>只看"每个频率成分被推迟了多少"。</td></tr>
+          <tr><td class="ft">X(jω) 的写法</td><td>为什么不是 X(ω)</td><td>写成 X(jω) 是提醒你：它是<b>复值函数</b>，自变量本质是 s = jω（第 12 章拉普拉斯变换会把 jω 推广成复数 s）。</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">什么时候这个积分存在（收敛条件）</span>
+        <p>
+          <b>充分条件之一：绝对可积</b>——<span class="mono">∫<sub>−∞</sub><sup>∞</sup>|x(t)|dt &lt; ∞</span>。
+          因为 <span class="mono">|x(t)e<sup>−jωt</sup>| = |x(t)|</span>（复指数的模恒为 1），所以只要 |x| 的面积有限，积分就不会爆。
+        </p>
+        <p>
+          <b>更一般的（<span class="term" data-def="Dirichlet conditions，中文含义：狄里赫利条件。保证傅里叶级数/变换收敛的三条充分条件：①绝对可积 ②任意有限区间内极值个数有限 ③任意有限区间内间断点个数有限且每个间断处取值有限。">狄里赫利条件</span>，Dirichlet conditions）</b>：
+          ① 绝对可积；② 任何有限区间内极大极小值的个数有限；③ 任何有限区间内不连续点的个数有限且都是有限值。
+          满足这些条件时，反变换积分在连续点处给出 x(t)，在跳变点处给出<b>左右极限的平均值</b>。
+        </p>
+        <p style="margin-bottom:0">
+          但要注意：<b>δ(t)、1、cos ω<sub>0</sub>t 都不绝对可积</b>，它们的傅里叶变换依然有意义——要用
+          <span class="term" data-def="generalized Fourier transform，中文含义：广义傅里叶变换。允许变换结果里出现冲激 δ(ω)，用来处理不满足绝对可积的信号（如常数、正弦、阶跃）。">广义傅里叶变换</span>
+          （允许结果里出现 δ(ω)）。下面的变换对表就包含这些。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 五个必须记住的变换对（含推导）</h2>
+      <p class="small muted">把这五个当成"单词"。以后遇到复杂信号，都是先把它们拆成这几个基本词，再套性质表。</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">① 矩形脉冲 ⟷ sinc</h4>
+          <div class="eq" style="font-size:17px">
+            rect(t/τ) <span class="op ft">⟷</span> τ · sinc(ωτ/2)
+          </div>
+          <p class="tiny muted" style="margin-top:-6px">
+            这里 <span class="mono">rect(u)=1</span>（|u|&lt;1/2），<span class="mono">sinc(x)=sin x / x</span>（且 sinc(0)=1）。
+          </p>
+          <details class="deriv">
+            <summary>推导</summary>
+            <div class="body">
+              <div class="eq">
+                X(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>τ/2</span><span>−τ/2</span></span></span> e<sup>−jωt</sup>dt
+                = <span class="frac"><span class="num">e<sup>−jωτ/2</sup> − e<sup>jωτ/2</sup></span><span class="den">−jω</span></span>
+                = <span class="frac"><span class="num">2 sin(ωτ/2)</span><span class="den">ω</span></span>
+                = τ·<span class="frac"><span class="num">sin(ωτ/2)</span><span class="den">ωτ/2</span></span>
+              </div>
+              <p class="tiny">为什么：积分区间有限，直接积；再用 <span class="mono">e<sup>−jA</sup>−e<sup>jA</sup> = −2j sin A</span>（欧拉公式的差），分子分母的 j 约掉。</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">② 单边指数 ⟷ 复有理函数</h4>
+          <div class="eq" style="font-size:17px">
+            e<sup>−at</sup>u(t) <span class="op ft">⟷</span> <span class="frac"><span class="num">1</span><span class="den">a + jω</span></span> &nbsp;(a &gt; 0)
+          </div>
+          <details class="deriv">
+            <summary>推导</summary>
+            <div class="body">
+              <div class="eq">
+                X(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0</span></span></span> e<sup>−at</sup>e<sup>−jωt</sup>dt
+                = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0</span></span></span> e<sup>−(a+jω)t</sup>dt
+                = <span class="frac"><span class="num">1</span><span class="den">a + jω</span></span>
+              </div>
+              <p class="tiny">为什么：把两个指数合并成一个指数；<span class="mono">∫<sub>0</sub><sup>∞</sup>e<sup>−pt</sup>dt = 1/p</span> 在
+                <span class="mono">Re{p} &gt; 0</span> 时成立，这里 <span class="mono">p = a+jω</span>，实部是 a，所以要求 a&gt;0。</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">③ 冲激 ⟷ 常数</h4>
+          <div class="eq" style="font-size:17px">δ(t) <span class="op ft">⟷</span> 1</div>
+          <details class="deriv">
+            <summary>推导</summary>
+            <div class="body">
+              <p class="tiny">用 δ 的筛选性质 <span class="mono">∫x(t)δ(t−t<sub>0</sub>)dt = x(t<sub>0</sub>)</span>：</p>
+              <div class="eq">X(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> δ(t)e<sup>−jωt</sup>dt = e<sup>−jω·0</sup> = 1</div>
+              <p class="tiny">直觉：冲激把"所有频率"都同等程度地包含了（白噪声/理想脉冲的频谱是平的）。</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">④ 常数 ⟷ 冲激（对偶）</h4>
+          <div class="eq" style="font-size:17px">1 <span class="op ft">⟷</span> 2π δ(ω)</div>
+          <details class="deriv">
+            <summary>推导</summary>
+            <div class="body">
+              <p class="tiny">把 ③ 代入反变换：<span class="mono">(1/2π)∫1·e<sup>jωt</sup>dω</span> 这个积分不收敛成普通函数。
+                改用 δ 的第二种定义（频谱意义）：<span class="mono">∫δ(ω−ω<sub>0</sub>)F(ω)dω = F(ω<sub>0</sub>)</span>。直接验算：</p>
+              <div class="eq">
+                <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+                <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>
+                2πδ(ω)e<sup>jωt</sup>dω = e<sup>j·0·t</sup> = 1 ✓
+              </div>
+              <p class="tiny">直觉：直流信号（不随时间变）只含一个频率 ω=0，谱就是原点处的一根冲激。</p>
+            </div>
+          </details>
+        </div>
+      </div>
+
+      <div class="card">
+        <h4 style="margin-top:0">⑤ 余弦 ⟷ 一对冲激（第 11 章调制的全部秘密）</h4>
+        <div class="eq" style="font-size:17px">
+          cos(ω<sub>0</sub>t) <span class="op ft">⟷</span> π[ δ(ω−ω<sub>0</sub>) + δ(ω+ω<sub>0</sub>) ]
+        </div>
+        <details class="deriv">
+          <summary>推导（两步）</summary>
+          <div class="body">
+            <div class="step">
+              <p>先把余弦写成一对复指数（欧拉公式）：</p>
+              <div class="eq">cos(ω<sub>0</sub>t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>( e<sup>jω<sub>0</sub>t</sup> + e<sup>−jω<sub>0</sub>t</sup> )</div>
+            </div>
+            <div class="step">
+              <p>再用频移性质（把 ④ 的谱搬移 ±ω<sub>0</sub>）：</p>
+              <div class="eq">
+                e<sup>jω<sub>0</sub>t</sup> <span class="op ft">⟷</span> 2πδ(ω−ω<sub>0</sub>), &nbsp;&nbsp;
+                e<sup>−jω<sub>0</sub>t</sup> <span class="op ft">⟷</span> 2πδ(ω+ω<sub>0</sub>)
+              </div>
+              <div class="eq">
+                ⇒ cos(ω<sub>0</sub>t) <span class="op ft">⟷</span> πδ(ω−ω<sub>0</sub>) + πδ(ω+ω<sub>0</sub>)
+              </div>
+            </div>
+            <p class="tiny">直观：一个余弦只有"一个频率"，但谱上出现<b>两根</b>线（正负频率各一根）。
+              负频率不是玄学：它是把 cos 写成两个旋转复指数时的数学必然，两根线合起来才代表实信号。</p>
+          </div>
+        </details>
+      </div>
+
+      <details class="deriv">
+        <summary>附：阶跃函数的变换 u(t) ⟷ 1/(jω) + πδ(ω)（为什么不能只有 1/(jω)）</summary>
+        <div class="body">
+          <p class="tiny">
+            直觉推理：u(t) = (1/2)[1 + sgn(t)]。常数 1 贡献 πδ(ω)（注意 1/2 × 2πδ = πδ）；
+            奇部 sgn(t) 贡献 2/(jω) 的<b>一半</b>，即 1/(jω)。两者相加得
+            <span class="mono">U(jω) = 1/(jω) + πδ(ω)</span>。
+            少掉 πδ(ω) 会漏掉直流成分（u(t) 的平均值不为 0），这就是"为什么必须补这一项"。
+          </p>
+        </div>
+      </details>
+
+      <h3>常用变换对速查</h3>
+      <table class="tbl sm">
+        <thead><tr><th class="c">x(t)</th><th class="c">X(jω)</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td class="ft c">δ(t)</td><td class="ft c">1</td><td>全频段等强度</td></tr>
+          <tr><td class="ft c">1</td><td class="ft c">2πδ(ω)</td><td>只有直流</td></tr>
+          <tr><td class="ft c">e<sup>jω<sub>0</sub>t</sup></td><td class="ft c">2πδ(ω−ω<sub>0</sub>)</td><td>单一复频率</td></tr>
+          <tr><td class="ft c">cos ω<sub>0</sub>t</td><td class="ft c">π[δ(ω−ω<sub>0</sub>)+δ(ω+ω<sub>0</sub>)]</td><td>两根谱线</td></tr>
+          <tr><td class="ft c">sin ω<sub>0</sub>t</td><td class="ft c"><span class="frac"><span class="num">π</span><span class="den">j</span></span>[δ(ω−ω<sub>0</sub>)−δ(ω+ω<sub>0</sub>)]</td><td>与 cos 差一个 90°</td></tr>
+          <tr><td class="ft c">rect(t/τ)</td><td class="ft c">τ sinc(ωτ/2)</td><td>时宽↔带宽</td></tr>
+          <tr><td class="ft c">e<sup>−at</sup>u(t), a&gt;0</td><td class="ft c">1/(a+jω)</td><td>单边指数</td></tr>
+          <tr><td class="ft c">t e<sup>−at</sup>u(t), a&gt;0</td><td class="ft c">1/(a+jω)²</td><td>频域微分得来</td></tr>
+          <tr><td class="ft c">u(t)</td><td class="ft c">1/(jω) + πδ(ω)</td><td>含直流项</td></tr>
+          <tr><td class="ft c">sin(Wt)/(πt)</td><td class="ft c">rect(ω/2W)</td><td>理想低通的时域形状</td></tr>
+          <tr><td class="ft c">tri(t/τ)</td><td class="ft c">τ sinc²(ωτ/2)</td><td>矩形自卷积</td></tr>
+          <tr><td class="ft c">e<sup>−t²/(2σ²)</sup></td><td class="ft c">σ√(2π) e<sup>−σ²ω²/2</sup></td><td>高斯变高斯</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s5">5. 动手：时宽与带宽的取舍</h2>
+      <p>
+        这是傅里叶变换里最重要的一条"物理规律"：<b>信号在时域越窄，在频域就越宽</b>，反之亦然。
+        下面拖动脉宽 τ，盯着两个图的横轴刻度看。
+      </p>
+
+      <div id="lab-duration"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          τ 从 1 调到 0.2：时域脉冲窄了 5 倍，频域主瓣宽度（第一个零点 <span class="mono">2π/τ</span>）就宽了 5 倍。
+          乘积 <span class="mono">τ · (2π/τ) = 2π</span> 是<b>常数</b>——这就是
+          <span class="term" data-def="time-bandwidth product，中文含义：时宽带宽积。信号在时域的"宽度"与其频谱在频域的"宽度"之积有下限，不可能两者同时任意窄。">时宽带宽积</span>（time-bandwidth product）。
+        </p>
+        <p style="margin-bottom:0">
+          两个极端值特别值得推到底：<b>τ→0</b> 时脉冲缩成 δ(t)，频谱变成一条水平线（全频段都有，见变换对 ③）；
+          <b>τ→∞</b> 时脉冲变成常数 1，频谱缩成原点一根 δ(ω)（只有直流，见变换对 ④）。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 性质表与关键性质的证明</h2>
+      <p>性质表不用死背，但必须会<b>推</b>。下面先给表，再把最常用的六条逐个推一遍。</p>
+
+      <table class="tbl sm">
+        <thead><tr><th>性质</th><th class="c">x(t)</th><th class="c">X(jω)</th><th>一句话理解</th></tr></thead>
+        <tbody>
+          <tr><td>线性</td><td class="c ft">a x₁+b x₂</td><td class="c ft">a X₁+b X₂</td><td>变换是"加法与数乘都通过"的运算。</td></tr>
+          <tr><td>时移</td><td class="c ft">x(t−t₀)</td><td class="c ft">e<sup>−jωt₀</sup>X(jω)</td><td>时域推迟 → 幅度谱不变，相位谱加一个线性斜坡。</td></tr>
+          <tr><td>频移</td><td class="c ft">e<sup>jω₀t</sup>x(t)</td><td class="c ft">X(j(ω−ω₀))</td><td>乘复指数 = 频谱整体搬移。调制的核心。</td></tr>
+          <tr><td>共轭</td><td class="c ft">x*(t)</td><td class="c ft">X*(−jω)</td><td>实信号的频谱共轭对称（见下）。</td></tr>
+          <tr><td>时间反转</td><td class="c ft">x(−t)</td><td class="c ft">X(−jω)</td><td>时间倒放 = 频谱左右翻转。</td></tr>
+          <tr><td>尺度（缩放）</td><td class="c ft">x(at)</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">|a|</span></span>X(jω/a)</td><td>播放越快，频谱越宽、越矮。</td></tr>
+          <tr><td><b>卷积</b></td><td class="c ft">x(t) ∗ h(t)</td><td class="c ft">X(jω)H(jω)</td><td><b>时域卷积 = 频域相乘</b>。整门课最有用的性质。</td></tr>
+          <tr><td>相乘</td><td class="c ft">x(t)·y(t)</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">2π</span></span>X(jω)∗Y(jω)</td><td>时域相乘 = 频域卷积（调制/加窗）。</td></tr>
+          <tr><td>微分</td><td class="c ft">dx/dt</td><td class="c ft">jωX(jω)</td><td>时域微分 = 频域乘 jω（高频被放大）。</td></tr>
+          <tr><td>积分</td><td class="c ft">∫<sub>−∞</sub><sup>t</sup>x(τ)dτ</td><td class="c ft">X(jω)/(jω) + πX(0)δ(ω)</td><td>除以 jω（低频被放大），另加直流项。</td></tr>
+          <tr><td>频域微分</td><td class="c ft">(−jt)x(t)</td><td class="c ft">dX(jω)/dω</td><td>与微分性质对偶。</td></tr>
+          <tr><td>对偶</td><td class="c ft">X(jt)</td><td class="c ft">2π x(−ω)</td><td>时频两域公式形式互换。</td></tr>
+          <tr><td>帕塞瓦尔</td><td class="c ft">∫|x(t)|²dt</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">2π</span></span>∫|X(jω)|²dω</td><td>总能量守恒：时域算和频域算结果相同。</td></tr>
+        </tbody>
+      </table>
+
+      <details class="deriv">
+        <summary>六条关键性质的证明（时移 / 频移 / 尺度 / 卷积 / 相乘 / 帕塞瓦尔）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>(a) 时移：x(t−t<sub>0</sub>) ⟷ e<sup>−jωt<sub>0</sub></sup>X(jω)</b></p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(t−t<sub>0</sub>)e<sup>−jωt</sup>dt
+              &nbsp;<span class="why" style="color:var(--accent);font-size:14px">令 u = t − t<sub>0</sub>，则 dt = du，t = u + t<sub>0</sub></span>&nbsp;
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(u)e<sup>−jω(u+t<sub>0</sub>)</sup>du
+            </div>
+            <div class="eq">
+              = e<sup>−jωt<sub>0</sub></sup> <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(u)e<sup>−jωu</sup>du = e<sup>−jωt<sub>0</sub></sup>X(jω)
+            </div>
+            <p class="why">为什么：换元只改积分变量，指数里的 t<sub>0</sub> 是常数，可以提到积分号外。幅度 |e<sup>−jωt₀</sup>| = 1，所以时移<b>不改幅度谱</b>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(b) 频移：e<sup>jω<sub>0</sub>t</sup>x(t) ⟷ X(j(ω−ω<sub>0</sub>))</b></p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> e<sup>jω<sub>0</sub>t</sup>x(t)e<sup>−jωt</sup>dt
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(t)e<sup>−j(ω−ω<sub>0</sub>)t</sup>dt = X(j(ω−ω<sub>0</sub>))
+            </div>
+            <p class="why">为什么：两个指数合并，剩下的就是"把 X 的自变量整体换成 ω−ω<sub>0</sub>"，即频谱向右平移 ω<sub>0</sub>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(c) 尺度：x(at) ⟷ (1/|a|)X(jω/a)</b></p>
+            <p>只推 a &gt; 0 的情形（a &lt; 0 时上下限会互换，多出一个负号，最终绝对值吸收掉）：</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(at)e<sup>−jωt</sup>dt
+              &nbsp;<span style="color:var(--accent);font-size:14px">令 u = at ⇒ t = u/a, dt = du/a</span>&nbsp;
+              = <span class="frac"><span class="num">1</span><span class="den">a</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(u)e<sup>−j(ω/a)u</sup>du
+              = <span class="frac"><span class="num">1</span><span class="den">a</span></span>X(j<span class="frac"><span class="num">ω</span><span class="den">a</span></span>)
+            </div>
+            <p class="why">为什么：把时间轴压扁 a 倍（回放加速），频率轴就拉宽 a 倍，同时幅度被摊薄成 1/a —— 面积守恒。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(d) 卷积性质：x(t) ∗ h(t) ⟷ X(jω)H(jω)</b>（最重要的一条）</p>
+            <div class="eq">
+              Y(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>
+              x(τ)h(t−τ)dτ · e<sup>−jωt</sup>dt
+            </div>
+            <p class="why">为什么能换积分次序：把卷积定义（第 2 章：y(t)=∫x(τ)h(t−τ)dτ）代进变换定义。两个积分都是在有限区间上绝对收敛的（狄里赫利条件保证），所以可以交换次序。</p>
+            <div class="eq">
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(τ)
+              <span style="font-size:22px">[</span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> h(t−τ)e<sup>−jωt</sup>dt
+              <span style="font-size:22px">]</span> dτ
+              &nbsp;=&nbsp; <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(τ) e<sup>−jωτ</sup> H(jω) dτ
+            </div>
+            <p class="why">为什么方括号里等于 e<sup>−jωτ</sup>H(jω)：这正是刚证明的<b>时移性质</b>，把 t<sub>0</sub> 换成 τ。</p>
+            <div class="eq">
+              = H(jω) <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(τ)e<sup>−jωτ</sup>dτ = X(jω)H(jω)
+            </div>
+            <p class="why">为什么这条性质重要：它把"难算的卷积"变成"好算的乘法"。也让 LTI 系统的分析彻底改观——见第 9 节。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(e) 相乘性质：x(t)y(t) ⟷ (1/2π)X(jω) ∗ Y(jω)</b></p>
+            <p>把 x(t) 用反变换写出来，再交换次序：</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(t)y(t)e<sup>−jωt</sup>dt
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>
+              <span style="font-size:22px">[</span><span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> X(jθ)e<sup>jθt</sup>dθ
+              <span style="font-size:22px">]</span> y(t)e<sup>−jωt</sup>dt
+            </div>
+            <div class="eq">
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> X(jθ)
+              <span style="font-size:22px">[</span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> y(t)e<sup>−j(ω−θ)t</sup>dt
+              <span style="font-size:22px">]</span> dθ
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> X(jθ)Y(j(ω−θ))dθ
+            </div>
+            <p class="why">为什么：又用了一次频移性质（内层积分等于 Y(j(ω−θ))）。外层的积分恰好是卷积的定义形式，只是变量名叫 θ。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(f) 帕塞瓦尔：∫|x(t)|²dt = (1/2π)∫|X(jω)|²dω</b></p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> |x(t)|²dt
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(t)x*(t)dt
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(t)
+              <span style="font-size:22px">[</span><span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> X*(jω)e<sup>−jωt</sup>dω
+              <span style="font-size:22px">]</span> dt
+            </div>
+            <p class="why">为什么：x*(t) 的反变换里指数是 e<sup>−jωt</sup>、频谱取共轭（因为反变换是 (1/2π)∫X e<sup>+jωt</sup>，取共轭后变号）。</p>
+            <div class="eq">
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> X*(jω)
+              <span style="font-size:22px">[</span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> x(t)e<sup>−jωt</sup>dt
+              <span style="font-size:22px">]</span> dω
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span> |X(jω)|²dω
+            </div>
+            <p class="why">为什么有意义：方括号里就是 X(jω)（正变换）。所以"时域里的能量"和"频域里按 |X|² 积出来的能量"必然相等——<b>能量守恒</b>。这也说明 |X(jω)|² 的物理含义是能量谱密度。</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box warn">
+        <span class="tag">实信号的对称性（考试常考）</span>
+        <p>
+          若 x(t) 是<b>实函数</b>，由共轭性质可得 <span class="mono">X(−jω) = X*(jω)</span>，于是：
+        </p>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>幅度谱偶对称</b>：|X(jω)| = |X(−jω)|；</li>
+          <li><b>相位谱奇对称</b>：∠X(−jω) = −∠X(jω)；</li>
+          <li>实部偶对称、虚部奇对称。</li>
+        </ul>
+        <p style="margin-bottom:0">
+          所以画实信号的频谱时，<b>只画 ω≥0 也够</b>（负频部分是镜像）。这是"负频率"不吓人的原因。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 动手：线谱落在连续包络上</h2>
+      <p>
+        这一节把第 4 章（级数、离散谱）和第 6 章（变换、连续谱）焊在一起。
+        下面同时画一个周期方波的<b>离散线谱 a<sub>k</sub></b> 和它的<b>连续包络</b>：无论你怎么改谐波个数 N，
+        谱线都长在包络上；把周期 T 拉长（谐波间距变小），线谱就越来越像连续曲线。
+      </p>
+
+      <div id="lab-stems"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p style="margin-bottom:0">
+          <b>傅里叶级数是傅里叶变换的特例</b>：周期信号的谱只在 kω<sub>0</sub> 这些离散点上取值，
+          而这些点正好落在非周期极限下的连续频谱包络上。<b>离散谱 = 连续谱的采样</b>——这个想法在第 8 章 DFT 会以另一种形式再出现一次。
+        </p>
+      </div>
+
+      <h2 id="s8">8. 动手：频移与调制</h2>
+      <p>
+        把基带信号乘上载波 <span class="mono">cos(ω<sub>0</sub>t)</span>，频谱会发生什么？
+        第 11 章会正式讲通信，这里先用变换对 ⑤ 和频移性质看一眼：<b>频谱被"劈成两半、各搬 ±ω<sub>0</sub>"</b>。
+      </p>
+
+      <div id="lab-mod"></div>
+
+      <h2 id="s9">9. 用 CTFT 分析 LTI 系统</h2>
+      <p>
+        这一节是本章的"出口"：为什么工程师偏爱频域。
+      </p>
+
+      <div class="box ok">
+        <span class="tag">三行推出系统分析的黄金公式</span>
+        <p>
+          设 LTI 系统输入 x(t)、输出 y(t)、单位冲激响应 h(t)。由第 2 章，<span class="mono">y = x ∗ h</span>；
+          由本页的卷积性质，两边取变换：
+        </p>
+        <div class="eq center-eq">Y(jω) = H(jω) · X(jω)</div>
+        <p style="margin-bottom:0">
+          其中 <span class="mono">H(jω)</span> 叫
+          <span class="term" data-def="frequency response，中文含义：频率响应（也叫频响）。它是冲激响应 h(t) 的傅里叶变换，告诉你系统对每个频率的放大量与相移。">频率响应</span>
+          （frequency response），就是 h(t) 的傅里叶变换。
+          <b>时域的卷积难题，在频域变成了一次乘法。</b>
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>由微分方程直接写出 H(jω)（不用求 h(t)）</summary>
+        <div class="body">
+          <p>设系统由线性常系数微分方程描述：</p>
+          <div class="eq">
+            <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+            a<sub>k</sub> <span class="frac"><span class="num">d<sup>k</sup>y(t)</span><span class="den">dt<sup>k</sup></span></span>
+            =
+            <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+            b<sub>k</sub> <span class="frac"><span class="num">d<sup>k</sup>x(t)</span><span class="den">dt<sup>k</sup></span></span>
+          </div>
+          <div class="step">
+            <p>两边取傅里叶变换。用微分性质 <span class="mono">d<sup>k</sup>/dt<sup>k</sup> ⟷ (jω)<sup>k</sup></span>：</p>
+            <div class="eq">
+              <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span> a<sub>k</sub>(jω)<sup>k</sup> Y(jω)
+              =
+              <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span> b<sub>k</sub>(jω)<sup>k</sup> X(jω)
+            </div>
+            <p class="why">为什么：Y(jω)、X(jω) 都是常数（对 t 而言），可以提到求和号外。</p>
+          </div>
+          <div class="step">
+            <p>于是</p>
+            <div class="eq center-eq">
+              H(jω) = <span class="frac"><span class="num">Y(jω)</span><span class="den">X(jω)</span></span>
+              = <span class="frac">
+                <span class="num"><span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span> b<sub>k</sub>(jω)<sup>k</sup></span>
+                <span class="den"><span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span> a<sub>k</sub>(jω)<sup>k</sup></span>
+              </span>
+            </div>
+            <p class="why">为什么好：<b>把 jω 直接代进特征多项式</b>，就能得到频响，完全不必先解微分方程求 h(t)。这就是"频域分析省事"的具体体现。</p>
+          </div>
+          <p class="small muted">例：<span class="mono">dy/dt + 2y = x</span> ⇒ <span class="mono">H(jω) = 1/(jω+2)</span>。
+            低频处 |H|≈1/2（通过），高频处 |H|→0（衰减）——一个一阶低通滤波器。</p>
+        </div>
+      </details>
+
+      <div id="lab-lowpass"></div>
+
+      <h2 id="s10">10. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：忘记 1/2π</h4>
+          <p class="small">正变换没有系数，<b>反变换才有 1/2π</b>。不同教材会把 2π 放在正变换或两边各放 1/√(2π)，我们的约定是"反变换带 1/2π"。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：sinc 的定义不统一</h4>
+          <p class="small">有人定义 <span class="mono">sinc(x)=sin(πx)/(πx)</span>（归一化），有人定义 <span class="mono">sin x / x</span>。本页统一用 <b>sinc(x) = sin x / x</b>（Oppenheim 约定）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：把 T·a<sub>k</sub> 和 a<sub>k</sub> 混了</h4>
+          <p class="small">级数系数 a<sub>k</sub> 随 T 变化；真正稳定、能过渡到变换的是 <span class="mono">T·a<sub>k</sub> = X(jkω<sub>0</sub>)</span>。写谱线高度时要想清楚画的是哪一个。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：以为幅度谱就能完全描述信号</h4>
+          <p class="small">相位谱同样重要。同样两个幅度谱，相位不同，波形可以完全不同（第 10 章还会看到：相位决定"延时"）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：对含 δ 的信号硬用绝对可积</h4>
+          <p class="small">常数、正弦、阶跃都不绝对可积，但它们的变换存在（含 δ）。判收敛时不要直接判"不存在"。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：卷积性质用错域</h4>
+          <p class="small">是"<b>时域</b>卷积 = <b>频域</b>相乘"。反过来"时域相乘 = 频域卷积"要多带 1/2π。两者不要互相替代。</p>
+        </div>
+      </div>
+
+      <h2 id="s11">11. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz6"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 6 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ---------- 实验 1：时宽 ↔ 带宽 ---------- */
+  SSC.lab({
+    mount: '#lab-duration',
+    title: '实验 1 · 把脉宽 τ 推到两个极端',
+    hint: '拖动滑块，观察两个图的横轴刻度变化',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域 x(t) = rect(t/τ)', height: 200 },
+      { id: 'freq', label: '幅度谱 |X(jω)| = |τ·sinc(ωτ/2)|', height: 200 }
+    ],
+    controls: [
+      { id: 'tau', label: '脉宽 τ', min: 0.15, max: 4, step: 0.05, value: 1, unit: '' },
+      { id: 'wmax', label: '频率轴范围 ω_max', min: 4, max: 60, step: 1, value: 25, unit: ' rad/s' }
+    ],
+    draw: function (cv, v) {
+      var tau = v.tau, wmax = v.wmax;
+      SSC.plot(cv.time, {
+        xmin: -3.2, xmax: 3.2, ymin: -0.25, ymax: 1.3,
+        xlabel: 't (s)', ylabel: 'x(t)',
+        curves: [{ f: function (t) { return SSC.rect(t / tau); }, color: '#4338ca', width: 2.4 }],
+        vlines: [{ x: -tau / 2, color: '#c3ccdd', label: '−τ/2' }, { x: tau / 2, color: '#c3ccdd', label: 'τ/2' }]
+      });
+      var firstZero = 2 * Math.PI / tau;
+      SSC.plot(cv.freq, {
+        xmin: -wmax, xmax: wmax, ymin: -0.1,
+        xlabel: 'ω (rad/s)', ylabel: '|X(jω)|',
+        curves: [{ f: function (w) { return Math.abs(tau * SSC.sinc(w * tau / 2)); }, color: '#0e7490', width: 2.2 }],
+        vlines: (firstZero < wmax ? [{ x: firstZero, color: '#dc2626', label: '2π/τ=' + SSC.fmt(firstZero, 2) },
+          { x: -firstZero, color: '#dc2626' }] : []),
+        legend: true
+      });
+    },
+    note: function (v) {
+      var fz = 2 * Math.PI / v.tau;
+      return '当前 <b>τ = ' + SSC.fmt(v.tau, 2) + '</b>，频域第一个零点在 <b>ω = 2π/τ = ' + SSC.fmt(fz, 2) + ' rad/s</b>。' +
+        '注意乘积 <b>τ·(2π/τ) = 2π</b> 永远是常数 —— 时域窄多少，频域就宽多少。' +
+        (v.tau < 0.4 ? '<br>τ 很小：脉冲接近 δ(t)，频谱几乎被拉平（全频段都有能量）。' : '') +
+        (v.tau > 3 ? '<br>τ 很大：脉冲接近常数，频谱能量几乎全挤在 ω=0 附近。' : '');
+    }
+  });
+
+  /* ---------- 实验 2：离散线谱 vs 连续包络 ---------- */
+  SSC.lab({
+    mount: '#lab-stems',
+    title: '实验 2 · 周期方波：离散线谱长在连续包络上',
+    hint: '改谐波个数 N 和占空比 d；把周期 T 拉大看谱线变密',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：N 个谐波合成的方波（T=1）', height: 200 },
+      { id: 'spec', label: '频谱：线谱 a_k（stem）+ 连续包络（曲线）', height: 200 }
+    ],
+    controls: [
+      { id: 'N', label: '谐波个数 N', min: 1, max: 61, step: 2, value: 9 },
+      { id: 'duty', label: '占空比 d', min: 0.1, max: 0.9, step: 0.02, value: 0.5 },
+      { id: 'T', label: '周期 T', min: 0.5, max: 4, step: 0.05, value: 1, unit: ' s' },
+      { id: 'kmax', label: '画到第几次谐波', min: 4, max: 40, step: 1, value: 16 }
+    ],
+    draw: function (cv, v) {
+      var T = v.T, w0 = 2 * Math.PI / T;
+      SSC.plot(cv.time, {
+        xmin: -1.2 * T, xmax: 1.2 * T, ymin: -1.5, ymax: 1.5,
+        xlabel: 't (s)', ylabel: 'x(t)',
+        curves: [
+          { f: function (t) { return SSC.squarePartial(t, v.N, T, v.duty); }, color: '#4338ca', width: 2.2, label: 'N 项部分和' },
+          { f: function (t) { var ph = ((t / T) % 1 + 1) % 1; return (ph < v.duty / 2 || ph > 1 - v.duty / 2) ? 1 : -1; },
+            color: '#c3ccdd', width: 1.4, dash: [5, 4], label: '理想方波' }
+        ],
+        legend: true
+      });
+
+      var xs = [], ys = [];
+      for (var k = 1; k <= Math.min(v.kmax, v.N); k++) { xs.push(k * w0); ys.push(SSC.squareCoeff(k, v.duty)); }
+      var wmax = (Math.min(v.kmax, v.N) + 1) * w0;
+      SSC.plot(cv.spec, {
+        xmin: 0, xmax: wmax, ymin: -1.4, ymax: 1.4, symmetric: false,
+        xlabel: 'ω (rad/s) = k·ω₀', ylabel: 'a_k（频谱系数）',
+        stems: [{ xs: xs, ys: ys, color: '#dc2626', label: '离散线谱 a_k（振幅谱）' }],
+        curves: [{ f: function (w) { return w < 1e-6 ? 2 * v.duty : 4 * Math.sin(w * T * v.duty / 2) / (w * T); },
+          color: '#0e7490', width: 1.8, dash: [6, 4], samples: 900, label: '连续包络 4|sin(ωTd/2)|/(ωT)' }],
+        hlines: [{ y: 2 * v.duty - 1, color: '#7c3aed', label: 'a₀ = 2d−1（直流）' }],
+        legend: true
+      });
+    },
+    note: function (v) {
+      return '基频 <b>ω₀ = 2π/T = ' + SSC.fmt(2 * Math.PI / v.T, 2) + ' rad/s</b>，谱线间距就是它。' +
+        '把 T 拉大 → ω₀ 变小 → <b>谱线变密</b>，越来越像连续谱：这就是 T→∞ 时级数变成变换的过程。' +
+        '<br>试着把 N 从 1 拉到 61：N 越大越接近方波，但跳变处始终有约 9% 的过冲（吉布斯现象，见第 4 章）。';
+    }
+  });
+
+  /* ---------- 实验 3：调制（频移） ---------- */
+  SSC.lab({
+    mount: '#lab-mod',
+    title: '实验 3 · 乘上载波：频谱被搬到 ±ω₀',
+    hint: '拖动载波频率 ω₀，看右边两根频谱峰怎么分开',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：基带 x(t)=rect(t/1) 与已调 y(t)=x(t)cos(ω₀t)', height: 200 },
+      { id: 'spec', label: '幅度谱：两个搬移后的 copies', height: 200 }
+    ],
+    controls: [
+      { id: 'w0', label: '载波频率 ω₀', min: 0.5, max: 12, step: 0.25, value: 5, unit: ' rad/s' },
+      { id: 'wspan', label: '频率轴范围', min: 6, max: 40, step: 1, value: 20, unit: ' rad/s' }
+    ],
+    draw: function (cv, v) {
+      var tau = 1, w0 = v.w0;
+      SSC.plot(cv.time, {
+        xmin: -3, xmax: 3, ymin: -1.35, ymax: 1.35,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: function (t) { return SSC.rect(t / tau) * Math.cos(w0 * t); }, color: '#4338ca', width: 1.9, label: 'y(t)=x(t)cos(ω₀t)' },
+          { f: function (t) { return SSC.rect(t / tau); }, color: '#c3ccdd', width: 1.4, dash: [5, 4], label: 'x(t) 包络' },
+          { f: function (t) { return -SSC.rect(t / tau); }, color: '#c3ccdd', width: 1.4, dash: [5, 4] }
+        ],
+        legend: true
+      });
+      var half = function (w) { return Math.abs(tau * SSC.sinc(w * tau / 2)) / 2; };
+      SSC.plot(cv.spec, {
+        xmin: -v.wspan, xmax: v.wspan, ymin: 0,
+        xlabel: 'ω (rad/s)', ylabel: '|Y(jω)|',
+        curves: [
+          { f: function (w) { return half(w - w0) + half(w + w0); }, color: '#0e7490', width: 2.2, label: '已调信号频谱' },
+          { f: function (w) { return Math.abs(tau * SSC.sinc(w * tau / 2)); }, color: '#c3ccdd', width: 1.5, dash: [5, 4], label: '基带频谱（对比）' }
+        ],
+        vlines: [{ x: w0, color: '#dc2626', label: 'ω₀' }, { x: -w0, color: '#dc2626' }],
+        legend: true
+      });
+    },
+    note: function (v) {
+      return '基带频谱（灰虚线，以 0 为中心）被<b>一分为二、各搬 ±ω₀ = ±' + SSC.fmt(v.w0, 2) + ' rad/s</b>。' +
+        '只要两个搬运后的副本不重叠（即 ω₀ 大于基带最高频率），接收端就能把它们分回来 —— 这就是调制的全部原理（第 11 章）。';
+    }
+  });
+
+  /* ---------- 实验 4：理想低通滤波方波（卷积性质） ---------- */
+  SSC.lab({
+    mount: '#lab-lowpass',
+    title: '实验 4 · 用卷积性质做滤波：按频率"抽掉"谐波',
+    hint: '拖动截止频率 ω_c，看方波只剩哪几个谐波',
+    columns: 1,
+    canvases: [{ id: 'out', label: '输入方波（灰虚线）与低通滤波后的输出（蓝）', height: 230 }],
+    controls: [
+      { id: 'wc', label: '截止频率 ω_c', min: 0.5, max: 30, step: 0.5, value: 6, unit: ' rad/s' },
+      { id: 'N', label: '输入方波谐波数', min: 5, max: 61, step: 2, value: 41 }
+    ],
+    draw: function (cv, v, api) {
+      var T = 1, w0 = 2 * Math.PI;
+      var kept = [];
+      for (var k = 1; k <= v.N; k++) if (k * w0 < v.wc) kept.push(k);
+      SSC.plot(cv.out, {
+        xmin: -1.5, xmax: 1.5, ymin: -1.5, ymax: 1.5,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: function (t) { return SSC.squarePartial(t, v.N, T, 0.5); }, color: '#c3ccdd', width: 1.5, dash: [5, 4], label: '输入（41 项近似方波）' },
+          {
+            f: function (t) {
+              var s = 0;   /* H(jkω₀)=1 当 kω₀<ω_c，否则 0 */
+              for (var i = 0; i < kept.length; i++) {
+                var k = kept[i];
+                s += SSC.squareCoeff(k, 0.5) * Math.cos(k * w0 * t);
+              }
+              return s;
+            },
+            color: '#4338ca', width: 2.4, label: '输出 y(t)'
+          }
+        ],
+        legend: true
+      });
+      /* 用 readout 展示保留的谐波 */
+      api.readout(
+        '<div class="stat"><div class="k">保留的谐波 k</div><div class="v" style="font-size:13px">' +
+        (kept.length ? kept.join(', ') : '（一个都不剩，输出≈0）') + '</div></div>' +
+        '<div class="stat"><div class="k">保留个数</div><div class="v">' + kept.length + '</div></div>' +
+        '<div class="stat"><div class="k">ω_c/ω₀</div><div class="v">' + SSC.fmt(v.wc / w0, 2) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      return '频域里，理想低通就是"把 |ω|&lt;ω_c 的成分原样通过，其余全清 0"：<b>Y(jω)=H(jω)X(jω)</b>。' +
+        '把 ω_c 调到 1 左右，输出几乎只剩基波，方波变成了正弦（平滑）；调到 30，几乎所有谐波通过，输出接近原方波。' +
+        '<br>这就是<b>时域卷积</b>（输出 = 输入与 h(t) 卷积）与<b>频域相乘</b>的同一件事。';
+    }
+  });
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz6', [
+    {
+      q: '周期信号的傅里叶级数谱线间距是 2π/T。当 T→∞（信号变成非周期）时，谱线会发生什么？',
+      opts: ['间距趋于 0，离散谱线挤成连续频谱', '间距趋于 ∞，谱线消失', '间距不变，只是高度变高', '谱线数量固定为 N 根'],
+      a: 0,
+      why: '谱线间距 Δω = ω₀ = 2π/T。T→∞ 时 Δω→0，求和 Σ 变成积分 ∫，这就是傅里叶变换的由来。',
+      tag: '概念'
+    },
+    {
+      q: '已知 rect(t/τ) ⟷ τ·sinc(ωτ/2)（sinc x = sin x / x）。若把脉宽 τ 缩小为原来的一半，则频谱主瓣宽度（第一个零点位置）如何变化？',
+      opts: ['变成原来的 2 倍', '变成原来的 1/2', '不变', '变成原来的 4 倍'],
+      a: 0,
+      why: '第一个零点在 ω = 2π/τ。τ 减半 → 零点位置加倍 → 主瓣变宽。这正是时宽带宽积为常数（τ·2π/τ = 2π）的表现。',
+      tag: '计算'
+    },
+    {
+      q: 'x(t) 为实信号。下列说法正确的是？',
+      opts: ['|X(jω)| 是偶函数，∠X(jω) 是奇函数', '|X(jω)| 是奇函数，∠X(jω) 是偶函数', '两者都是偶函数', '两者都是奇函数'],
+      a: 0,
+      why: '实信号满足 X(−jω)=X*(jω)：取模长得 |X(−jω)|=|X(jω)|（偶），取辐角得 ∠X(−jω)=−∠X(jω)（奇）。所以只看 ω≥0 就够了。',
+      tag: '对称性'
+    },
+    {
+      q: '已知 h(t) 的傅里叶变换 H(jω)。输入 x(t)=e^{j3t} 时，LTI 系统的输出是？',
+      opts: ['H(j3)·e^{j3t}', 'H(jω)·e^{j3t}', '3·H(j3)·e^{j3t}', 'H(j3)·δ(ω−3)'],
+      a: 0,
+      why: '复指数是 LTI 系统的特征函数：e^{jω₀t} 进去，出来是 H(jω₀)e^{jω₀t}——只被乘了一个复常数（第 3 章）。这里 ω₀=3。',
+      tag: '特征函数'
+    },
+    {
+      q: '为什么说"时域卷积 = 频域相乘"让 LTI 分析变简单？',
+      opts: ['因为相乘比卷积容易算，且乘法的结果能逐个频率直接读懂（增益与相移）',
+        '因为它避免了使用 δ 函数',
+        '因为它说明系统是非线性的',
+        '因为它把连续信号变成了离散信号'],
+      a: 0,
+      why: '卷积要做翻转-平移-积分，乘法只要逐点相乘。而且 H(jω) 的模长就是"该频率被放大几倍"，辐角就是"延迟多少"——物理意义直接可读。',
+      tag: '性质'
+    },
+    {
+      q: 'u(t) 的傅里叶变换为什么必须带一个 πδ(ω) 项？',
+      opts: ['因为 u(t) 有非零平均值（直流分量），纯 1/(jω) 描述不了直流',
+        '因为 u(t) 是奇函数',
+        '因为 πδ(ω) 是为了让量纲对齐',
+        '因为 u(t) 不连续，所以要多加一项'],
+      a: 0,
+      why: 'u(t) 的均值是 1/2，含直流；1/(jω) 只描述奇部（sgn），直流部分需要 δ(ω) 表示，系数 π 来自 (1/2)·2π。',
+      tag: '细节'
+    }
+  ], '第 6 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,1403 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 1 章　信号与系统基本概念｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch01">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第一段 · 地基 · 第 1 章</div>
+        <h1>信号与系统基本概念</h1>
+        <p class="lede">
+          整门课只做两件事：<b>把信号说清楚</b>，<b>把系统说清楚</b>。
+          信号是"随时间变化的一条曲线"，系统是"把一条曲线变成另一条曲线的机器"。
+          这一章不谈任何变换，只把<b>语言和记号</b>立起来：<span class="mono">x(t)</span> 与 <span class="mono">x[n]</span> 有什么区别、
+          信号怎么分类、δ 与 u 是什么、系统的六条性质各是什么意思。
+          这一页的每个定义，后面 15 章都会反复用到——地基不牢，后面全是玄学。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="index.html">学习地图 · 总览</a>（先知道整门课的地形）<br>
+          不需要任何先修：只要会求导、会积分、会看函数图像。
+        </div>
+        <div class="cell mid"><b>这一站</b>信号是什么、怎么分类、自变量怎么变换；δ 与 u；系统六条性质</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch02-convolution.html">第 2 章 LTI 系统与卷积</a>（把"系统"变成可以算的公式）<br>
+          <a href="ch03-eigenfunction.html">第 3 章 复指数是特征函数</a>（为什么频域值得去）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 信号是什么：一条被定量描述的曲线</a>
+        <a href="#s2">2. 连续时间与离散时间：x(t) 与 x[n]</a>
+        <a href="#s3">3. 能量与功率：信号有多"大"</a>
+        <a href="#s4">4. 动手：能量/功率三类信号，看收敛</a>
+        <a href="#s5">5. 自变量变换：平移、反转、尺度</a>
+        <a href="#s6">6. 动手：f(αt+β) 的顺序陷阱</a>
+        <a href="#s7">7. 周期、偶奇与奇偶分解</a>
+        <a href="#s8">8. 复指数与正弦：CT 与 DT 的周期条件</a>
+        <a href="#s9">9. 单位冲激 δ 与单位阶跃 u</a>
+        <a href="#s10">10. 系统：六条性质</a>
+        <a href="#s11">11. 动手：一眼判断线性/时不变/因果</a>
+        <a href="#s12">12. 常见坑</a>
+        <a href="#s13">13. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 信号是什么：一条被定量描述的曲线</h2>
+
+      <p>
+        课本的第一句话就够用了：<b>信号（signal）是对某个物理现象的定量描述</b>。
+        电压、电流、电容上的电荷、磁通量，麦克风振膜的位移，某只股票每天的收盘价——只要你能把它在"某个自变量"上的取值记下来，它就是信号。
+      </p>
+      <p>
+        所以信号在数学上就是一个<b>函数</b>：一个自变量进去，一个数值出来。
+        我们这门课几乎只关心一种自变量——<b>时间</b>。于是信号写成
+        <span class="mono">x(t)</span>：在时刻 <i>t</i>，信号的值是 <span class="mono">x(t)</span>。
+      </p>
+      <p>
+        这里要养成一个习惯：<b>把"曲线"和"函数"当同一个东西看</b>。
+        说"信号在 t=2 处跳变"，就是说"函数在 2 处的取值有间断"；说"两个信号相加"，就是把两条曲线的纵坐标逐点相加。
+        后面所有操作（平移、反转、卷积、变换）都只有两种理解方式：<b>看图</b>（几何）和<b>算数</b>（代数）。两种都要会。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">为什么值得花一章讲"定义"</span>
+        <p style="margin-bottom:0">
+          因为后面每一章的工具，都是在<b>回答同一类问题</b>：
+          "这个信号有多大？"（能量/功率）、"这个信号多久重复一次？"（周期）、"这个系统会不会提前猜到未来？"（因果性）。
+          这些问题都要先把词汇定义清楚，才能变成公式。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 连续时间与离散时间：x(t) 与 x[n]</h2>
+
+      <p>这门课只研究两类信号。区分它们只看一件事：<b>自变量能不能取小数</b>。</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">连续时间信号（CT，continuous-time）</h4>
+          <div class="eq" style="font-size:17px">x(t)，&nbsp; t ∈ ℝ</div>
+          <p class="small">
+            自变量 <i>t</i> 是<b>实数</b>，任意时刻都有定义。
+            <b>记号约定：圆括号</b> <span class="mono">( )</span>。
+          </p>
+          <p class="small muted" style="margin-bottom:0">
+            例子：电容两端的电压、麦克风输出的电压、室外的温度。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">离散时间信号（DT，discrete-time）</h4>
+          <div class="eq" style="font-size:17px">x[n]，&nbsp; n ∈ ℤ</div>
+          <p class="small">
+            自变量 <i>n</i> 是<b>整数</b>，只在等间隔的时刻有定义。
+            <span class="mono">x[n]</span> 读作"<b>序列</b>的第 <i>n</i> 个样点"。
+            <b>记号约定：方括号</b> <span class="mono">[ ]</span>。
+          </p>
+          <p class="small muted" style="margin-bottom:0">
+            例子：每天收盘价、每毫秒采一次的电压（采样见第 9 章）。
+          </p>
+        </div>
+      </div>
+
+      <div class="box warn">
+        <span class="tag">方括号不是圆括号的花样写法</span>
+        <p style="margin-bottom:0">
+          <span class="mono">x[n]</span> 里的 <span class="mono">[n]</span> <b>不是乘法</b>，它是一个整体记号：下标。
+          说"3.5 号样点"没有意义——就像说"第 3.5 个人"一样。
+          第 9 章会看到，离散信号几乎都来自对连续信号的<b>采样</b>，所以两者之间的关系是整门课的主线之一。
+        </p>
+      </div>
+
+      <p>
+        还有一个第 3 章会正式讲的词，这里先埋下：<span class="term" data-def="elementary signal，中文含义：基本信号。指复指数 e^{st}、e^{jω₀t}、正弦、δ、u 这些"砖块"。任意复杂信号都能拆成它们的组合，所以叫基本。">基本信号</span>（elementary signal）。
+        本页第 8、9 节给出的复指数、δ、u 就是全部砖块，后面每一章都是在用这些砖块搭东西。
+      </p>
+
+      <h2 id="s3">3. 能量与功率：信号有多"大"</h2>
+
+      <p>
+        先别被名字吓住。"能量"和"功率"在这里<b>只是衡量信号大小的两个约定</b>，不一定真的等于物理能量。
+        物理来源是这样的：一个电阻 <i>R</i> 上，瞬时功率 <span class="mono">p(t)=v(t)i(t)=v²(t)/R=R·i²(t)</span>；
+        在时间区间 <span class="mono">[t<sub>1</sub>, t<sub>2</sub>]</span> 内消耗的能量是 <span class="mono">∫p(t)dt</span>。
+        也就是说，<b>电压信号的能量正比于它平方的积分</b>。于是我们干脆对所有信号都这么定义。
+      </p>
+
+      <div class="eq center-eq">
+        <b>连续时间</b>&nbsp;&nbsp;
+        E = <span class="integral"><span class="sym">∫</span><span class="lim"><span>t<sub>2</sub></span><span>t<sub>1</sub></span></span></span> |x(t)|<sup>2</sup> d<i>t</i>
+        &nbsp;&nbsp;（区间上的能量）
+        <span class="lbl">(1-1)</span>
+      </div>
+      <div class="eq center-eq">
+        <b>离散时间</b>&nbsp;&nbsp;
+        E = <span class="sum"><span class="top">n<sub>2</sub></span><span class="sym">Σ</span><span class="bot">n=n<sub>1</sub></span></span> |x[n]|<sup>2</sup>
+        &nbsp;&nbsp;（区间上的能量）
+        <span class="lbl">(1-2)</span>
+      </div>
+
+      <p>
+        注意这里用的是 <span class="mono">|x|²</span> 而不是 <span class="mono">x²</span>。
+        为什么？因为后面会遇到<b>复值信号</b>（比如 <span class="mono">e<sup>jω₀t</sup></span>），取模再平方才能保证结果是正实数。
+        实信号的情形下 <span class="mono">|x|²=x²</span>，所以不必纠结。
+      </p>
+
+      <p>
+        把区间拉成无穷长，得到两个重要量：<b>总能量</b>与<b>平均功率</b>。
+      </p>
+
+      <div class="eq center-eq">
+        E<sub>∞</sub> = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> |x(t)|<sup>2</sup> d<i>t</i>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        P<sub>∞</sub> = lim<sub>T→∞</sub> <span class="frac"><span class="num">1</span><span class="den">2T</span></span>
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span><span>−T</span></span></span> |x(t)|<sup>2</sup> d<i>t</i>
+        <span class="lbl">(1-3)</span>
+      </div>
+      <div class="eq center-eq">
+        E<sub>∞</sub> = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span> |x[n]|<sup>2</sup>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        P<sub>∞</sub> = lim<sub>N→∞</sub> <span class="frac"><span class="num">1</span><span class="den">2N+1</span></span>
+        <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">n=−N</span></span> |x[n]|<sup>2</sup>
+        <span class="lbl">(1-4)</span>
+      </div>
+
+      <p>
+        平均功率里的分母是"<b>区间的长度</b>"：连续时间是 <span class="mono">2T</span>（从 −T 到 T），
+        离散时间是 <span class="mono">2N+1</span>（从 −N 到 N 一共 2N+1 个点）。
+        所以 P 的含义是"<b>单位时间摊到的能量</b>"：<b>能量是总量，功率是速率</b>。
+      </p>
+      <p>
+        注意离散情形的"长度"是<b>样点个数</b>而不是时间：<span class="mono">2N+1</span> 个点摊掉总能量。
+        这也是为什么离散的平均功率公式里出现 <span class="mono">1/(2N+1)</span> 这个看起来不对称的分母
+        （它必须等于区间内的点数，少 1 个就错）。
+      </p>
+
+      <div class="box warn">
+        <span class="tag">两个容易搞混的"能量"：总能量 vs 前一段的能量</span>
+        <p style="margin-bottom:0">
+          <span class="mono">E<sub>[t₁,t₂]</sub></span> 是<b>一段</b>区间上的能量（第 3 节开头那两个式子）；
+          <span class="mono">E<sub>∞</sub></span> 是<b>整条时间轴</b>上的能量（式 1-3、1-4）。
+          判断信号属于哪一类，看的是 <span class="mono">E<sub>∞</sub></span> 和 <span class="mono">P<sub>∞</sub></span>，
+          不是某一小段的能量——这一点在第 4 节的实验台里会看得很清楚：<b>E_T 有界不有界，才决定分类</b>。
+        </p>
+      </div>
+
+      <div class="box ok">
+        <span class="tag">三类信号（这一节唯一需要背下来的结论）</span>
+        <ol style="margin:6px 0 0;padding-left:22px">
+          <li><b>有限能量信号</b>（energy signal）：<span class="mono">E<sub>∞</sub> &lt; ∞</span>。此时必然 <span class="mono">P<sub>∞</sub>=0</span>。</li>
+          <li><b>有限功率信号</b>（power signal）：<span class="mono">0 &lt; P<sub>∞</sub> &lt; ∞</span>。此时必然 <span class="mono">E<sub>∞</sub>=∞</span>。</li>
+          <li><b>两者都不是</b>：例如 <span class="mono">x(t)=t</span>（能量发散、功率也发散）。</li>
+        </ol>
+        <p style="margin:8px 0 0" class="small">
+          为什么第 1 类的功率一定为 0：<span class="mono">P<sub>∞</sub>=lim (E<sub>∞</sub>/2T)</span>，
+          分子是有限的常数、分母趋于无穷，所以趋于 0。
+          反过来，第 2 类只要 <span class="mono">P<sub>∞</sub>&gt;0</span>，"单位时间都有正的量"累加到无穷长时间，能量不可能有限。
+          <b>这两类是互斥的</b>：一个信号不可能既有限能量又非零有限功率。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">一句话记住谁是谁</span>
+        <p style="margin-bottom:0">
+          <b>会衰减到 0 的信号是能量信号</b>（脉冲、<span class="mono">e<sup>−t</sup>u(t)</span>）；
+          <b>永远不衰减、一直在动的信号是功率信号</b>（常数、正弦、周期波、<span class="mono">u(t)</span>）。
+          第 6 章会发现：能量信号才有普通的傅里叶变换，功率信号要用"含 δ 的广义傅里叶变换"——所以这个分类不是学术游戏。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 动手：能量/功率三类信号，看收敛</h2>
+      <p>
+        下面这个实验台把"取极限"变成看得见的事情：选一个信号，看
+        <span class="mono">E<sub>T</sub>=∫<sub>0</sub><sup>T</sup>|x|²dt</span>（前 T 秒内的能量）
+        和 <span class="mono">P<sub>T</sub>=<span class="frac"><span class="num">1</span><span class="den">2T</span></span>∫<sub>−T</sub><sup>T</sup>|x|²dt</span>
+        （长度为 2T 的对称窗口上的平均功率）往哪走。
+        数据用的是<b>真实数值积分</b>（中点公式，几万个采样点），不是写死的数字。
+      </p>
+
+      <div id="lab-ep"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p style="margin-bottom:0">
+          <b>能量信号</b>：窗口再放大，<span class="mono">E<sub>T</sub></span> 停在一个有限值（灰色极限线）上不动了，而
+          <span class="mono">P<sub>T</sub></span> 一路缩小趋于 0 —— 这就是"<b>E&lt;∞ 且 P=0</b>"的现场证据。
+          <br>
+          <b>功率信号</b>：<span class="mono">E<sub>T</sub></span> 一直往上爬（不收敛，趋于 ∞），而
+          <span class="mono">P<sub>T</sub></span> 慢慢稳定到一条水平线 —— 这就是"<b>P 有限且非零、E=∞</b>"。
+          <br>
+          特别注意 <span class="mono">x(t)=u(t)</span> 那一项：它在 t=0 处有一个跳变，
+          <span class="mono">P<sub>T</sub></span> 的收敛比常数信号慢得多（因为平方后有间断点，数值积分收敛变慢），
+          但它确实趋近 1/2 —— 跳变点对积分没有影响，这叫"<b>改变一个点不改变积分</b>"。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>用公式复核实验台里的三个结论（手算 + 数值相互验证）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>(a) <span class="mono">x(t)=e<sup>−t</sup>u(t)</span> 是能量信号，E=1/2。</b></p>
+            <div class="eq">
+              E<sub>∞</sub> = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0</span></span></span> e<sup>−2t</sup>d<i>t</i>
+              = <span class="frac"><span class="num">1</span><span class="den">2</span></span>
+            </div>
+            <p class="why">为什么：<span class="mono">|e<sup>−t</sup>u(t)|²=e<sup>−2t</sup>u(t)</span>；下限定在 0 是因为 u(t) 把 t&lt;0 的部分清零；
+              原函数是 <span class="mono">−e<sup>−2t</sup>/2</span>，代上下限得 1/2。</p>
+            <p class="small muted">数值复核（本页实验台用的就是这套算法）：区间 [0, 50]、20 万点，得到 0.500000 —— 与 1/2 完全一致。</p>
+          </div>
+          <div class="step">
+            <p><b>(b) <span class="mono">x(t)=A cos(ω<sub>0</sub>t)</span> 是功率信号，P=A²/2。</b></p>
+            <div class="eq">
+              P<sub>∞</sub> = lim<sub>T→∞</sub> <span class="frac"><span class="num">1</span><span class="den">2T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span><span>−T</span></span></span> A<sup>2</sup>cos<sup>2</sup>(ω<sub>0</sub>t) d<i>t</i>
+              = lim<sub>T→∞</sub> <span class="frac"><span class="num">A<sup>2</sup></span><span class="den">2T</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span><span>−T</span></span></span>
+              <span class="frac"><span class="num">1 + cos(2ω<sub>0</sub>t)</span><span class="den">2</span></span> d<i>t</i>
+              = <span class="frac"><span class="num">A<sup>2</sup></span><span class="den">2</span></span>
+            </div>
+            <p class="why">为什么：用降幂公式 <span class="mono">cos²θ=(1+cos 2θ)/2</span> 把平方拆成"直流 1/2"加"两倍频余弦"。
+              在 <span class="mono">[−T, T]</span> 上积 <span class="mono">cos(2ω<sub>0</sub>t)</span> 得
+              <span class="mono">sin(2ω<sub>0</sub>T)/ω<sub>0</sub></span>，它被有限值 <span class="mono">A²/(2·2T)</span> 除以后随 T→∞ 趋于 0；
+              只剩常数项贡献 <span class="mono">A²/2</span>。</p>
+            <p class="small muted">数值复核：A=0.8、ω₀=2，T=100 时算出 0.319319，精确值 A²/2=0.32（误差来自数值积分，把窗口调到 T=200 会更贴近）。</p>
+          </div>
+          <div class="step">
+            <p><b>(c) <span class="mono">x(t)=t·u(t)</span> 两类都不是。</b></p>
+            <div class="eq">
+              E<sub>T</sub> = <span class="integral"><span class="sym">∫</span><span class="lim"><span>T</span><span>0</span></span></span> t<sup>2</sup>d<i>t</i> = <span class="frac"><span class="num">T<sup>3</sup></span><span class="den">3</span></span> → ∞,
+              &nbsp;&nbsp;
+              P<sub>T</sub> = <span class="frac"><span class="num">1</span><span class="den">2T</span></span>·<span class="frac"><span class="num">T<sup>3</sup></span><span class="den">3</span></span>
+              = <span class="frac"><span class="num">T<sup>2</sup></span><span class="den">6</span></span> → ∞
+            </div>
+            <p class="why">为什么两个都发散：能量按 T³ 增长得比功率的分母 2T 快得多，所以 T²/6 也压不住。
+              实验台里把它写成 <span class="mono">(t+1)u(t)</span> 是为了避开 t=0 处的"0×∞"，性质完全一样。</p>
+            <p class="small muted">数值复核：T=100 时 P=100²/6=1666.67，实验台显示的正是这个量级。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s5">5. 自变量变换：平移、反转、尺度</h2>
+
+      <p>
+        这一节只做一件事：把 <span class="mono">x(t)</span> 中的 <i>t</i> 换成别的表达式，看曲线怎么动。
+        三种基本操作，全都只动<b>横轴</b>，不动纵轴高度。
+      </p>
+
+      <table class="tbl">
+        <thead><tr><th>操作</th><th class="c">新信号</th><th>曲线怎么动</th><th>记法口诀</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><span class="term" data-def="time shifting，中文含义：时间平移（时移）。把自变量 t 换成 t−t₀，整条曲线沿横轴整体移动，形状不变。">时间平移</span> time shifting</td>
+            <td class="ft c">x(t − t<sub>0</sub>)</td>
+            <td><span class="mono">t<sub>0</sub>&gt;0</span> 时曲线<b>右移</b> <span class="mono">t<sub>0</sub></span>（延迟）；<span class="mono">t<sub>0</sub>&lt;0</span> 时左移（超前）</td>
+            <td>"减号往右跑"：<span class="mono">t−2</span> 是延迟 2 秒</td>
+          </tr>
+          <tr>
+            <td><span class="term" data-def="time reversal，中文含义：时间反转（时间反褶）。把 t 换成 −t，曲线关于竖直线 t=0 左右翻面，像把录像倒着放。">时间反转</span> time reversal</td>
+            <td class="ft c">x(−t)</td>
+            <td>关于竖直线 <span class="mono">t=0</span> <b>左右镜像</b></td>
+            <td>"把纸左右对折"</td>
+          </tr>
+          <tr>
+            <td><span class="term" data-def="time scaling，中文含义：时间尺度（时间压缩/展宽）。把 t 换成 αt。α>1 沿横轴压缩 α 倍（变化更快），0<α<1 展宽 1/α 倍，α<0 还附带反转。">时间尺度</span> time scaling</td>
+            <td class="ft c">x(αt)</td>
+            <td><span class="mono">α&gt;1</span>：沿时间轴<b>压缩</b> <span class="mono">α</span> 倍（变化更快）；<br>
+              <span class="mono">0&lt;α&lt;1</span>：沿时间轴<b>展宽</b> <span class="mono">1/α</span> 倍；<br>
+              <span class="mono">α&lt;0</span>：压缩/展宽之外还附带一次时间反转</td>
+            <td>"横轴缩水 α 倍"：<span class="mono">x(2t)</span> 把 1 秒的内容压进 0.5 秒</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        为什么 <span class="mono">α&gt;1</span> 叫"压缩"？用一个具体点去追最稳：
+        想找到 <span class="mono">x(2t)</span> 在原信号中取值 <span class="mono">x(1)</span> 的那个点，
+        要解 <span class="mono">2t=1</span>，得 <span class="mono">t=1/2</span>。
+        原来在 1 秒处发生的事，现在 0.5 秒就发生了 —— <b>时间被压扁了一半</b>，所以节奏变快。这就是"快放录像"。
+      </p>
+
+      <div class="box trap">
+        <span class="tag">本页第一大坑：组合变换的顺序</span>
+        <p>
+          处理 <span class="mono">x(αt+β)</span> 时，很多人会写成"先平移 β、再尺度 α"之外的东西，或者反过来"先尺度 α、再平移 β"。
+          <b>这两种顺序给出的结果完全不同</b>，因为平移和尺度<b>不可交换</b>。
+        </p>
+        <p class="why">为什么不可交换：把两个操作当成对自变量的两次替换。
+          "先平移 β" 是 <span class="mono">t ↦ t+β</span>；"再尺度 α" 是 <span class="mono">t ↦ αt</span>（作用在已经平移过的变量上），合起来是 <span class="mono">α(t+β)=αt+αβ</span>。
+          反过来"先尺度再平移 β"得到 <span class="mono">αt+β</span>——注意这里的 β <b>没有乘 α</b>。
+          所以 <span class="mono">x(αt+β)</span> 只能读成
+          <b>「先把 x(t) 平移 β，再做尺度 α」</b>，等价于"先尺度 α，再平移 <span class="mono">β/α</span>"。
+        </p>
+        <p style="margin-bottom:0">
+          换一个更好记的说法：<span class="mono">x(αt+β)=x(α(t+<span class="frac"><span class="num">β</span><span class="den">α</span></span>))</span>，
+          括号里对 <i>t</i> 平移了 <span class="mono">−β/α</span>。下面实验台把"错误顺序"也画出来，让你亲眼看到差在哪。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 动手：f(αt+β) 的顺序陷阱</h2>
+      <p>
+        基准信号 <span class="mono">f(t)</span> 是一个折线脉冲：从 <span class="mono">(−1,0)</span> 升到 <span class="mono">(0,2)</span>，
+        再降到 <span class="mono">(1,1)</span>，最后在 <span class="mono">(3,0)</span> 收平。
+        拖动 <span class="mono">α</span> 与 <span class="mono">β</span>，蓝线是<b>正确</b>的 <span class="mono">f(αt+β)</span>，
+        红虚线是把顺序搞反（先按 <span class="mono">α</span> 压缩、再平移 <span class="mono">β</span>，即得到 <span class="mono">f(αt+β·α)</span>）的结果。
+      </p>
+
+      <div id="lab-transform"></div>
+
+      <div class="box intuition">
+        <span class="tag">怎么用这个实验台把坑填掉</span>
+        <p style="margin-bottom:0">
+          <b>先只看 α：</b>把 β 固定在 0，拖 α。蓝线的支撑区变窄/变宽，但原点处的形状不变（因为 <span class="mono">t=0</span> 时 <span class="mono">αt=0</span>）。
+          <br>
+          <b>再只看 β：</b>把 α 固定在 1，拖 β。整条曲线左右平移。
+          <br>
+          <b>最后两个一起动：</b>把 α 设成 2，再把 β 从 0 拉到 2。蓝线只右移了 <b>1</b>（=β/α），而不是 2。
+          红线却右移了 2 —— 这就是"顺序搞反"的代价。<b>结论：先平移 β，再尺度 α。</b>
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>用"关键点跟踪法"严格求 f(αt+β) 的支撑区间（可手算复核）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：写下原信号的关键点。</b></p>
+            <p><span class="mono">f</span> 的转折点是 <span class="mono">t = −1, 0, 1, 3</span>。这些点把曲线分成几段直线。</p>
+            <p class="why">为什么只跟踪关键点就够：折线信号（分段线性）的图形由转折点完全决定；
+              线性替换 <span class="mono">t ↦ αt+β</span> 把直线段仍然映成直线段，所以只要知道转折点搬到哪，整条曲线就确定了。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：令新自变量等于每个关键点，解出新位置。</b></p>
+            <div class="eq">
+              αt + β = −1 ⇒ t = <span class="frac"><span class="num">−1 − β</span><span class="den">α</span></span>, &nbsp;&nbsp;
+              αt + β = 0 ⇒ t = <span class="frac"><span class="num">−β</span><span class="den">α</span></span>, &nbsp;&nbsp;
+              αt + β = 1 ⇒ t = <span class="frac"><span class="num">1 − β</span><span class="den">α</span></span>, &nbsp;&nbsp;
+              αt + β = 3 ⇒ t = <span class="frac"><span class="num">3 − β</span><span class="den">α</span></span>
+            </div>
+            <p class="why">为什么这合法：我们要找的是"新曲线上纵坐标等于原图某个转折点高度的位置"，也就是解一个一元一次方程。
+              解完就得到四个新位置 —— 它们之间仍然是直线段，高度依次是 <span class="mono">0, 2, 1, 0</span>（高度从不改变，因为操作只动横轴）。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：注意 α&lt;0 时左右端点会互换。</b></p>
+            <p><span class="mono">α&lt;0</span> 时除法把顺序颠倒，四个位置从右往左排 —— 这正是"时间反转"的体现，
+              实验台里把 α 拖到负数就能看到曲线整体镜像。</p>
+            <p class="why">为什么这样处理最省事：不要去记"乘负号要不要翻"，直接解方程再排序，数学不会骗你。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：数值复核（可以自己按计算器）。</b></p>
+            <p>取 <span class="mono">α=2, β=2</span>：四个新位置是 <span class="mono">−1.5, −1, −0.5, 0.5</span>。
+              也就是说 <span class="mono">f(2t+2)</span> 的支撑区间是 <span class="mono">[−1.5, 0.5]</span>，峰值仍为 2、在 <span class="mono">t=−1</span> 处。</p>
+            <p class="why">交叉验证：<span class="mono">f(2t+2)=f(2(t+1))</span>，所以它是"<b>先左移 1、再压缩 2 倍</b>"，
+              原支撑 <span class="mono">[−1,3]</span> 先左移变成 <span class="mono">[−2,2]</span>，再压成 <span class="mono">[−1,1]</span>……
+              咦，和上面算的 <span class="mono">[−1.5,0.5]</span> 不一致？</p>
+            <p class="why">再查一遍：<span class="mono">f(2(t+1))</span> 中令 <span class="mono">2(t+1)=u</span>，则 <span class="mono">t=u/2−1</span>。
+              当 <span class="mono">u</span> 跑遍 <span class="mono">[−1,3]</span> 时，<span class="mono">t</span> 跑遍
+              <span class="mono">[−1/2−1, 3/2−1]=[−1.5, 0.5]</span>。
+              <b>前面那句"先左移再压缩"写错了方向</b>：正确说法是"<span class="mono">x(αt+β)</span> 把原支撑区间左端
+              <span class="mono">−1</span> 送到 <span class="mono">(−1−β)/α</span>，这就是 <span class="mono">t=(u−β)/α</span>"，
+              也就是"<b>先平移 β、再尺度 α</b>"这条口诀对应的映射 <span class="mono">t=(u−β)/α</span>。
+              两种算法在 <span class="mono">[−1.5,0.5]</span> 上汇合，说明跟踪法没错。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s7">7. 周期、偶奇与奇偶分解</h2>
+
+      <h3>7.1 周期信号</h3>
+      <p>
+        <span class="term" data-def="periodic signal，中文含义：周期信号。存在 T>0 使得 x(t)=x(t+T) 对一切 t 成立；满足此式的最小正 T 叫基本周期。">周期信号</span>（periodic signal）：
+        存在 <span class="mono">T&gt;0</span>，使得
+      </p>
+      <div class="eq center-eq">
+        连续时间：x(t) = x(t + T) 对一切 <i>t</i> ∈ ℝ &nbsp;&nbsp;&nbsp;
+        离散时间：x[n] = x[n + N] 对一切 <i>n</i> ∈ ℤ
+        <span class="lbl">(1-5)</span>
+      </div>
+      <p>
+        满足条件的最小正数 <span class="mono">T</span>（或 <span class="mono">N</span>）叫
+        <span class="term" data-def="fundamental period，中文含义：基本周期。使周期性成立的最小正周期；它的倒数 1/T 叫（基本）频率，2π/T 叫基本角频率。">基本周期</span>（fundamental period），
+        对应的 <span class="mono">1/T</span> 叫频率（Hz），<span class="mono">2π/T</span> 叫
+        <span class="term" data-def="fundamental angular frequency，中文含义：基波角频率。ω₀=2π/T，单位 rad/s。周期信号的"最低频率"，所有谐波频率都是它的整数倍。">基波角频率</span>（记作 <span class="mono">ω<sub>0</sub></span>）。
+        不周期的信号叫<b>非周期</b>（aperiodic）。
+      </p>
+      <p class="small muted">
+        小心：周期<b>不是唯一</b>的。若 <span class="mono">T</span> 是周期，则 <span class="mono">2T, 3T, …</span> 都是。
+        所以问"周期是多少"时，标准答案是<b>基本周期</b>。
+      </p>
+
+      <h3>7.2 偶信号与奇信号</h3>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">偶信号（even）</h4>
+          <div class="eq" style="font-size:16px">f(t) = f(−t)</div>
+          <p class="small" style="margin-bottom:0">几何上关于 <b>竖直线 t=0</b> 对称，像 <span class="mono">cos t</span>、<span class="mono">t²</span>、<span class="mono">|t|</span>。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">奇信号（odd）</h4>
+          <div class="eq" style="font-size:16px">f(t) = −f(−t)</div>
+          <p class="small" style="margin-bottom:0">
+            关于原点<b>中心对称</b>，像 <span class="mono">sin t</span>、<span class="mono">t³</span>。
+            由此立刻得到：<b>奇信号在 0 处必为 0</b>，因为 <span class="mono">f(0)=−f(0)⇒f(0)=0</span>。
+          </p>
+        </div>
+      </div>
+
+      <h3>7.3 奇偶分解定理</h3>
+      <p>任何信号都能唯一地写成一个偶信号加一个奇信号：</p>
+      <div class="eq center-eq">
+        x(t) = Ev{x(t)} + Od{x(t)},
+        &nbsp;&nbsp;
+        Ev{x(t)} = <span class="frac"><span class="num">1</span><span class="den">2</span></span>[ x(t) + x(−t) ],
+        &nbsp;&nbsp;
+        Od{x(t)} = <span class="frac"><span class="num">1</span><span class="den">2</span></span>[ x(t) − x(−t) ]
+        <span class="lbl">(1-6)</span>
+      </div>
+      <details class="deriv">
+        <summary>证明（为什么这样拆一定对、而且唯一）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：验证 Ev 真的是偶函数。</b></p>
+            <div class="eq">
+              Ev{x}(−t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>[ x(−t) + x(t) ] = Ev{x}(t) ✓
+            </div>
+            <p class="why">为什么：把 <span class="mono">−t</span> 代进定义式，两个括号里的项交换位置，加法可交换，所以结果不变。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：验证 Od 真的是奇函数。</b></p>
+            <div class="eq">
+              Od{x}(−t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>[ x(−t) − x(t) ] = −Od{x}(t) ✓
+            </div>
+            <p class="why">为什么：代入后提出一个负号即可。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：验证和等于原信号。</b></p>
+            <div class="eq">
+              Ev{x}(t) + Od{x}(t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>[x(t)+x(−t)] + <span class="frac"><span class="num">1</span><span class="den">2</span></span>[x(t)−x(−t)] = x(t) ✓
+            </div>
+            <p class="why">为什么：<span class="mono">x(−t)</span> 恰好被抵消，只剩 <span class="mono">x(t)</span>。这一步说明"这种拆法一定可行"。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：验证唯一性。</b></p>
+            <p>假设还有另一种拆法 <span class="mono">x = e₁ + o₁</span>（<span class="mono">e₁</span> 偶、<span class="mono">o₁</span> 奇）。
+              把 <span class="mono">t</span> 换成 <span class="mono">−t</span> 得 <span class="mono">x(−t)=e₁(t)−o₁(t)</span>。
+              两式相加除以 2 得 <span class="mono">e₁(t)=Ev{x}(t)</span>，相减除以 2 得 <span class="mono">o₁(t)=Od{x}(t)</span>。</p>
+            <p class="why">为什么：任何满足条件的拆法都被原信号强行确定，所以拆法唯一。这也解释了为什么 <span class="mono">Ev</span>、<span class="mono">Od</span> 被叫做"投影算子"——
+              第 3 章的正交分解会把这个想法推广。</p>
+          </div>
+          <div class="step">
+            <p><b>数值例（可手算复核）：<span class="mono">x(t)=e<sup>−t</sup>u(t)</span></b></p>
+            <div class="eq">
+              Ev{x}(t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>e<sup>−|t|</sup>,
+              &nbsp;&nbsp;
+              Od{x}(t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>e<sup>−|t|</sup>·sgn(t)
+            </div>
+            <p class="why">为什么：<span class="mono">x(t)=e<sup>−t</sup>u(t)</span>、<span class="mono">x(−t)=e<sup>t</sup>u(−t)</span>。
+              分别相加/相减再乘 1/2，用 <span class="mono">|t|=−t·sgn(t)</span> 整理即得。
+              验算 t=1：<span class="mono">x(1)=e<sup>−1</sup>≈0.368</span>，<span class="mono">Ev=0.184</span>，<span class="mono">Od=0.184</span>，和为 0.368 ✓；
+              t=−1：<span class="mono">x(−1)=0</span>，<span class="mono">Ev=0.184</span>，<span class="mono">Od=−0.184</span>，和为 0 ✓。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s8">8. 复指数与正弦：CT 与 DT 的周期条件</h2>
+
+      <p>
+        这门课最重要的一个信号是
+        <span class="term" data-def="complex exponential，中文含义：复指数信号。形式为 Ce^{at}（CT）或 Cαⁿ（DT）；当 a 为纯虚数时变成旋转的复指数 e^{jω₀t}，实部虚部都是正弦。它是 LTI 系统的特征函数（第 3 章）。">复指数信号</span>（complex exponential）：
+      </p>
+      <div class="eq center-eq">
+        连续时间：x(t) = C e<sup>at</sup>
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        离散时间：x[n] = C α<sup>n</sup>,&nbsp; α = e<sup>β</sup>,&nbsp; x[n]=Ce<sup>βn</sup>
+        <span class="lbl">(1-7)</span>
+      </div>
+      <p>
+        其中 <span class="mono">C</span> 与 <span class="mono">a</span>（或 <span class="mono">α</span>）一般是复数。三种情形要分清：
+      </p>
+      <table class="tbl sm">
+        <thead><tr><th>情形</th><th>连续时间 C e<sup>at</sup></th><th>离散时间 C α<sup>n</sup></th></tr></thead>
+        <tbody>
+          <tr>
+            <td>实指数</td>
+            <td><span class="mono">a</span> 实数：<span class="mono">a&gt;0</span> 增长、<span class="mono">a&lt;0</span> 衰减、<span class="mono">a=0</span> 常数</td>
+            <td><span class="mono">α</span> 实数：<span class="mono">|α|&gt;1</span> 增长、<span class="mono">|α|&lt;1</span> 衰减；<b>α&lt;0 时符号交替</b></td>
+          </tr>
+          <tr>
+            <td>周期复指数</td>
+            <td><span class="mono">a=jω<sub>0</sub></span> 纯虚：<span class="mono">Ce<sup>jω<sub>0</sub>t</sup></span>，<b>一定是周期的</b></td>
+            <td><span class="mono">α=e<sup>jω<sub>0</sub></sup></span>，<span class="mono">|α|=1</span>：<b>不一定周期</b>（见下）</td>
+          </tr>
+          <tr>
+            <td>一般复指数</td>
+            <td><span class="mono">a=r+jω<sub>0</sub></span>：<span class="mono">x(t)=|C|e<sup>rt</sup>e<sup>j(ω<sub>0</sub>t+θ)</sup></span>，即"指数包络 × 旋转"</td>
+            <td><span class="mono">α=|α|e<sup>jω<sub>0</sub></sup></span>：<span class="mono">x[n]=|C||α|<sup>n</sup>e<sup>j(ω<sub>0</sub>n+θ)</sup></span></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <p>
+        表中"实指数"那一行值得单独说一句：<b>离散的 <span class="mono">α<sup>n</sup></span> 就是连续
+        <span class="mono">e<sup>at</sup></span> 的离散版</b>（令 <span class="mono">α=e<sup>a</sup></span>）。
+        第 2 章会看到：由差分方程描述的系统，它的冲激响应正是这种<b>几何序列</b>
+        <span class="mono">a<sup>n</sup>u[n]</span>；而由微分方程描述的系统，冲激响应是指数
+        <span class="mono">e<sup>−at</sup>u(t)</span>。两者是同一件事的连续/离散两个版本。
+      </p>
+
+      <h3>8.1 欧拉公式：复指数与正弦是一回事</h3>
+      <div class="eq center-eq">
+        e<sup>jθ</sup> = cos θ + j sin θ
+        &nbsp;&nbsp;⇒&nbsp;&nbsp;
+        cos θ = <span class="frac"><span class="num">1</span><span class="den">2</span></span>(e<sup>jθ</sup>+e<sup>−jθ</sup>),
+        &nbsp;&nbsp;
+        sin θ = <span class="frac"><span class="num">1</span><span class="den">2j</span></span>(e<sup>jθ</sup>−e<sup>−jθ</sup>)
+        <span class="lbl">(1-8)</span>
+      </div>
+      <p>
+        所以 <span class="mono">Ce<sup>jω<sub>0</sub>t</sup></span> 的实部是余弦、虚部是正弦（把 <span class="mono">C=|C|e<sup>jθ</sup></span> 提出模长后）：
+        <span class="mono">x(t)=|C|cos(ω<sub>0</sub>t+θ) + j|C|sin(ω<sub>0</sub>t+θ)</span>。
+        <b>一根复指数 = 两根正交的实正弦</b>。这是第 3 章"频域分析为什么可行"的入口。
+      </p>
+
+      <h3>8.2 周期条件：CT 与 DT 的巨大差别</h3>
+      <div class="box ok">
+        <span class="tag">两个必须记住的条件</span>
+        <p>
+          <b>连续时间</b>：<span class="mono">e<sup>jω<sub>0</sub>t</sup></span> 对<b>任何</b> <span class="mono">ω<sub>0</sub>≠0</span> 都是周期的，
+          基本周期 <span class="mono">T<sub>0</sub>=2π/ω<sub>0</sub></span>（频率越高，周期越短——符合直觉）。
+        </p>
+        <p style="margin-bottom:0">
+          <b>离散时间</b>：<span class="mono">e<sup>jω<sub>0</sub>n</sup></span> 周期 <b>当且仅当</b>
+          <span class="mono">ω<sub>0</sub>/2π</span> 是<b>有理数</b>，即
+          <span class="mono">ω<sub>0</sub> = 2πm/N</span>（<span class="mono">m, N</span> 为整数且互质）。
+          此时基本周期 <span class="mono">N = 2π·<span class="frac"><span class="num">1</span><span class="den">ω<sub>0</sub>/2π</span></span></span>（把 <span class="mono">ω<sub>0</sub>/2π</span> 写成最简分数后的分母）。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>DT 周期条件的推导（以及"离散频率是圆的"这个奇怪事实）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：把周期性写成方程。</b></p>
+            <div class="eq">
+              e<sup>jω<sub>0</sub>(n+N)</sup> = e<sup>jω<sub>0</sub>n</sup>
+              ⇒ e<sup>jω<sub>0</sub>n</sup>e<sup>jω<sub>0</sub>N</sup> = e<sup>jω<sub>0</sub>n</sup>
+              ⇒ e<sup>jω<sub>0</sub>N</sup> = 1
+            </div>
+            <p class="why">为什么可以两边约掉：<span class="mono">e<sup>jω<sub>0</sub>n</sup></span> 恒不为 0（模长恒为 1），可以直接除过去。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：解 <span class="mono">e<sup>jω<sub>0</sub>N</sup>=1</span>。</b></p>
+            <div class="eq">
+              ω<sub>0</sub>N = 2πm（<i>m</i> 为整数）
+              &nbsp;⇒&nbsp;
+              <span class="frac"><span class="num">ω<sub>0</sub></span><span class="den">2π</span></span> = <span class="frac"><span class="num">m</span><span class="den">N</span></span>
+            </div>
+            <p class="why">为什么：复指数等于 1 意味着相位角是 2π 的整数倍（欧拉公式：<span class="mono">cos=1, sin=0</span>）。
+              所以 <span class="mono">ω<sub>0</sub>/2π</span> 必须写成两个整数之比 —— 这就是"有理数"条件。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：基本周期的算法。</b></p>
+            <p>把 <span class="mono">ω<sub>0</sub>/2π</span> 化成最简分数 <span class="mono">m/N</span>（<span class="mono">gcd(m,N)=1</span>），则基本周期就是分母 <span class="mono">N</span>。</p>
+            <p class="why">为什么必须最简：如果不约分，你会得到 2N、3N 这些"是周期但不是最小"的答案。
+              例：<span class="mono">ω<sub>0</sub>=2π·(2/6)</span> 写成 2/6 得 6，约分成 1/3 得正确答案 <b>3</b>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：一个反直觉的推论 —— 离散频率是"绕圈"的。</b></p>
+            <div class="eq">
+              e<sup>j(ω<sub>0</sub>+2π)n</sup> = e<sup>jω<sub>0</sub>n</sup>·e<sup>j2πn</sup> = e<sup>jω<sub>0</sub>n</sup>
+            </div>
+            <p class="why">为什么：<span class="mono">n</span> 是整数，<span class="mono">e<sup>j2πn</sup>=1</span> 恒成立。
+              所以 <span class="mono">ω<sub>0</sub></span> 与 <span class="mono">ω<sub>0</sub>+2π</span> 代表<b>同一个信号</b>；
+              离散频率只需要在长度 <span class="mono">2π</span> 的区间里看（通常取 <span class="mono">[−π, π)</span> 或 <span class="mono">[0, 2π)</span>）。
+              而且频率越高不代表振荡越快：<span class="mono">ω<sub>0</sub>=π</span> 才是最快的（每个样本符号都翻），超过 π 就"绕回来"变慢。</p>
+            <p class="small muted"><b>数值例子（课件原题风格）</b>：<span class="mono">x[n]=e<sup>j(2π/3)n</sup> + e<sup>j(3π/4)n</sup></span>。
+              第一项：<span class="mono">ω<sub>0</sub>/2π=1/3</span> ⇒ <span class="mono">N₁=3</span>；
+              第二项：<span class="mono">ω<sub>0</sub>/2π=3/8</span> ⇒ <span class="mono">N₂=8</span>。
+              两项之和的周期取最小公倍数 <span class="mono">lcm(3,8)=24</span>。</p>
+          </div>
+        </div>
+      </details>
+
+      <h3>8.3 谐波族：频率是基频的整数倍</h3>
+      <p>
+        给定 <span class="mono">ω<sub>0</sub></span>，把它的整数倍频率收集起来：
+        <span class="mono">φ<sub>k</sub>(t)=e<sup>jkω<sub>0</sub>t</sup></span>（<span class="mono">k∈ℤ</span>）。
+        这些叫<b>谐波相关</b>的一组复指数。注意 <span class="mono">k=0</span> 时它退化为常数。
+      </p>
+      <div class="box trap">
+        <span class="tag">CT 与 DT 在这里又分道扬镳（第 5 章的核心）</span>
+        <p style="margin-bottom:0">
+          <b>CT</b>：<span class="mono">e<sup>jkω<sub>0</sub>t</sup></span> 对不同的 <span class="mono">k</span> 是<b>互不相同</b>的，
+          所以谐波有无穷多个、彼此独立。
+          <b>DT</b>：因为 <span class="mono">e<sup>j(k+N)(2π/N)n</sup>=e<sup>jk(2π/N)n</sup></span>，
+          谐波只有 <b>N 个是不同的</b>（<span class="mono">k=0,1,…,N−1</span>），其余都是重复。
+          这就是"离散周期信号只有 N 个独立谐波"的来历 —— 后面 DTFS（第 5 章）整个建立在这句话上。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 单位冲激 δ 与单位阶跃 u</h2>
+
+      <p>这两个信号是整门课的"原子"。先把定义摆清楚。</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">离散：δ[n] 与 u[n]（毫无歧义）</h4>
+          <div class="eq" style="font-size:16px">
+            δ[n] = 1（n=0），&nbsp; δ[n] = 0（n≠0）
+          </div>
+          <div class="eq" style="font-size:16px">
+            u[n] = 1（n≥0），&nbsp; u[n] = 0（n&lt;0）
+          </div>
+          <p class="small">两者关系（可逐项验证）：</p>
+          <div class="eq" style="font-size:15px">
+            u[n] = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=0</span></span> δ[n−k]
+            &nbsp;&nbsp;
+            u[n] = <span class="sum"><span class="top">n</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> δ[k]
+            &nbsp;&nbsp;
+            δ[n] = u[n] − u[n−1]
+          </div>
+          <p class="small muted" style="margin-bottom:0">
+            验证第一式取 n=2：右边 <span class="mono">δ[2]+δ[1]+δ[0]+δ[−1]+…=0+0+1+0+…=1=u[2]</span> ✓
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">连续：δ(t) 与 u(t)（要小心）</h4>
+          <div class="eq" style="font-size:16px">
+            u(t) = 1（t&gt;0）， u(t) = 0（t&lt;0）， u(0)=1（任意约定）
+          </div>
+          <div class="eq" style="font-size:16px">
+            δ(t) = d u(t) / d t
+          </div>
+          <p class="small">
+            δ(t) <b>不是普通函数</b>：它在 <span class="mono">t≠0</span> 处为 0，在 <span class="mono">t=0</span> 处"无穷大"，
+            但规定 <span class="mono">∫δ(t)dt=1</span>。它是"面积为 1 的无穷窄、无穷高脉冲"的极限理想化。
+          </p>
+          <p class="small muted" style="margin-bottom:0">
+            <span class="mono">u(0)</span> 取 0 还是 1 还是 1/2 <b>不影响任何积分</b>（单点值不改变积分），
+            所以不必纠结；本课程件取 <span class="mono">u(0)=1</span>。
+          </p>
+        </div>
+      </div>
+
+      <h3>9.1 筛选性质（δ 最有用的性质）</h3>
+      <div class="eq center-eq">
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        x(t) δ(t − t<sub>0</sub>) d<i>t</i> = x(t<sub>0</sub>)
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+        x[n] δ[n − n<sub>0</sub>] = x[n<sub>0</sub>]
+        <span class="lbl">(1-9)</span>
+      </div>
+      <p class="why">
+        为什么叫"筛选"：乘以 δ 再积分，等于<b>把整个信号里 t₀ 那一瞬间的值挑出来</b>，其他点全被 δ 的零值挡掉了。
+        它还可以写成"逐点相乘"的形式：<span class="mono">x(t)δ(t−t<sub>0</sub>) = x(t<sub>0</sub>)δ(t−t<sub>0</sub>)</span>，
+        以及离散版 <span class="mono">x[n]δ[n−n<sub>0</sub>] = x[n<sub>0</sub>]δ[n−n<sub>0</sub>]</span>。
+      </p>
+
+      <h3>9.2 表示性质：任何信号都能用 δ 拼出来</h3>
+      <p>这是第 2 章卷积的全部起点，务必看懂：</p>
+      <div class="eq center-eq">
+        x(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        x(τ) δ(t − τ) dτ
+        &nbsp;&nbsp;&nbsp;&nbsp;
+        x[n] = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+        x[k] δ[n − k]
+        <span class="lbl">(1-10)</span>
+      </div>
+      <p class="why">
+        为什么这是对的：对固定的 <i>t</i>，把积分变量 <span class="mono">τ</span> 看成"扫描点"，δ 只在 <span class="mono">τ=t</span> 处不为零，
+        用筛选性质取到 <span class="mono">x(t)</span>。人话说：<b>把信号切成无数个"位置在 τ、高度是 x(τ) 的冲激"，再全部叠起来</b>，
+        就还原出原信号。离散版更直白：<span class="mono">x[n]</span> 就是"在第 k 个位置放一个高度 <span class="mono">x[k]</span> 的 δ"之和。
+      </p>
+      <p class="small muted">
+        课件里那个 <span class="mono">u(t)=∫<sub>−∞</sub><sup>t</sup>δ(σ)dσ</span> 就是表示性质的特例（把 x 换成 u）。
+      </p>
+
+      <h3>9.3 δ 的运算性质</h3>
+      <table class="tbl sm">
+        <thead><tr><th>性质</th><th class="c">公式</th><th>为什么 / 直观</th></tr></thead>
+        <tbody>
+          <tr><td>与 u 的关系（CT）</td><td class="ft c">u(t) = ∫<sub>−∞</sub><sup>t</sup>δ(σ)dσ，&nbsp; δ(t)=du(t)/dt</td><td>阶跃是"一直累加到 t"，δ 是它的变化率（只在 0 处跳一下）。</td></tr>
+          <tr><td>与 u 的关系（DT）</td><td class="ft c">u[n] = Σ<sub>k=−∞</sub><sup>n</sup>δ[k]，&nbsp; δ[n]=u[n]−u[n−1]</td><td>离散版把积分换成求和、导数换成差分。</td></tr>
+          <tr><td>时间尺度</td><td class="ft c">δ(at) = <span class="frac"><span class="num">1</span><span class="den">|a|</span></span>δ(t)</td><td>面积必须守恒：横轴压缩 a 倍，高度必须放大 |a| 倍才能保持面积为 1。注意是 <b>|a|</b>，负号不影响 δ。</td></tr>
+          <tr><td>抽样/相乘</td><td class="ft c">x(t)δ(t−t<sub>0</sub>) = x(t<sub>0</sub>)δ(t−t<sub>0</sub>)</td><td>"δ 太窄，x 在它宽度内几乎不变"，所以 x 被冻在 t₀ 的值上。</td></tr>
+          <tr><td>与 δ 的卷积</td><td class="ft c">x(t) ∗ δ(t−t<sub>0</sub>) = x(t−t<sub>0</sub>)</td><td><b>δ 是卷积的单位元</b>：卷积它等于原样平移（第 2 章会用这条推卷积）。</td></tr>
+          <tr><td>偶性</td><td class="ft c">δ(−t) = δ(t)</td><td>把脉冲图左右翻面，还是同一根脉冲。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s10">10. 系统：六条性质</h2>
+
+      <p>
+        <b>系统（system）</b>是把输入信号变成输出信号的映射，记作
+        <span class="mono">x(t) → y(t)</span> 或 <span class="mono">x[n] → y[n]</span>。
+        这门课只关心六条性质，因为后面所有工具都建立在它们之上。
+        下面每条都给出：<b>定义 → 判定方法 → 例子</b>。
+      </p>
+
+      <h3>(0) 先认识三种基本连接方式</h3>
+      <p>
+        复杂的系统都是简单系统<b>连起来</b>的。只有三种基本连法，它们的名字后面每一章都会用到
+        （第 2 章会看到"卷积的哪条性质对应哪种连法"）：
+      </p>
+      <table class="tbl sm">
+        <thead><tr><th>连法</th><th class="c">结构</th><th>总体效果</th><th>第 2 章的对应</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>串联</b>（级联，series / cascade）</td>
+            <td class="c">x → S₁ → S₂ → y</td>
+            <td>前一级的输出当后一级的输入</td>
+            <td>总冲激响应 = <span class="mono">h₁∗h₂</span>（<b>结合律</b>）</td>
+          </tr>
+          <tr>
+            <td><b>并联</b>（parallel）</td>
+            <td class="c">x 同时送进 S₁、S₂，输出相加</td>
+            <td>两个系统各自处理同一个输入</td>
+            <td>总冲激响应 = <span class="mono">h₁+h₂</span>（<b>分配律</b>）</td>
+          </tr>
+          <tr>
+            <td><b>混联</b>（series-parallel）</td>
+            <td class="c">上面两种的组合</td>
+            <td>逐段拆开化简</td>
+            <td>反复用结合律 + 分配律</td>
+          </tr>
+        </tbody>
+      </table>
+      <p class="small muted">
+        一个现实例子：音响里的"低音 + 高音"两个滤波器并联后再送到喇叭，就是并联结构；
+        而"前置放大 → 均衡 → 功放"是串联结构。
+      </p>
+
+      <h3>(1) 记忆性 memory</h3>
+      <div class="box">
+        <p>
+          <b>无记忆（memoryless）</b>：输出在时刻 <i>t</i> 只依赖输入<b>同一时刻</b>的值。
+          <b>有记忆（with memory）</b>：还用到了别的时刻的输入（或输出）。
+        </p>
+        <p class="small" style="margin-bottom:0">
+          例：<span class="mono">y(t)=(x(t)+x²(t))²</span> 无记忆；<span class="mono">y[n]=x[n−1]</span> 有记忆（用到了上一拍）；
+          <span class="mono">y[n]=x[n]−y[n−1]</span> 有记忆（用到了自己的历史）。
+        </p>
+      </div>
+
+      <h3>(2) 可逆性 invertibility</h3>
+      <div class="box">
+        <p>
+          <b>可逆</b>：不同的输入一定给出不同的输出 —— 也就是说，看到输出能<b>唯一地反推出</b>输入。
+        </p>
+        <p class="small" style="margin-bottom:0">
+          判定技巧（课件原话）：<b>要证明可逆，必须给出反系统公式；要证明不可逆，给一个反例就够了。</b>
+          例：<span class="mono">y[n]=Σ<sub>k=−∞</sub><sup>n</sup>x[k]</span>（累加器）可逆，逆系统是差分
+          <span class="mono">x[n]=y[n]−y[n−1]</span>；
+          而 <span class="mono">y(t)=x²(t)</span> 不可逆（<span class="mono">x</span> 和 <span class="mono">−x</span> 给同一个输出）；
+          <span class="mono">y(t)=cos(t+2)x(t)</span> 在 <span class="mono">cos(t+2)=0</span> 的时刻把输入信息丢掉了，也不可逆。
+        </p>
+      </div>
+
+      <h3>(3) 因果性 causality</h3>
+      <div class="box">
+        <p>
+          <b>因果（causal）</b>：任意时刻的输出只依赖<b>现在和过去</b>的输入，不依赖未来。也叫"非预测的"（non-anticipative）。
+        </p>
+        <p class="small" style="margin-bottom:0">
+          例：<span class="mono">y(t)=∫<sub>−∞</sub><sup>t</sup>x(τ)dτ</span> 因果；
+          <span class="mono">y[n]=x[n]+x[n+1]</span> 非因果（用了下一拍）；
+          移动平均 <span class="mono">y[n]=<span class="frac"><span class="num">1</span><span class="den">2M+1</span></span>Σ<sub>k=−M</sub><sup>M</sup>x[n−k]</span>
+          在 <span class="mono">M&gt;0</span> 时非因果（用到未来）。<b>离线处理</b>（先把整段录音存下来再算）允许非因果，<b>实时系统</b>不允许。
+        </p>
+      </div>
+
+      <h3>(4) 稳定性 stability</h3>
+      <div class="box">
+        <p>
+          <b>稳定（stable，BIBO）</b>：有界输入必有有界输出。即存在 <span class="mono">B&lt;∞</span> 使
+          <span class="mono">|x|≤B</span> 对一切时间成立，则输出也一定有界。
+        </p>
+        <p class="small" style="margin-bottom:0">
+          例：<span class="mono">y(t)=2x(t−1)+x(3t)</span> 稳定（只是加法和伸缩）；
+          <span class="mono">y[n]=Σ<sub>k=−∞</sub><sup>n</sup>u[k]</span> <b>不稳定</b>：输入 <span class="mono">u[n]</span> 有界（≤1），
+          但输出是 <span class="mono">(n+1)u[n]</span>，随 n 无限增长。
+          <br>第 2 章会给出 LTI 版本的判据：
+          <span class="mono">Σ<sub>k</sub>|h[k]| &lt; ∞</span>（<b>绝对可和</b>，absolutely summable）⇒ 稳定；
+          连续时间对应的是 <span class="mono">∫|h(τ)|dτ &lt; ∞</span>（<b>绝对可积</b>）。
+        </p>
+      </div>
+
+      <h3>(5) 时不变性 time invariance</h3>
+      <div class="box">
+        <p>
+          <b>时不变</b>：输入的平移，导致输出的<b>同样</b>平移。
+          <span class="mono">x(t) → y(t)</span> 则必须 <span class="mono">x(t−t<sub>0</sub>) → y(t−t<sub>0</sub>)</span>，
+          对一切 <span class="mono">t<sub>0</sub></span> 成立。
+        </p>
+        <p class="small" style="margin-bottom:0">
+          人话：<b>系统的"性格"不随时间变</b>。今天做实验和明天做实验，只要输入相同，输出相同。
+          <br>例：<span class="mono">y(t)=sin(x(t))</span> 时不变；
+          <span class="mono">y[n]=n·x[n]</span> <b>时变</b>：因为系数 <span class="mono">n</span> 自己就在变，同一段输入在不同时刻被放大不同倍数。
+        </p>
+      </div>
+
+      <h3>(6) 线性 linearity</h3>
+      <div class="box">
+        <p>
+          <b>线性 = 齐次（scalable）+ 叠加（additive）</b>，可以合并成一句话：
+        </p>
+        <div class="eq center-eq">
+          a x<sub>1</sub>(t) + b x<sub>2</sub>(t) &nbsp;⟶&nbsp; a y<sub>1</sub>(t) + b y<sub>2</sub>(t)，
+          对一切复数 a, b 成立
+          <span class="lbl">(1-11)</span>
+        </div>
+        <p class="small" style="margin-bottom:0">
+          两个条件缺一不可。例：<span class="mono">y(t)=x²(t)</span> <b>不线性</b>
+          （取 <span class="mono">x₁=x₂=x</span>、<span class="mono">a=b=1</span>：左边 <span class="mono">(2x)²=4x²</span>，右边 <span class="mono">x²+x²=2x²</span>，不等）；
+          <span class="mono">y[n]=Re{x[n]}</span> 是<b>可加但不可齐次</b>的经典例子：
+          取 <span class="mono">a=j</span>，<span class="mono">Re{j·x}≠j·Re{x}</span>（左边是实数，右边是纯虚数），所以它对复数系数不线性。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">为什么把"线性 + 时不变"看得这么重</span>
+        <p style="margin-bottom:0">
+          因为这两条一起，就能推出本课程<b>最强大的一个结论</b>：
+          <b>一个 LTI 系统的全部行为，被它的冲激响应 h 完全决定</b>，输出就是卷积 <span class="mono">y=x∗h</span>。
+          于是"分析一个系统"从"解微分方程"变成"算一次卷积"，再变成"乘一次频谱"。
+          这就是第 2 章要干的事。
+        </p>
+      </div>
+
+      <h2 id="s11">11. 动手：一眼判断线性/时不变/因果</h2>
+      <p>
+        下面这个实验台把"判定"变成<b>可测量的数字</b>。选一个系统，看两张图（输入、输出），
+        再读下面的三项检验：齐次检验 <span class="mono">S(a·x) − a·S(x)</span>、
+        叠加检验 <span class="mono">S(x₁+x₂) − S(x₁) − S(x₂)</span>、
+        时不变检验 <span class="mono">S(x 延迟 t₀) − S(x) 延迟 t₀</span>。三项全为 0 才算过关。
+      </p>
+
+      <div id="lab-sys"></div>
+
+      <div class="box trap">
+        <span class="tag">注意：这些是用"一批测试信号"做的数值检验</span>
+        <p style="margin-bottom:0">
+          <b>过不了检验 ⇒ 一定不满足该性质</b>（数值差不为 0 就是反例）。
+          但<b>过了检验不等于证明</b>——它只是"在这批信号上没找到反例"。
+          严格的证明还是要把定义式代进去算（就像上面第 10 节各个例子里做的那样）。
+          实验台的作用是帮你建立直觉：<b>看到"系统带了一个会变的系数"就该怀疑时不变性</b>。
+        </p>
+      </div>
+
+      <h2 id="s12">12. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：把 x[n] 当成 x(n)</h4>
+          <p class="small">方括号与圆括号是<b>两类不同的信号</b>，不是排版风格。混用会让后面第 5、7、8 章的离散公式彻底看不懂。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：x(αt+β) 顺序搞反</h4>
+          <p class="small">必须<b>先平移 β、再尺度 α</b>。等价于先尺度再平移 <b>β/α（不是 β）</b>。这是考试最常见的送分/送命题。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：以为能量信号的功率是 0，就没意义</h4>
+          <p class="small">P=0 正是这类信号的定义的一部分（因为能量有限、时间无穷长）。<b>不要把 P=0 当成"算错了"。</b></p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：忘了 |x|² 里那个模</h4>
+          <p class="small">复信号必须取模再平方。忘了模，算 <span class="mono">e<sup>jωt</sup></span> 的能量时会得到 0 或复数，而正确答案是<b>无穷大</b>（它其实是功率信号，P=1）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：以为 δ(t) 是个普通函数</h4>
+          <p class="small">它没有"函数值"可言，只有"面积"和"在积分/卷积下的作用"。所以判它时永远不要去讨论 <span class="mono">δ(0)</span> 等于多少。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：把离散周期条件当成连续</h4>
+          <p class="small"><span class="mono">e<sup>jω<sub>0</sub>n</sup></span> 不一定周期！必须 <span class="mono">ω<sub>0</sub>/2π</span> 是有理数。例如 <span class="mono">ω<sub>0</sub>=1</span> 时它不是周期序列。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：用"可加"冒充"线性"</h4>
+          <p class="small">线性 = 可加 <b>且</b> 齐次。对复数系数不齐次（如取实部）的系统不叫线性，这在第 6 章处理实信号频谱对称性时会咬人。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：判因果时只看公式里有没有 t+1</h4>
+          <p class="small">还要检查<b>系数本身</b>和<b>时间尺度</b>。例如 <span class="mono">y(t)=x(3t)</span> 也非因果（<span class="mono">3t&gt;t</span>，用到了未来）。</p>
+        </div>
+      </div>
+
+      <h2 id="s13">13. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz1"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 1 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ---------- 本页局部数学工具（内核没有的就自己实现） ---------- */
+
+  /* 折线信号：pts = [[t0,v0],[t1,v1],...]，按 t 递增；区间外为 0 */
+  function fold(pts, t) {
+    if (t < pts[0][0] || t > pts[pts.length - 1][0]) return 0;
+    for (var i = 0; i < pts.length - 1; i++) {
+      var a = pts[i], b = pts[i + 1];
+      if (t >= a[0] && t <= b[0]) {
+        if (b[0] === a[0]) return b[1];
+        return a[1] + (b[1] - a[1]) * (t - a[0]) / (b[0] - a[0]);
+      }
+    }
+    return 0;
+  }
+
+  /* 中点公式数值积分 ∫_a^b f(t)dt */
+  function integrate(f, a, b, N) {
+    var h = (b - a) / N, s = 0, i, t;
+    for (i = 0; i < N; i++) { t = a + (i + 0.5) * h; s += f(t); }
+    return s * h;
+  }
+
+  /* 基准折线信号 f：(-1,0) → (0,2) → (1,1) → (3,0) */
+  var F_PTS = [[-1, 0], [0, 2], [1, 1], [3, 0]];
+  function baseF(t) { return fold(F_PTS, t); }
+
+  /* ---------- 实验 1：f(αt+β) 的顺序陷阱 ---------- */
+  SSC.lab({
+    mount: '#lab-transform',
+    title: '实验 1 · 拖 α 和 β，同时看"正确顺序"与"错误顺序"',
+    hint: '蓝实线 = 正确的 f(αt+β)；红虚线 = 顺序搞反（先尺度后平移）的结果',
+    columns: 2,
+    canvases: [
+      { id: 'res', label: '结果对比：f(αt+β)（蓝）与错误顺序（红虚线）', height: 220 },
+      { id: 'steps', label: '拆解：f(t)（灰）→ 先平移 β（青）→ 再尺度 α（蓝）', height: 220 }
+    ],
+    controls: [
+      { id: 'al', label: '尺度 α', min: -2.5, max: 2.5, step: 0.1, value: 2 },
+      { id: 'be', label: '平移 β', min: -4, max: 4, step: 0.1, value: 2 },
+      { id: 'span', label: '横轴范围 ±', min: 4, max: 14, step: 0.5, value: 7, unit: '' }
+    ],
+    buttons: [
+      { label: '重置 (α=2, β=2)', onClick: function (v, api) { api.set('al', 2); api.set('be', 2); } },
+      { label: '只看尺度 (β=0)', onClick: function (v, api) { api.set('be', 0); } },
+      { label: '只看平移 (α=1)', onClick: function (v, api) { api.set('al', 1); } }
+    ],
+    draw: function (cv, v) {
+      var al = v.al, be = v.be, S = v.span;
+      /* 正确的 f(αt+β)：把 f 的转折点按 t=(u-β)/α 搬运 */
+      var pts1 = [[-1, 0], [0, 2], [1, 1], [3, 0]];
+      var map = [];
+      for (var i = 0; i < pts1.length; i++) {
+        map.push([(pts1[i][0] - be) / al, pts1[i][1]]);
+      }
+      map.sort(function (p, q) { return p[0] - q[0]; });
+      var minAl = Math.abs(al) < 1e-6 ? 1e-6 : al;
+
+      /* 错误的顺序：先按 α 尺度得到 f(αt)，再平移 β */
+      var wrong = [[-1 / al, 0], [0, 2], [1 / al, 1], [3 / al, 0]];
+      var w2 = [];
+      for (var j = 0; j < wrong.length; j++) w2.push([wrong[j][0] + be, wrong[j][1]]);
+      w2.sort(function (p, q) { return p[0] - q[0]; });
+
+      SSC.plot(cv.res, {
+        xmin: -S, xmax: S, ymin: -0.6, ymax: 2.9,
+        xlabel: 't', ylabel: '幅度',
+        curves: [
+          { f: function (t) { return fold(map, t); }, color: '#4338ca', width: 2.6, label: '正确：f(αt+β)' },
+          { f: function (t) { return fold(w2, t); }, color: '#dc2626', width: 1.8, dash: [6, 4], label: '错误顺序：先尺度后平移' },
+          { f: baseF, color: '#c3ccdd', width: 1.4, dash: [3, 3], label: '原信号 f(t)' }
+        ],
+        vlines: [{ x: 0, color: 'rgba(110,130,165,.5)' }],
+        legend: true
+      });
+
+      /* 拆解图：f(t) → p(t)=f(t+β)（先平移）→ p(αt)（再尺度） */
+      var mid = [];
+      for (var k = 0; k < pts1.length; k++) mid.push([pts1[k][0] - be, pts1[k][1]]);
+      mid.sort(function (p, q) { return p[0] - q[0]; });
+      var last = [];
+      for (var m = 0; m < mid.length; m++) last.push([mid[m][0] / minAl, mid[m][1]]);
+      last.sort(function (p, q) { return p[0] - q[0]; });
+
+      SSC.plot(cv.steps, {
+        xmin: -S, xmax: S, ymin: -0.6, ymax: 2.9,
+        xlabel: 't', ylabel: '幅度',
+        curves: [
+          { f: baseF, color: '#c3ccdd', width: 1.6, dash: [3, 3], label: '第 0 步：f(t)' },
+          { f: function (t) { return fold(mid, t); }, color: '#0e7490', width: 2, label: '第 1 步：先平移 β → f(t+β)' },
+          { f: function (t) { return fold(last, t); }, color: '#4338ca', width: 2.6, label: '第 2 步：再尺度 α → f(αt+β)' }
+        ],
+        vlines: [{ x: 0, color: 'rgba(110,130,165,.5)' }],
+        legend: true
+      });
+    },
+    note: function (v) {
+      var shift = -v.be / v.al;                 /* 正确：峰值落在 t = −β/α */
+      var wrong = v.be;                         /* 错误：先尺度再平移 β，峰值落在 t = β */
+      var gap = Math.abs(wrong - shift);
+      return '当前 <b>α = ' + SSC.fmt(v.al, 2) + '</b>、<b>β = ' + SSC.fmt(v.be, 2) + '</b>：<br>' +
+        '正确读法：<b>f(αt+β) = f( α·(t ' + (shift >= 0 ? '− ' : '+ ') + SSC.fmt(Math.abs(shift), 2) + ') )</b>，' +
+        '也就是"<b>先把 f(t) 平移 ' + (v.be >= 0 ? '左' : '右') + ' |β| = ' + SSC.fmt(Math.abs(v.be), 2) + '，再把横轴按 α 缩放</b>"。' +
+        '峰值落在 <b>t = ' + SSC.fmt(shift, 2) + '</b>。<br>' +
+        '错误顺序（先按 α 缩放、再平移 β）把峰值送到 <b>t = ' + SSC.fmt(wrong, 2) + '</b>，' +
+        '两者相差 <b>' + SSC.fmt(gap, 2) + '</b>。' +
+        '<br>把 α 拖成负数，曲线整体<b>左右镜像</b>（时间反转）——那是 α&lt;0 的定义，不是 bug。';
+    }
+  });
+
+  /* ---------- 实验 2：能量 / 功率三类信号 ---------- */
+  var EP = {
+    exp1: {
+      name: 'x(t) = e^(−t)·u(t)（指数衰减脉冲）',
+      f: function (t) { return Math.exp(-t) * SSC.uStep(t); },
+      win: 50, exact: 'E = 1/2 = 0.5，P = 0（能量信号）'
+    },
+    exp2: {
+      name: 'x(t) = e^(−2t)·u(t)（衰减更快）',
+      f: function (t) { return Math.exp(-2 * t) * SSC.uStep(t); },
+      win: 50, exact: 'E = 1/4 = 0.25，P = 0（能量信号）'
+    },
+    c1: {
+      name: 'x(t) = 0.8（常数）',
+      f: function (t) { return 0.8; },
+      win: 100, exact: 'E = ∞，P = 0.8² = 0.64（功率信号）'
+    },
+    cos1: {
+      name: 'x(t) = 0.8·cos(2t)（正弦）',
+      f: function (t) { return 0.8 * Math.cos(2 * t); },
+      win: 200, exact: 'E = ∞，P = 0.8²/2 = 0.32（功率信号）'
+    },
+    step1: {
+      name: 'x(t) = u(t)（有跳变的阶跃）',
+      f: function (t) { return SSC.uStep(t); },
+      win: 200, exact: 'E = ∞，P = 1/2 = 0.5（功率信号）'
+    },
+    ramp1: {
+      name: 'x(t) = (t+1)·u(t)（斜坡）',
+      f: function (t) { return (t + 1) * SSC.uStep(t); },
+      win: 200, exact: 'E = ∞，P = ∞（两类都不是）'
+    }
+  };
+  var EP_GRID = [0.5, 1, 2, 5, 10, 20, 50, 100];
+
+  SSC.lab({
+    mount: '#lab-ep',
+    title: '实验 2 · 能量/功率：把"取极限"看清楚',
+    hint: '选一个信号，数据是真实数值积分算出来的 E_T 与 P_T',
+    columns: 2,
+    canvases: [
+      { id: 'sig', label: '信号波形（灰虚线标出窗口 [0, T]）', height: 200 },
+      { id: 'trend', label: '随窗口 T 变化：E_T（蓝，左轴）与 P_T（红）', height: 200 }
+    ],
+    controls: [
+      { id: 'which', label: '信号', options: [
+        { v: 'exp1', t: 'e^(−t)u(t)' },
+        { v: 'exp2', t: 'e^(−2t)u(t)' },
+        { v: 'c1', t: '常数 0.8' },
+        { v: 'cos1', t: '0.8cos(2t)' },
+        { v: 'step1', t: 'u(t)' },
+        { v: 'ramp1', t: '(t+1)u(t)' }
+      ], value: 'exp1' }
+    ],
+    draw: function (cv, v, api) {
+      var d = EP[v.which], T = d.win, N = 40000;
+      /* 严格按定义（式 1-3）：
+         E_T = ∫₀ᵀ|x|²dt  —— 从原点向右积到 T
+         P_T = (1/2T)∫_{−T}^{T}|x|²dt —— 关于原点<b>对称</b>的窗口 2T 上取平均
+         对只在 t≥0 非零的信号（u、指数、斜坡），对称区间把积分区间翻倍，
+         所以 P_T = E_T/(2T)。这个对称窗口的定义才是"阶跃的功率是 1/2"的来源。 */
+      var E = function (x) { return integrate(function (t) { return d.f(t) * d.f(t); }, 0, x, Math.max(2000, Math.round(N * x / T))); };
+      var P = function (x) { return E(x) / (2 * x); };
+      var er = [], pr = [], xs = [];
+      for (var i = 0; i < EP_GRID.length; i++) {
+        if (EP_GRID[i] > T) break;
+        xs.push(EP_GRID[i]); er.push(E(EP_GRID[i])); pr.push(P(EP_GRID[i]));
+      }
+      /* 时间轴：画满窗口（最多到 20 秒好看清形状），但灰带标出真正的积分窗口端点 */
+      var tmax = Math.min(T, 20);
+      SSC.plot(cv.sig, {
+        xmin: 0, xmax: tmax, ymin: -0.35,
+        xlabel: 't (s)', ylabel: 'x(t)',
+        curves: [{ f: d.f, color: '#4338ca', width: 2.4, label: 'x(t)' }],
+        vlines: [{ x: tmax, color: '#dc2626', label: 'T = ' + SSC.fmt(tmax, 2) }, { x: 0, color: 'rgba(110,130,165,.5)' }],
+        bands: [{ x1: 0, x2: tmax, color: 'rgba(21,128,61,.10)' }],
+        legend: true
+      });
+
+      /* E_T 与 P_T 量级差很多，各自按自己的最大值归一化后画在同一张图上
+         （两条曲线用的是不同的纵轴刻度，各自曲线上的数字已经在表里给出） */
+      var scaleE = Math.max(Math.abs(er[er.length - 1]), 1e-12);
+      var scaleP = Math.max(Math.abs(pr[pr.length - 1]), 1e-12);
+      SSC.plot(cv.trend, {
+        xmin: 0, xmax: Math.max(xs[xs.length - 1], 1), ymin: -0.08, ymax: 1.22,
+        xlabel: '窗口 T (s)', ylabel: '各自归一化到 [0,1]',
+        stems: [
+          { xs: xs, ys: er.map(function (y) { return y / scaleE; }), color: '#4338ca', label: 'E_T / E_max（蓝，末值=' + SSC.fmt(er[er.length - 1], 3) + '）' },
+          { xs: xs, ys: pr.map(function (y) { return y / scaleP; }), color: '#dc2626', label: 'P_T / P_max（红，末值=' + SSC.fmt(pr[pr.length - 1], 3) + '）' }
+        ],
+        hlines: [{ y: 0, color: '#c3ccdd' }, { y: 1, color: '#c3ccdd', dash: [3, 3], label: '归一化上限 1' }],
+        legend: true
+      });
+
+      var rows = '';
+      for (var j = 0; j < xs.length; j++) {
+        rows += '<tr><td>' + SSC.fmt(xs[j], 1) + '</td><td>' + SSC.fmt(er[j], 4) + '</td><td>' + SSC.fmt(pr[j], 4) + '</td></tr>';
+      }
+      api.readout(
+        '<div class="stat"><div class="k">当前信号</div><div class="v" style="font-size:13px">' + d.name + '</div></div>' +
+        '<div class="stat"><div class="k">E_T（最大窗口）</div><div class="v">' + SSC.fmt(er[er.length - 1], 4) + '</div></div>' +
+        '<div class="stat"><div class="k">P_T（最大窗口）</div><div class="v">' + SSC.fmt(pr[pr.length - 1], 4) + '</div></div>' +
+        '<div style="flex-basis:100%"><table class="tbl sm" style="margin:10px 0 0">' +
+        '<thead><tr><th>窗口 T</th><th>E_T = ∫₀ᵀ|x|²dt</th><th>P_T = <span class="frac"><span class="num">1</span><span class="den">2T</span></span>∫<sub>−T</sub><sup>T</sup>|x|²dt</th></tr></thead><tbody>' +
+        rows + '</tbody></table></div>'
+      );
+    },
+    note: function (v) {
+      var d = EP[v.which];
+      var kind = (v.which === 'exp1' || v.which === 'exp2')
+        ? '<b>能量信号</b>：E_T 收敛到有限值（蓝茎停住不动），P_T 一路减小趋于 0（红茎贴着横轴往下掉）。'
+        : (v.which === 'ramp1'
+          ? '<b>两类都不是</b>：E_T 像 T³/3 那样爆掉，P_T = T²/6 发散得更快（因为分母只有 2T），两条归一化曲线都一路顶到 1。'
+          : '<b>功率信号</b>：E_T 不断增大、永不收敛（蓝茎一路爬），而 P_T 稳定到一条水平线上（红茎先冲上去然后趋平）。');
+      return kind + '<br>理论极限：' + d.exact +
+        '<br><span class="muted">表里的数字是真实数值积分结果。注意两点：① 两条曲线量级差几个数量级，所以图中它们各自按自己的最大值归一化，具体数值看表；' +
+        '② 平均功率用的是定义 (1/2T)∫<sub>−T</sub><sup>T</sup>|x|²dt（关于原点<b>对称</b>的窗口）——' +
+        '对 u(t) 这种单边信号，对称窗口把有效积分区间加倍，所以 P_T 恰好是"1/4 而不是 1/2"的一半再翻倍回来 = 1/2。' +
+        't=0 处那个跳变点不影响积分（单点不改变积分值）。</span>';
+    }
+  });
+
+  /* ---------- 实验 3：系统性质判定机 ---------- */
+  var SYS = {
+    sq: {
+      name: 'y(t) = x²(t)',
+      apply: function (x, v) { return x.map(function (q) { return q * q; }); },
+      verdict: '无记忆；<b>非线性</b>；时不变；因果；稳定（有界输入必有界输出）。'
+    },
+    shift: {
+      name: 'y(t) = x(t−2)（纯延迟 2 秒）',
+      apply: function (x, v) { var o = [], i; for (i = 0; i < x.length; i++) o.push(i >= 2 ? x[i - 2] : 0); return o; },
+      verdict: '<b>有记忆</b>（用到了 2 秒前的输入）；线性；<b>时不变</b>；因果；稳定。'
+    },
+    future: {
+      name: 'y(t) = x(t) + x(t+1)（用了未来）',
+      apply: function (x, v) { var o = [], i; for (i = 0; i < x.length; i++) o.push(x[i] + (i + 1 < x.length ? x[i + 1] : 0)); return o; },
+      verdict: '有记忆；线性；时不变；<b>非因果</b>（用到了 1 秒后的输入）；稳定。'
+    },
+    tv: {
+      name: 'y(t) = t·x(t)（系数随时间变）',
+      apply: function (x, v) { return x.map(function (q, i) { return (i * v.dt) * q; }); },
+      verdict: '无记忆；线性；<b>时变</b>（放大倍数 t 自己会变）；因果；稳定（但增益随时间增长）。'
+    },
+    intg: {
+      name: 'y[n] = Σ_{k≤n} x[k]（累加器，离散）',
+      apply: function (x, v) { var o = [], s = 0, i; for (i = 0; i < x.length; i++) { s += x[i]; o.push(s); } return o; },
+      verdict: '有记忆；线性；时不变；因果；<b>不稳定</b>（输入 u 有界，输出 (n+1)u 无界）。'
+    },
+    re: {
+      name: 'y = Re{x}（取实部）',
+      apply: function (x, v) { return x.slice(); },
+      verdict: '对实数输入看不出问题；但对<b>复数系数不齐次</b>（取 a=j 即破），所以按定义<b>不线性</b>。这里用实数测试信号无法暴露它。'
+    }
+  };
+
+  SSC.lab({
+    mount: '#lab-sys',
+    title: '实验 3 · 三项检验：齐次 / 叠加 / 时不变',
+    hint: '切换系统，看三项数值误差是否为零（为零才通过）',
+    columns: 2,
+    canvases: [
+      { id: 'in', label: '测试输入（灰：x(t)；青虚线：a·x(t)）', height: 190 },
+      { id: 'out', label: '输出（蓝：S(x)；红虚线：S(a·x)，应与 a·S(x) 重合）', height: 190 }
+    ],
+    controls: [
+      { id: 'sys', label: '系统', options: [
+        { v: 'sq', t: 'y = x²(t)' },
+        { v: 'shift', t: 'y = x(t−2)' },
+        { v: 'future', t: 'y = x(t)+x(t+1)' },
+        { v: 'tv', t: 'y = t·x(t)' },
+        { v: 'intg', t: 'y[n] = Σx[k]（累加器）' },
+        { v: 're', t: 'y = Re{x(t)}' }
+      ], value: 'sq' },
+      { id: 'a', label: '常数 a', min: -2, max: 2, step: 0.1, value: 2 },
+      { id: 't0', label: '延迟 t₀（时不变检验）', min: 0.5, max: 5, step: 0.5, value: 2, unit: ' s' }
+    ],
+    draw: function (cv, v, api) {
+      var dt = 0.02, N = 601;                 /* t ∈ [0, 12] */
+      var t = [], x = [], i;
+      for (i = 0; i < N; i++) { t.push(i * dt); x.push(Math.exp(-t[i] / 2) * SSC.uStep(t[i])); }
+      var sys = SYS[v.sys], a = v.a, m0 = Math.round(v.t0 / dt);
+      v.dt = dt;
+
+      var y = sys.apply(x, v);
+      var ax = x.map(function (q) { return a * q; });
+      var y_ax = sys.apply(ax, v);
+      var ay = y.map(function (q) { return a * q; });
+
+      /* 叠加检验：x1 = 脉冲, x2 = 衰减指数 */
+      var x1 = t.map(function (tt) { return tt < 1 ? 1 : 0; });
+      var x2 = t.map(function (tt) { return Math.exp(-tt / 2); });
+      var s1 = sys.apply(x1, v), s2 = sys.apply(x2, v);
+      var s12 = sys.apply(x1.map(function (q, k) { return q + x2[k]; }), v);
+      var ssum = s1.map(function (q, k) { return q + s2[k]; });
+
+      /* 时不变检验：把输入延迟 m0 个样本，输出也应延迟 m0 */
+      var xd = x.map(function (q, k) { return k >= m0 ? x[k - m0] : 0; });
+      var yd = sys.apply(xd, v);
+      var ySh = y.map(function (q, k) { return k >= m0 ? y[k - m0] : 0; });
+
+      function maxAbs(arr) { var m = 0; for (var k = 0; k < arr.length; k++) if (isFinite(arr[k])) m = Math.max(m, Math.abs(arr[k])); return m; }
+      function maxDiff(p, q) { var m = 0; for (var k = 0; k < p.length; k++) { var d = Math.abs(p[k] - q[k]); if (isFinite(d) && d > m) m = d; } return m; }
+
+      var dHom = maxDiff(y_ax, ay), dAdd = maxDiff(s12, ssum), dTi = maxDiff(yd, ySh);
+
+      SSC.plot(cv.in, {
+        xmin: 0, xmax: 12, ymin: -0.2 * Math.max(1, maxAbs(x)), ymax: 1.25 * Math.max(1, maxAbs(ax)),
+        xlabel: 't (s)', ylabel: '输入',
+        curves: [
+          { f: function (tt) { return Math.exp(-tt / 2) * SSC.uStep(tt); }, color: '#c3ccdd', width: 1.8, label: 'x(t)' },
+          { f: function (tt) { return a * Math.exp(-tt / 2) * SSC.uStep(tt); }, color: '#0e7490', width: 2.2, dash: [6, 4], label: 'a·x(t)' }
+        ],
+        /* 紫线标出时不变检验用的延迟量 t₀：拖滑块就看得见它移动 */
+        vlines: [{ x: v.t0, color: '#7c3aed', dash: [3, 3], label: '延迟 t₀=' + SSC.fmt(v.t0, 1) + ' s' }],
+        legend: true
+      });
+
+      var pts = [];
+      for (i = 0; i < N; i += 2) pts.push([t[i], y[i]]);
+      SSC.plot(cv.out, {
+        xmin: 0, xmax: 12, ymin: -0.15 * Math.max(1, maxAbs(y), maxAbs(y_ax)), ymax: 1.25 * Math.max(1, maxAbs(y), maxAbs(y_ax)),
+        xlabel: 't (s)', ylabel: '输出',
+        curves: [
+          { f: function (tt) { for (var k = 1; k < pts.length; k++) if (pts[k][0] >= tt) { var p1 = pts[k - 1], p2 = pts[k]; return p1[1] + (p2[1] - p1[1]) * (tt - p1[0]) / (p2[0] - p1[0]); } return pts[pts.length - 1][1]; },
+            color: '#4338ca', width: 2.4, label: 'S(x)（= y）' },
+          { f: function (tt) { var kk = Math.round(tt / dt); if (kk < 0 || kk >= N) return 0; return y_ax[kk]; },
+            color: '#dc2626', width: 2, dash: [6, 4], label: 'S(a·x)' },
+          { f: function (tt) { var kk = Math.round(tt / dt); if (kk < 0 || kk >= N) return 0; return a * y[kk]; },
+            color: '#15803d', width: 1.4, dash: [2, 3], label: 'a·S(x)（参照）' }
+        ],
+        legend: true
+      });
+
+      function badge(d) {
+        /* 浮点求和会留下 1e-13 量级的噪声，所以阈值取 1e-8 而不是 0 */
+        var pass = d < 1e-8;
+        return '<span style="color:' + (pass ? '#15803d' : '#dc2626') + ';font-weight:700">' +
+          (pass ? '通过 ✓' : '不通过 ✗') + '</span>';
+      }
+      api.readout(
+        '<div class="stat"><div class="k">齐次 max|S(a·x) − a·S(x)|</div><div class="v">' + SSC.fmt(dHom, 10) + '</div><div class="k">' + badge(dHom) + '</div></div>' +
+        '<div class="stat"><div class="k">叠加 max|S(x₁+x₂) − S(x₁) − S(x₂)|</div><div class="v">' + SSC.fmt(dAdd, 10) + '</div><div class="k">' + badge(dAdd) + '</div></div>' +
+        '<div class="stat"><div class="k">时不变 max|S(x延迟) − S(x)延迟|</div><div class="v">' + SSC.fmt(dTi, 10) + '</div><div class="k">' + badge(dTi) + '</div></div>' +
+        '<div style="flex-basis:100%" class="small muted">判读：<b>1e−13 以下的数字都是浮点噪声，等于 0</b>（阈值取 1e−8）。' +
+        '只有"不通过 ✗"才是真正的反例。</div>'
+      );
+    },
+    note: function (v) {
+      var sys = SYS[v.sys];
+      var extra = '';
+      if (v.sys === 'sq' && Math.abs(v.a) !== 1) {
+        extra = '<br>看第 1 项：<b>S(a·x) = a²x²，而 a·S(x) = a·x²</b>，两者相差 ' +
+          SSC.fmt(Math.abs(v.a * v.a - v.a), 3) + ' 倍（a=' + SSC.fmt(v.a, 1) + '）。' +
+          '把 a 调成 1，误差会变 0 —— 但这<b>不能证明它线性</b>，只是这一组参数恰好撞上了。';
+      }
+      if (v.sys === 'tv') extra = '<br>把 t₀ 调大，第 3 项误差也跟着变大：因为 <b>y=t·x 的"放大倍数"本身就是 t</b>，把输入挪到别处，得到的不是原来输出的平移。';
+      if (v.sys === 'future') extra = '<br>第 3 项照样是 0（它确实时不变），但它的第 3 条语义已经告诉你：<b>它非因果</b>——数值检验查不出来，要靠定义式判断。';
+      return sys.verdict + extra;
+    }
+  });
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz1', [
+    {
+      q: '已知基准信号 f(t)，要画出 g(t)=f(αt+β)（α>0）。下面哪种操作顺序是对的？',
+      opts: [
+        '先把 f(t) 平移 β，再把横轴压缩/展宽 α 倍',
+        '先把横轴压缩/展宽 α 倍，再平移 β',
+        '两种顺序完全等价，随便选',
+        '先把 f(t) 反转，再平移 β，最后压缩 α 倍（α>0 时也要反转）'
+      ],
+      a: 0,
+      why: 'f(αt+β)=f(α(t+β/α))，对 t 的平移量是 −β/α，不是 −β。等价说法是"先尺度 α、再平移 β/α"。若先尺度再平移 β，会得到 f(αt+β·α)，多乘了一个 α，所以两者不等价。',
+      tag: '自变量变换'
+    },
+    {
+      q: '信号 x(t) = e^(−2t)·u(t)。它属于哪一类？',
+      opts: [
+        '能量信号：E = 1/4，P = 0',
+        '功率信号：P = 1/2，E = ∞',
+        '两者都是',
+        '两者都不是'
+      ],
+      a: 0,
+      why: 'E=∫₀^∞ e^(−4t)dt = 1/4 有限，所以是能量信号；又因为 P=lim E/(2T)=0，所以它不可能是功率信号（功率信号要求 P>0）。这两类互斥。',
+      tag: '能量功率'
+    },
+    {
+      q: '关于奇偶分解 x(t)=Ev{x}+Od{x}，下列说法正确的是？',
+      opts: [
+        'Ev{x}(t) = [x(t)+x(−t)]/2 是偶函数，且这种分解唯一',
+        'Ev{x}(t) = [x(t)−x(−t)]/2 是偶函数',
+        '分解不唯一，可以有很多种拆法',
+        '奇信号在 t=0 处的值可以不为 0'
+      ],
+      a: 0,
+      why: 'Ev 用加号（验证 Ev(−t)=Ev(t)），Od 用减号；唯一性来自"把 t 换成 −t 后两式联立解出 e₁、o₁"，任何合法拆法都被原信号唯一确定。奇信号必有 f(0)=−f(0)⇒f(0)=0。',
+      tag: '奇偶分解'
+    },
+    {
+      q: '离散时间信号 x[n] = e^{jω₀n} 是周期序列的条件是？',
+      opts: [
+        'ω₀/2π 是有理数（即 ω₀ = 2πm/N）',
+        'ω₀ > 0 即可，任何正实数都行',
+        'ω₀ 必须是 2π 的整数倍',
+        'ω₀ 必须小于 π'
+      ],
+      a: 0,
+      why: '令 e^{jω₀N}=1 得 ω₀N=2πm，即 ω₀/2π=m/N 必须是有理数。连续时间没有这个限制（任何 ω₀≠0 都周期），这就是 CT 与 DT 在周期性上的根本差别。例：x[n]=e^{j(2π/3)n} 有 N=3；x[n]=e^{j(3π/4)n} 有 N=8。',
+      tag: '周期条件'
+    },
+    {
+      q: '系统 y[n] = n·x[n]。它是否线性、是否时不变？',
+      opts: [
+        '线性，但时变',
+        '非线性，也时变',
+        '线性，且时不变',
+        '非线性，但时不变'
+      ],
+      a: 0,
+      why: '线性：S(ax₁+bx₂)=n(ax₁+bx₂)=a·nx₁+b·nx₂，齐次与叠加都满足。时变：把输入延迟 n₀ 得 S(x[n−n₀])=n·x[n−n₀]，它不等于原输出的延迟 (n−n₀)x[n−n₀]——系数 n 本身没跟着延迟。',
+      tag: '系统性质'
+    },
+    {
+      q: '关于 δ(t) 与 δ[n]，下面哪个说法是错的？',
+      opts: [
+        'δ(t) 是一个普通函数，可以问 δ(0) 等于几',
+        '∫x(t)δ(t−t₀)dt = x(t₀)，这叫作筛选性质',
+        'δ(at) = δ(t)/|a|',
+        'x(t) ∗ δ(t−t₀) = x(t−t₀)'
+      ],
+      a: 0,
+      why: 'δ(t) 不是普通函数（是广义函数/分布），讨论"δ(0) 等于几"没有意义；它只在积分与卷积下被定义（面积 1、筛选作用）。δ(at)=δ(t)/|a| 来自面积守恒：横轴压 |a| 倍、高度必须放大 |a| 倍。',
+      tag: '冲激与阶跃'
+    }
+  ], '第 1 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

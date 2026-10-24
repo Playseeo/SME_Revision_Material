@@ -1,0 +1,1303 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 2 章　LTI 系统与卷积｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch02">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第一段 · 地基 · 第 2 章</div>
+        <h1>LTI 系统与卷积</h1>
+        <p class="lede">
+          第 1 章把"系统"定义成"把输入变成输出的机器"。这一章要回答一个惊人的问题：
+          <b>一台机器那么复杂，凭什么只要一个信号 <span class="mono">h</span> 就能把它描述得一字不差？</b>
+          答案分两步：任何信号都能拆成"加权平移的冲激"（第 1 章的表示性质），
+          而"线性 + 时不变"让机器对每一根冲激的响应可以叠加起来。
+          把这两步合起来，得到的就是<b>卷积</b>——整门课第一次出现、也是贯穿始终的主角。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch01-signals.html">第 1 章 信号与系统基本概念</a>（必须会：表示性质 <span class="mono">x[n]=Σx[k]δ[n−k]</span>、六条系统性质）
+        </div>
+        <div class="cell mid"><b>这一站</b>卷积和 / 卷积积分、翻转—平移—相乘—求和、卷积的性质、h 决定一切</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch03-eigenfunction.html">第 3 章 复指数是特征函数</a>（把卷积换成乘法，频域的入口）<br>
+          <a href="ch06-ctft.html">第 6 章 CTFT</a>（卷积性质 <span class="mono">y=x∗h ⟷ Y=XH</span> 的严格证明）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 核心思想：把信号拆成冲激</a>
+        <a href="#s2">2. 卷积和：离散 LTI 系统的输出</a>
+        <a href="#s3">3. 卷积积分：连续 LTI 系统的输出</a>
+        <a href="#s4">4. 手算口诀：翻转 → 平移 → 相乘 → 求和</a>
+        <a href="#s5">5. 动手（核心）：卷积滑动演示</a>
+        <a href="#s6">6. 动手：翻转这一步单独看</a>
+        <a href="#s7">7. 冲激响应与系统的六条性质</a>
+        <a href="#s8">8. 卷积的代数性质：交换、分配、结合</a>
+        <a href="#s9">9. 动手：δ 平移、累加器、级联/并联</a>
+        <a href="#s10">10. 用微分/差分方程描述 LTI 系统</a>
+        <a href="#s11">11. 动手：递归差分方程 → h → 卷积验证</a>
+        <a href="#s12">12. 卷积一览表</a>
+        <a href="#s13">13. 常见坑</a>
+        <a href="#s14">14. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 核心思想：把信号拆成冲激</h2>
+
+      <p>
+        先记住第 1 章留下的两个工具。第一个是
+        <span class="term" data-def="sifting property，中文含义：筛选性质（抽样性质）。∫x(t)δ(t−t₀)dt=x(t₀)：乘以冲激再积分，等于把信号在 t₀ 那一瞬间的值挑出来。">筛选性质</span>（sifting property），
+        第二个是
+        <span class="term" data-def="representation property，中文含义：表示性质。任何信号都能写成"加权、平移的冲激"之和/积分：x[n]=Σx[k]δ[n−k]。它是卷积的出发点。">表示性质</span>（representation property）：
+      </p>
+      <div class="eq center-eq">
+        x[n] = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+        x[k] δ[n − k]
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        x(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        x(τ) δ(t − τ) dτ
+        <span class="lbl">(2-1)</span>
+      </div>
+      <p>
+        用人话说：<b>信号是由"一根根冲激"搭起来的积木塔</b>。
+        离散情形最直白——第 k 层积木是"位置在 <i>k</i>、高度是 <span class="mono">x[k]</span> 的一根 δ"。
+        连续情形是它的极限版本：位置连续变化的无穷多根冲激，每根的"面积"是 <span class="mono">x(τ)dτ</span>。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">为什么这个拆法能救命</span>
+        <p style="margin-bottom:0">
+          因为系统如果是<b>线性</b>的，它对"一堆东西的和"的响应 = "各自响应的和"；
+          如果还是<b>时不变</b>的，它对"平移过的冲激"的响应就是"原来的响应平移同样的量"。
+          于是——<b>只要知道系统对一根冲激的反应，所有输入的输出都能算出来</b>。
+          这就是 LTI（Linear Time-Invariant，线性时不变）系统为什么这么特殊。
+        </p>
+      </div>
+
+      <div class="box ok">
+        <span class="tag">定义：单位冲激响应（impulse response）</span>
+        <p>
+          给 LTI 系统输入 <span class="mono">δ(t)</span>（或 <span class="mono">δ[n]</span>），得到的输出叫
+          <span class="term" data-def="impulse response，中文含义：单位冲激响应（冲激响应）。系统对输入 δ 的响应，记作 h(t) 或 h[n]。它完全刻画一个 LTI 系统：任意输入的输出都是 x 与 h 的卷积。">单位冲激响应</span>，
+          记作 <span class="mono">h(t)</span> 或 <span class="mono">h[n]</span>：
+        </p>
+        <div class="eq center-eq">
+          δ(t) &nbsp;⟶&nbsp; h(t)
+          &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+          δ[n] &nbsp;⟶&nbsp; h[n]
+        </div>
+        <p style="margin-bottom:0">
+          <b>它是系统的"指纹"</b>。同一类系统里，两个系统的 h 一样 ⇔ 两个系统完全相同。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 卷积和：离散 LTI 系统的输出</h2>
+
+      <p>把第 1 节的两条性质一步步用上去，只需要三行：</p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：从 x[n]=Σx[k]δ[n−k] 到卷积和</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：把输入写成加权冲激之和。</b></p>
+            <div class="eq">
+              x[n] = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k] δ[n − k]
+            </div>
+            <p class="why">为什么：表示性质（第 1 章式 1-10）。注意 <b>k 是求和变量</b>，它是"这根积木放在哪"的标签；
+              而 <span class="mono">x[k]</span> 是这根积木的高度，对求和来说它只是一个常数系数。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：用线性和时不变，逐根算响应。</b></p>
+            <ul style="margin:6px 0 0;padding-left:22px">
+              <li><b>时不变</b>：输入 <span class="mono">δ[n]</span> 的响应是 <span class="mono">h[n]</span>，
+                所以把冲激推迟 k 拍，响应也推迟 k 拍：<span class="mono">δ[n−k] ⟶ h[n−k]</span>。</li>
+              <li><b>线性（齐次）</b>：把输入放大 <span class="mono">x[k]</span> 倍，响应也放大 <span class="mono">x[k]</span> 倍：
+                <span class="mono">x[k]δ[n−k] ⟶ x[k]h[n−k]</span>。</li>
+              <li><b>线性（叠加）</b>：把无穷多项加起来，响应也加起来。</li>
+            </ul>
+            <p class="why">为什么这三条能同时用：LTI 的定义就是"线性 + 时不变"。
+              这里用的正是线性最原始的两条（齐次、叠加），而不是某个需要证明的推论——所以这个推导不需要额外条件。</p>
+            <div class="eq center-eq">
+              y[n] = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k] h[n − k]
+              <span class="lbl">(2-2)</span>
+            </div>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：给它起个名字，并注意它意味着什么。</b></p>
+            <p>式 (2-2) 叫<b>卷积和</b>（convolution sum），记作 <span class="mono">y[n] = x[n] ∗ h[n]</span>。</p>
+            <p class="why">为什么这个式子威力巨大：右边<b>只含 x 和 h</b>，不含任何关于系统结构的信息。
+              也就是说——<b>任何</b> LTI 系统，不管内部多复杂，它的输入输出关系都长这个样子。
+              这就是"h 完全决定系统"的真正含义。</p>
+          </div>
+          <div class="box warn" style="margin-top:14px">
+            <span class="tag">求和的上限（考试常写错）</span>
+            <p style="margin-bottom:0">
+              (2-2) 写的是 <span class="mono">k</span> 从 <span class="mono">−∞</span> 到 <span class="mono">+∞</span>。
+              但实际算的时候<b>只有有限几项非零</b>：因为 <span class="mono">x[k]</span> 可能只在某段区间非零，
+              而 <span class="mono">h[n−k]</span> 只在 <span class="mono">n−k</span> 落在 h 的支撑区时才非零。
+              所以<b>动手算之前先定"k 的公共非零区间"</b>，这是卷积计算的第一动作。第 4 节会给具体做法。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s3">3. 卷积积分：连续 LTI 系统的输出</h2>
+
+      <p>把上面的推导逐字翻译成连续时间，求和换成积分：</p>
+      <div class="eq center-eq">
+        y(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        x(τ) h(t − τ) dτ
+        &nbsp;&nbsp;=&nbsp;&nbsp; x(t) ∗ h(t)
+        <span class="lbl">(2-3)</span>
+      </div>
+      <p>
+        叫<b>卷积积分</b>（convolution integral）。
+        对照着看就一目了然：离散的 <span class="mono">Σ</span> ↔ 连续的 <span class="mono">∫</span>，
+        离散的 <span class="mono">k</span> ↔ 连续的 <span class="mono">τ</span>，其余一模一样。
+      </p>
+      <p class="small muted">
+        提醒：<span class="mono">τ</span> 是<b>积分变量</b>（一个哑变量，叫什么都行），
+        <i>t</i> 是"我们现在想看哪个时刻的输出"。所以卷积积分的输出是一个<b>关于 t 的函数</b>——
+        这就是为什么卷积必须有"滑动"这个动作。
+      </p>
+
+      <h2 id="s4">4. 手算口诀：翻转 → 平移 → 相乘 → 求和</h2>
+
+      <p>
+        式 (2-2) 里的 <span class="mono">h[n−k]</span> 看着别扭：为什么不是 <span class="mono">h[k]</span>？
+        因为把 <span class="mono">k</span> 换成 <span class="mono">−k</span> 是<b>时间反转</b>，再加 <span class="mono">n</span> 是<b>时间平移</b>（第 1 章第 5 节的两个操作）。
+        这就给出了卷积的标准操作流程：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">四步口诀（离散版；连续版把"求和"换成"求积分的面积"）</span>
+        <ol style="margin:6px 0 0;padding-left:22px">
+          <li><b>翻转（flip）</b>：把 <span class="mono">h[k]</span> 关于 <span class="mono">k=0</span> 左右翻面，得到 <span class="mono">h[−k]</span>。</li>
+          <li><b>平移（shift）</b>：把翻转后的序列整体右移 <i>n</i>，得到 <span class="mono">h[n−k]</span>。这一步让"现在看的是哪个输出时刻"变成看得见的滑动。</li>
+          <li><b>相乘（multiply）</b>：把 <span class="mono">x[k]</span> 与 <span class="mono">h[n−k]</span> <b>逐点相乘</b>（必须是同一个 <i>k</i> 上的两个值）。</li>
+          <li><b>求和（sum）</b>：把乘出来的所有值加起来，就是 <span class="mono">y[n]</span> 这一个点。</li>
+        </ol>
+        <p style="margin:8px 0 0" class="small">
+          然后<b>让 n 动起来</b>：n 每加 1，<span class="mono">h[n−k]</span> 就再右移一格，重做第 3、4 步，
+          得到下一个输出点。全部 n 走一遍，就画出了完整的 <span class="mono">y[n]</span>。
+          下面第 5 节的实验台就是把这四步画在屏幕上。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">一个不用公式的类比</span>
+        <p style="margin-bottom:0">
+          把 <span class="mono">x[k]</span> 想成"<b>印在透明胶片上的图案</b>"，
+          把 <span class="mono">h[n−k]</span> 想成"<b>另一张翻转并滑动的卡片</b>"。
+          两张卡叠在一起时，每个位置上的两个数相乘，再把所有乘积累加——那就是这一瞬间的输出。
+          卡片滑到不同位置，累加结果不同，于是画出一条<b>关于滑动量 n 的曲线</b>。<b>卷积就是这条曲线。</b>
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>手算两个完整例子（每个区间都交代"凭什么"）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>例 1（离散，有限长）：<span class="mono">x[n] = {1, 2, 1}</span>（n=0,1,2），<span class="mono">h[n] = {1, 1, 1}</span>（n=0,1,2）。求 y[n]。</b></p>
+            <p>第一步：确定支撑区。x 非零要求 <span class="mono">0 ≤ k ≤ 2</span>；h 非零要求 <span class="mono">0 ≤ n−k ≤ 2</span>，
+              即 <span class="mono">n−2 ≤ k ≤ n</span>。两者的公共区间是
+              <span class="mono">k ∈ [max(0, n−2), min(2, n)]</span>。</p>
+            <p class="why">为什么先做这一步：卷积和里"没写出来"的项都是 0，丢掉它们题目立刻就变成"最多 3 项相加"。
+              而且公共区间随 n 变化——n 太小时是"刚进来"，n 太大时是"快出去了"，这就是分段的原因。</p>
+            <p>逐个 n 算（<span class="mono">h[n−k]=1</span> 只要 <span class="mono">n−k∈{0,1,2}</span>，所以每项就是在算 x 的一段和）：</p>
+            <ul style="margin:6px 0 0;padding-left:22px" class="small">
+              <li><span class="mono">n=0</span>：k∈[0,0] ⇒ <span class="mono">y[0]=x[0]=1</span></li>
+              <li><span class="mono">n=1</span>：k∈[0,1] ⇒ <span class="mono">y[1]=1+2=3</span></li>
+              <li><span class="mono">n=2</span>：k∈[0,2] ⇒ <span class="mono">y[2]=1+2+1=4</span></li>
+              <li><span class="mono">n=3</span>：k∈[1,2] ⇒ <span class="mono">y[3]=2+1=3</span></li>
+              <li><span class="mono">n=4</span>：k∈[2,2] ⇒ <span class="mono">y[4]=1</span></li>
+              <li><span class="mono">n&lt;0</span> 或 <span class="mono">n&gt;4</span>：公共区间为空 ⇒ <span class="mono">y=0</span></li>
+            </ul>
+            <div class="eq">
+              y[n] = { 1, 3, 4, 3, 1 }（n = 0,1,2,3,4）
+            </div>
+            <p class="why">自检：输出长度 = <span class="mono">N₁+N₂−1 = 3+3−1 = 5</span> ✓；总和 <span class="mono">Σy = 4·3 = 12 = Σx·Σh = 4·3</span> ✓。
+              这两条是很好用的免费验算器。</p>
+          </div>
+          <div class="step">
+            <p><b>例 2（离散，无限长，必须分段）：<span class="mono">x[n]=α<sup>n</sup>u[n]</span>（<span class="mono">0&lt;α&lt;1</span>），<span class="mono">h[n]=u[n]</span>。</b></p>
+            <p>先定公共区间：<span class="mono">x[k]</span> 非零要求 <span class="mono">k ≥ 0</span>；
+              <span class="mono">h[n−k]=u[n−k]</span> 非零要求 <span class="mono">n−k ≥ 0</span>，即 <span class="mono">k ≤ n</span>。
+              所以有效求和范围是 <span class="mono">0 ≤ k ≤ n</span>——<b>但只有 n ≥ 0 时这个区间才非空</b>。</p>
+            <p class="why">为什么要分 <span class="mono">n&lt;0</span> 和 <span class="mono">n≥0</span>：因为</p>
+            <ul style="margin:6px 0 0;padding-left:22px" class="small">
+              <li><span class="mono">n&lt;0</span>：要求 <span class="mono">k≥0</span> 且 <span class="mono">k≤n&lt;0</span>，无解 ⇒ <span class="mono">y[n]=0</span>。</li>
+              <li><span class="mono">n≥0</span>：<span class="mono">y[n]=Σ<sub>k=0</sub><sup>n</sup>α<sup>k</sup> = (1−α<sup>n+1</sup>)/(1−α)</span>（等比求和公式）。</li>
+            </ul>
+            <div class="eq center-eq">
+              y[n] = <span class="frac"><span class="num">1 − α<sup>n+1</sup></span><span class="den">1 − α</span></span> u[n]
+            </div>
+            <p class="why">直觉检查：<span class="mono">α</span> 很小时（输入衰减快），<span class="mono">y[n]≈1</span>（累加器很快攒满 1）；
+              <span class="mono">α→1</span> 时（输入接近阶跃），<span class="mono">y[n]≈n+1</span>（线性增长，因为累加器在累加常数）。
+              两者都被公式正确覆盖，说明推导没问题。
+              <br><b>数值复核</b>：取 <span class="mono">α=0.5, n=3</span>：公式给 <span class="mono">(1−0.5⁴)/0.5 = (1−0.0625)/0.5 = 1.875</span>；
+              逐项加 <span class="mono">1+0.5+0.25+0.125=1.875</span> ✓</p>
+          </div>
+          <div class="step">
+            <p><b>例 3（连续，课件原题）：<span class="mono">x(t)=e<sup>−at</sup>u(t)</span>（<span class="mono">a&gt;0</span>），<span class="mono">h(t)=u(t)</span>。</b></p>
+            <p>公共区间：<span class="mono">x(τ)</span> 非零要求 <span class="mono">τ ≥ 0</span>；
+              <span class="mono">h(t−τ)=u(t−τ)</span> 非零要求 <span class="mono">τ ≤ t</span>。所以 <span class="mono">0 ≤ τ ≤ t</span>（<span class="mono">t&gt;0</span> 才有意义）。</p>
+            <div class="eq">
+              y(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>t</span><span>0</span></span></span>
+              e<sup>−aτ</sup> dτ = <span class="frac"><span class="num">1</span><span class="den">a</span></span>(1 − e<sup>−at</sup>),
+              &nbsp;&nbsp; t &gt; 0
+            </div>
+            <p class="why">为什么积分上限是 <i>t</i> 而不是 ∞：因为 <span class="mono">u(t−τ)</span> 在 <span class="mono">τ&gt;t</span> 时为 0，
+              被积函数在那里直接消失。这就是"公共区间"在连续情形的作用。</p>
+            <div class="eq center-eq">
+              y(t) = <span class="frac"><span class="num">1</span><span class="den">a</span></span>(1 − e<sup>−at</sup>) u(t)
+            </div>
+            <p class="why">直觉检查：<span class="mono">t→∞</span> 时 <span class="mono">y→1/a</span>（输入的"总面积"是 <span class="mono">1/a</span>），
+              而累加器本来就会把总能量一点不剩地攒下来——吻合。
+              <br><b>数值复核</b>：<span class="mono">a=1, t=1</span>：公式给 <span class="mono">1−e<sup>−1</sup>≈0.6321</span>；
+              直接数值积分 <span class="mono">∫₀¹e<sup>−τ</sup>dτ</span> 也等于 <span class="mono">0.6321</span> ✓</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s5">5. 动手（核心）：卷积滑动演示</h2>
+      <p>
+        这一节是本页的心脏。三张图同步看：左图是<b>固定的 <span class="mono">x[k]</span></b> 与<b>已翻转平移的 <span class="mono">h[n−k]</span></b>
+        （橙色与青色阴影正好是翻转动作），中图是两者<b>逐点乘积</b>，右图是<b>累加出来的 <span class="mono">y[n]</span></b>。
+        <b>拖动 n 滑块，盯住青色曲线在往右走、绿色乘积累加值在变。</b>
+      </p>
+
+      <div id="lab-conv"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么：每一格滑动 = 一个输出点</span>
+        <p>
+          <b>第 0 步（看图 1 的两条曲线）：</b>青虚线是 <span class="mono">h[n−k]</span> 关于 <span class="mono">k</span> 的曲线，
+          它和橙色虚线 <span class="mono">h[k]</span> 关于竖直线 <span class="mono">k=n/2</span> 对称——
+          这就是"<b>翻转</b>"。当 <i>n</i> 增大时，青色曲线整体右移——这就是"<b>平移</b>"。
+        </p>
+        <p style="margin-bottom:0">
+          <b>第 1 步（看图 2）：</b>绿色填充区域的高度就是 <span class="mono">x[k]·h[n−k]</span>，
+          它等于"红色圈圈的高度"乘"青色曲线在同一个 k 处的高度"。<b>红圈个数 = 参与相加的项数。</b>
+          <br>
+          <b>第 2 步（看图 3）：</b>黑色竖线标出当前 <i>n</i>，蓝色点就是这一格的累加结果。
+          把它和读出的"逐项相加"式子对照——<b>y[n] 就是那个和</b>。整个 y[n] 就是这么一格一格扫出来的。
+        </p>
+      </div>
+
+      <div class="box trap">
+        <span class="tag">为什么必须"翻转"？翻错了会怎样</span>
+        <p style="margin-bottom:0">
+          很多人会问："直接把 <span class="mono">x[k]</span> 和 <span class="mono">h[k]</span> 相乘求和不行吗？"
+          不行。不翻转得到的叫"相关"（correlation），不是卷积，数值完全不同。
+          原因回到推导：输出 <span class="mono">y[n]</span> 要把"第 k 根冲激的贡献"在时刻 n 取出来，
+          而 <span class="mono">δ[n−k]</span> 的响应是 <span class="mono">h[n−k]</span>——
+          <b>参数里那个负号就是翻转的来源</b>，它从 <span class="mono">δ[n−k]</span> 一路跟过来的，不是人为加的。第 6 节把它单独放大看。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 动手：翻转这一步单独看</h2>
+      <p>
+        把"翻转"从四步里拆出来单独演示。滑块 <i>β</i> 从 0 拉到 1：
+        <b>β=0</b> 时看到的是原样的 <span class="mono">h[k]</span>，<b>β=1</b> 时它已经翻面成 <span class="mono">h[−k]</span>，
+        中间是"翻到一半"。再拖 <i>n</i>，翻转后的曲线整体平移。
+      </p>
+
+      <div id="lab-flip"></div>
+
+      <div class="box intuition">
+        <span class="tag">为什么要费劲做这个"半翻转"</span>
+        <p style="margin-bottom:0">
+          因为"翻转"是个瞬时动作，直接切换开关看不出所以然。
+          把 <span class="mono">h(β k)</span> 里的 <i>β</i> 从 1 连续降到 −1，
+          曲线会像<b>一根被拧转的橡皮筋</b>一样从"向右衰减"变成"向左衰减"，原点那一点始终不动。
+          看到这个过程，你就再也不会把 <span class="mono">h[k]</span> 和 <span class="mono">h[n−k]</span> 弄混了。
+          <br>
+          <b>同时盯住蓝色/红色的峰值位置：</b>翻转之后，原来"靠后"的部分跑到前面，这就是卷积里"<b>回声先到</b>"的数学解释。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 冲激响应与系统的六条性质</h2>
+      <p>
+        第 1 章那六条性质，在 LTI 系统上全都变成<b>对 h 的简单条件</b>。这张表是本页最值钱的部分。
+      </p>
+
+      <table class="tbl">
+        <thead><tr><th>性质</th><th class="c">对 h 的条件</th><th>为什么</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>无记忆<br><span class="small muted">memoryless</span></td>
+            <td class="ft c">h[n] = K δ[n]<br>h(t) = K δ(t)</td>
+            <td>把 <span class="mono">h=Kδ</span> 代进卷积和：<span class="mono">y[n]=Σx[k]·Kδ[n−k]=Kx[n]</span>，
+              只用到同一时刻的输入。反过来，若 <span class="mono">h</span> 在某个 <span class="mono">k≠0</span> 处非零，
+              输出就会掺进别的时刻的输入 ⇒ 有记忆。所以"无记忆的 LTI 系统"只有 <b>纯放大</b> 一种。</td>
+          </tr>
+          <tr>
+            <td>可逆<br><span class="small muted">invertible</span></td>
+            <td class="ft c">存在 h₁ 使<br>h ∗ h₁ = δ</td>
+            <td>串联一个逆系统后要还原成原信号：<span class="mono">x = x∗h∗h₁</span> 对<b>一切</b> x 成立，
+              由结合律 <span class="mono">x∗(h∗h₁)=x</span>，而"卷积的单位元是 δ"（见下），故 <span class="mono">h∗h₁=δ</span>。
+              例：<span class="mono">h=u[n]</span>（累加器）的逆是 <span class="mono">h₁[n]=δ[n]−δ[n−1]</span>（一阶差分），
+              因为 <span class="mono">u[n]∗(δ[n]−δ[n−1])=u[n]−u[n−1]=δ[n]</span> ✓</td>
+          </tr>
+          <tr>
+            <td>因果<br><span class="small muted">causal</span></td>
+            <td class="ft c">h[n] = 0 当 n &lt; 0<br>h(t) = 0 当 t &lt; 0</td>
+            <td><span class="mono">y[n]=Σ<sub>k</sub>x[k]h[n−k]</span>，把 <span class="mono">r=n−k</span> 换元得
+              <span class="mono">y[n]=Σ<sub>r</sub>h[r]x[n−r]</span>。若 <span class="mono">h[r]</span> 在 <span class="mono">r&lt;0</span> 处非零，
+              就会用到 <span class="mono">x[n−r]</span> 中"下标比 n 大"的样本，即<b>未来</b> ⇒ 非因果。
+              所以因果 ⇔ h 是"单边（右边）"的。</td>
+          </tr>
+          <tr>
+            <td>稳定<br><span class="small muted">stable（BIBO）</span></td>
+            <td class="ft c">Σ<sub>k</sub>|h[k]| &lt; ∞<br>∫|h(τ)|dτ &lt; ∞</td>
+            <td>取有界输入 <span class="mono">|x|≤B</span>，则
+              <span class="mono">|y[n]| ≤ Σ<sub>k</sub>|h[k]|·|x[n−k]| ≤ B·Σ<sub>k</sub>|h[k]|</span>，
+              只要这个和有限，输出就有界（充分性）。必要性见下面的推导折叠块。</td>
+          </tr>
+          <tr>
+            <td>时不变<br><span class="small muted">time-invariant</span></td>
+            <td class="ft c">（LTI 的定义已假设）</td>
+            <td>我们讨论的"LTI 系统"按定义就是时不变的。若一个系统时变，它<b>没有</b>单一的 h 来描述——
+              这正是 LTI 特殊的地方。</td>
+          </tr>
+          <tr>
+            <td>线性<br><span class="small muted">linear</span></td>
+            <td class="ft c">（LTI 的定义已假设）</td>
+            <td>同上。注意：<b>"用卷积描述"本身就等价于"线性 + 时不变"</b>，
+              所以对非 LTI 系统谈 h 是没意义的。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details class="deriv">
+        <summary>稳定性判据的必要性（为什么"绝对可和"不能放松）+ 步响应关系</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>(a) 必要性：若 <span class="mono">Σ|h[k]|=∞</span>，则存在有界输入使输出无界。</b></p>
+            <p>构造一个"专门捣乱"的输入：</p>
+            <div class="eq">
+              x[−n] = <span class="frac"><span class="num">1</span><span class="den">|h[n]|</span></span> 若 h[n]≠0 且 |h[n]| ≤ 1；
+              &nbsp; 否则 x = 0（并令 h[n]=0 的样点上 x=0）
+            </div>
+            <p>这个输入满足 <span class="mono">|x[n]| ≤ 1</span>（有界）。把它代进卷积：
+              <span class="mono">y[0] = Σ<sub>k</sub>x[−k]h[k] = Σ<sub>k: h[k]≠0</sub> h[k]/|h[k]| · …</span>，
+              只要把 <span class="mono">h[k]</span> 的相位取共轭就能让每一项都是正的 <span class="mono">|h[k]|</span>，
+              于是输出 <span class="mono">y[0] = Σ|h[k]| = ∞</span>。</p>
+            <p class="why">为什么这算证明：要否定"稳定"，只需要给出<b>一个</b>有界输入让输出无界。
+              上面这个构造对任意满足 <span class="mono">Σ|h|=∞</span> 的 h 都成立，所以必要性得证。
+              记忆要点：<b>绝对可和 ⇔ 稳定</b>（对 LTI 系统）。</p>
+          </div>
+          <div class="step">
+            <p><b>(b) 步响应 s 与冲激响应 h 的关系。</b></p>
+            <p>步响应定义为输入 <span class="mono">u</span> 时的输出，所以它本身就是一次卷积：</p>
+            <div class="eq">
+              s[n] = u[n] ∗ h[n] = <span class="sum"><span class="top">n</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> h[k]
+              &nbsp;&nbsp;&nbsp;&nbsp;
+              s(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>t</span><span>−∞</span></span></span> h(τ)dτ
+            </div>
+            <p class="why">为什么上限变成 n（或 t）：<span class="mono">u[n−k]</span> 在 <span class="mono">k≤n</span> 时为 1，之后为 0，
+              所以求和自动截断到 n。人话：<b>步响应就是冲激响应的"累计"</b>。</p>
+            <div class="eq">
+              s[n] = s[n−1] + h[n]
+              &nbsp;⇔&nbsp;
+              h[n] = s[n] − s[n−1]
+              &nbsp;&nbsp;&nbsp;&nbsp;
+              <span class="frac"><span class="num">ds(t)</span><span class="den">dt</span></span> = h(t)
+            </div>
+            <p class="why">为什么有用：<b>实际测量系统时往往只能测步响应</b>（阶跃比冲激好产生，
+              因为冲激要求无穷大能量）。测到 s 之后，上面这个差分/求导就还原出 h，
+              再用卷积就能算任意输入的输出。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s8">8. 卷积的代数性质：交换、分配、结合</h2>
+
+      <p>卷积像乘法一样老实。三条性质都能从定义式直接推出来：</p>
+
+      <table class="tbl">
+        <thead><tr><th>性质</th><th class="c">公式</th><th>对系统的意义</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>交换律</b><br><span class="small muted">commutative</span></td>
+            <td class="ft c">x ∗ h = h ∗ x</td>
+            <td>翻转谁、平移谁都行。也意味着：把 <span class="mono">x</span> 当输入、<span class="mono">h</span> 当冲激响应，
+              和反过来的系统输出<b>完全一样</b>。计算时选"翻转后更好算的那个"。</td>
+          </tr>
+          <tr>
+            <td><b>分配律</b><br><span class="small muted">distributive</span></td>
+            <td class="ft c">x ∗ (h₁+h₂) = x∗h₁ + x∗h₂</td>
+            <td>两个系统<b>并联</b>（输出相加）等价于一个冲激响应为 <span class="mono">h₁+h₂</span> 的系统。</td>
+          </tr>
+          <tr>
+            <td><b>结合律</b><br><span class="small muted">associative</span></td>
+            <td class="ft c">x ∗ (h₁ ∗ h₂) = (x ∗ h₁) ∗ h₂</td>
+            <td>两个系统<b>级联</b>（串联）等价于一个冲激响应为 <span class="mono">h₁∗h₂</span> 的系统；
+              <b>级联顺序不影响总体结果</b>（对 LTI 成立）。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <details class="deriv">
+        <summary>三条性质逐个证明（各两三行，都要会）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>(a) 交换律：<span class="mono">Σ<sub>k</sub>x[k]h[n−k] = Σ<sub>r</sub>h[r]x[n−r]</span></b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k]h[n−k]
+              &nbsp;<span style="color:var(--accent);font-size:14px">令 r = n − k，则 k = n − r，k 跑遍 ℤ 时 r 也跑遍 ℤ</span>&nbsp;
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">r=−∞</span></span>
+              x[n−r]h[r]
+            </div>
+            <p class="why">为什么可以用同一个求和范围：k 取 −∞…+∞ 与 r=n−k 取 +∞…−∞ 是同一个集合，
+              只是遍历顺序反了；绝对收敛时（或有限长时）换序不改变结果。</p>
+          </div>
+          <div class="step">
+            <p><b>(b) 分配律：<span class="mono">Σ x[k](h₁[n−k]+h₂[n−k])</span> 拆成两个和</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k] (h₁[n−k] + h₂[n−k])
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> x[k]h₁[n−k]
+              + <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span> x[k]h₂[n−k]
+            </div>
+            <p class="why">为什么能拆：有限项的分配律 <span class="mono">a(b+c)=ab+ac</span> 的无穷版。
+              每一步部分和被同一个收敛级数控制（绝对收敛），所以极限可以分开取。</p>
+          </div>
+          <div class="step">
+            <p><b>(c) 结合律：两次卷积换次序</b></p>
+            <div class="eq">
+              (x∗h₁)∗h₂ = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k₁=−∞</span></span>
+              <span style="font-size:20px">(</span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k₂=−∞</span></span>
+              x[k₁]h₁[k₂−k₁]
+              <span style="font-size:20px">)</span> h₂[n−k₂]
+              &nbsp;=&nbsp;
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k₁=−∞</span></span> x[k₁]
+              <span style="font-size:20px">(</span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k₂=−∞</span></span>
+              h₁[k₂−k₁]h₂[n−k₂]
+              <span style="font-size:20px">)</span>
+            </div>
+            <p class="why">为什么能交换两个求和号：内层求和对外层只是"一个与 k₁ 有关的数"，
+              把 <span class="mono">x[k₁]</span> 提出来之后，两个求和号是<b>独立指标</b>的累加，
+              绝对收敛时次序可换（这是级数理论的"二重级数可交换次序"定理）。</p>
+            <div class="eq">
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k₁=−∞</span></span> x[k₁] (h₁∗h₂)[n−k₁]
+              = x ∗ (h₁∗h₂)
+            </div>
+            <p class="why">为什么这个结果重要：它说明<b>级联的总冲激响应就是两个 h 的卷积</b>。
+              再配合交换律，级联可以任意调换顺序（第 9 节实验台会让你亲眼看两个顺序的结果完全重合）。</p>
+          </div>
+          <div class="step">
+            <p><b>(d) 三个"单位元/恒等式"（卷积版的 0 与 1）</b></p>
+            <div class="eq center-eq">
+              x ∗ δ = x
+              &nbsp;&nbsp;&nbsp;&nbsp;
+              x(t) ∗ δ(t−t<sub>0</sub>) = x(t−t<sub>0</sub>)
+              &nbsp;&nbsp;&nbsp;&nbsp;
+              u ∗ u = (n+1)u[n]（离散）,&nbsp; u(t)∗u(t) = t·u(t)（连续）
+            </div>
+            <p class="why">为什么第一条成立：<span class="mono">Σ<sub>k</sub>x[k]δ[n−k]</span> 里 δ 只在 <span class="mono">k=n</span> 处非零，
+              由筛选性质只剩 <span class="mono">x[n]</span>。<b>δ 就是卷积的单位元</b>——
+              这也和第 1 章"表示性质"是同一件事的两种说法。</p>
+            <p class="why">第二条为什么是"平移"：与位置在 t₀ 的冲激卷积，把信号整体推迟 t₀。
+              第 9 节实验台会把它画出来。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s9">9. 动手：δ 平移、累加器、级联/并联</h2>
+      <p>
+        三条最常用的卷积恒等式，用同一个实验台轮流看。选 <b>①</b> 看 δ 的平移作用，选 <b>②</b> 看累加器（<span class="mono">h=u</span>），
+        选 <b>③</b> 让两个系统级联并<b>换顺序</b>——你会看到两条曲线完全重合，这就是结合律 + 交换律的现场证据。
+      </p>
+
+      <div id="lab-ident"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p style="margin-bottom:0">
+          <b>① 与 δ[n−n₀] 卷积 = 平移。</b>拖 n₀ 看输出整条往右走，形状一点不变。
+          这就是"纯延迟系统"的冲激响应是 <span class="mono">δ[n−n₀]</span> 的意思，也是回声、混响的模型。
+          <br>
+          <b>② 与 u[n] 卷积 = 累加。</b>输出是输入的<b>累加和</b>（离散积分）。输入是有限长脉冲，输出就一级级爬上去再一级级下来，
+          形状变成一个"梯形"——爬升段是输入的前半截在累加，平台段是全都在累加。
+          <br>
+          <b>③ 级联 = h₁∗h₂。</b>把两个顺序的最终输出画在一起，它们重叠到看不出差别。
+          <b>结论：对 LTI 系统，级联顺序可以任意交换。</b>
+        </p>
+      </div>
+
+      <h2 id="s10">10. 用微分/差分方程描述 LTI 系统</h2>
+
+      <p>
+        前面都是从 <span class="mono">h</span> 出发。但工程上更常见的是反过来：
+        <b>系统先用一个方程给出，要我们去找 h 和输出</b>。最典型的方程形式是
+        <span class="term" data-def="linear constant-coefficient differential equation，中文含义：线性常系数微分方程。形如 Σa_k dᵏy/dtᵏ = Σb_k dᵏx/dtᵏ，描述连续时间 LTI 系统。">线性常系数微分方程</span>（CT）与
+        <span class="term" data-def="linear constant-coefficient difference equation，中文含义：线性常系数差分方程。形如 Σa_k y[n−k] = Σb_k x[n−k]，描述离散时间 LTI 系统；N≥1 时是递归的。">线性常系数差分方程</span>（DT）：
+      </p>
+      <div class="eq center-eq">
+        <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+        a<sub>k</sub> <span class="frac"><span class="num">d<sup>k</sup>y(t)</span><span class="den">dt<sup>k</sup></span></span>
+        =
+        <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+        b<sub>k</sub> <span class="frac"><span class="num">d<sup>k</sup>x(t)</span><span class="den">dt<sup>k</sup></span></span>
+        &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+        <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+        a<sub>k</sub> y[n−k]
+        =
+        <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+        b<sub>k</sub> x[n−k]
+        <span class="lbl">(2-4)</span>
+      </div>
+
+      <div class="box warn">
+        <span class="tag">最重要的一句话：方程本身不足以确定系统</span>
+        <p>
+          方程只给出输入与输出之间的<b>约束</b>（隐式描述），不是一个显式公式。
+          要唯一确定输出，还必须补<b>附加条件</b>（auxiliary conditions）。
+          同一个方程配上不同的附加条件，就是<b>不同的系统</b>。
+        </p>
+        <p style="margin-bottom:0">
+          例：<span class="mono">dy/dt + 2y = x</span> 描述的是一个 RC 电路。只知道 10 秒内加了 1 伏，
+          <b>算不出</b> 10 秒后电容电压——还得知道<b>初始</b>电容电压。
+          本课程统一采用的条件是
+          <span class="term" data-def="initial rest，中文含义：初始静止条件。若 x 在 n<n₀（或 t<t₀）时为零，则 y 也在那里为零。它把"因果 + LTI"这套附加条件固定下来，使微分/差分方程唯一确定一个 LTI 因果系统。">初始静止条件</span>（initial rest）：
+          <b>输入为零多久，输出就为零多久</b>；即 <span class="mono">x[n]=0 (n&lt;n₀) ⇒ y[n]=0 (n&lt;n₀)</span>。
+          在初始静止下，式 (2-4) 描述的系统是<b>因果且 LTI</b> 的。
+        </p>
+      </div>
+
+      <div class="box ok">
+        <span class="tag">h 长什么样：两类系统</span>
+        <div class="grid g2" style="margin-top:8px">
+          <div class="card">
+            <h4 style="margin-top:0">FIR：有限冲激响应</h4>
+            <p class="small">
+              当 <span class="mono">N=0</span>（方程左边只有 <span class="mono">y[n]</span>）时，
+              <span class="mono">y[n]=Σ<sub>k=0</sub><sup>M</sup>(b<sub>k</sub>/a₀)x[n−k]</span>，
+              直接就是卷积和，所以
+            </p>
+            <div class="eq" style="font-size:15px">
+              h[n] = b<sub>n</sub>/a<sub>0</sub>，&nbsp; 0 ≤ n ≤ M
+            </div>
+            <p class="small muted" style="margin-bottom:0">
+              <b>非递归</b>（不用历史输出）、h 有限长、不需要附加条件、天然稳定（若系数有界）。
+            </p>
+          </div>
+          <div class="card">
+            <h4 style="margin-top:0">IIR：无限冲激响应</h4>
+            <p class="small">
+              当 <span class="mono">N ≥ 1</span> 时方程是<b>递归</b>的：要算 <span class="mono">y[n]</span> 得先知道
+              <span class="mono">y[n−1],…,y[n−N]</span>。在初始静止下，h 通常是<b>无限长</b>的。
+            </p>
+            <div class="eq" style="font-size:15px">
+              y[n] − a y[n−1] = x[n] ⇒ h[n] = a<sup>n</sup>u[n]
+            </div>
+            <p class="small muted" style="margin-bottom:0">
+              一句话记法：<b>h 是"几何序列"</b>（连续情形是"指数"）。
+              几何序列的 h 绝对可和 ⇔ <span class="mono">|a| &lt; 1</span> ⇔ 系统稳定。
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <details class="deriv">
+        <summary>怎么知道 h[n]=aⁿu[n]？（递归法 + 卷积法，两条路殊途同归）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>路线一：递归代入（最直观）。</b>取 <span class="mono">x[n]=δ[n]</span>，初始静止 <span class="mono">y[−1]=0</span>。</p>
+            <div class="eq">
+              y[0] = δ[0] + a·y[−1] = 1 + 0 = 1 = a<sup>0</sup>
+              <br>
+              y[1] = δ[1] + a·y[0] = 0 + a·1 = a = a<sup>1</sup>
+              <br>
+              y[2] = δ[2] + a·y[1] = 0 + a·a = a<sup>2</sup>
+              <br>
+              ⋮ &nbsp;&nbsp; y[n] = δ[n] + a·y[n−1] = a<sup>n</sup>（n ≥ 0）
+            </div>
+            <p class="why">为什么 n=0 之后再没有"输入项"：<span class="mono">δ[n]</span> 只在 n=0 处为 1，n≥1 时输入是 0，
+              于是递推变成纯齐次式 <span class="mono">y[n]=a·y[n−1]</span>，每步乘一次 a —— 几何序列的来历。
+              这就是为什么说"<b>h 由特征多项式决定</b>"：a 就是这个一阶系统的特征根。</p>
+          </div>
+          <div class="step">
+            <p><b>路线二：解方程（更通用）。</b>把方程写成 <span class="mono">y[n]=a y[n−1]+x[n]</span> 的形式，
+              一般解 = <b>齐次解</b>（自然响应，令输入为 0）+ <b>特解</b>（受迫响应，与输入同形）。</p>
+            <p>齐次方程 <span class="mono">y[n]−a y[n−1]=0</span> 的解是 <span class="mono">y<sub>h</sub>[n]=C a<sup>n</sup></span>；
+              输入 <span class="mono">δ[n]</span> 时特解只在 n=0 起作用，最终（配合初始静止）得 <span class="mono">C=1</span>，仍是 <span class="mono">a<sup>n</sup>u[n]</span>。</p>
+            <p class="why">为什么两条路一致：递推法其实就是"逐点解方程"，而齐次解形式 <span class="mono">a<sup>n</sup></span> 正是
+              递推关系 <span class="mono">y[n]=a y[n−1]</span> 的形状。<b>连续情形完全平行</b>：
+              <span class="mono">dy/dt+ay=x</span> 的 h 是 <span class="mono">e<sup>−at</sup>u(t)</span>——
+              几何序列换成指数、差分换成微分，其他一模一样。</p>
+          </div>
+          <div class="step">
+            <p><b>数值复核（和实验台里的数字对得上）。</b></p>
+            <p>取 <span class="mono">a=0.5</span>：递推得
+              <span class="mono">h = 1, 0.5, 0.25, 0.125, 0.0625, …</span>
+              与 <span class="mono">(0.5)<sup>n</sup></span> 逐个吻合 ✓</p>
+            <p class="why">顺带得到一个稳定性的现场判据：<span class="mono">Σ<sub>n≥0</sub>0.5<sup>n</sup> = 1/(1−0.5) = 2 &lt; ∞</span> ⇒ 稳定；
+              若取 <span class="mono">a=1.2</span>，<span class="mono">Σ1.2<sup>n</sup></span> 发散 ⇒ 不稳定。
+              在实验台里把 a 拖过 1，看累加和读数怎么爆掉。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s11">11. 动手：递归差分方程 → h → 卷积验证</h2>
+      <p>
+        这个实验台做一件很硬的事：<b>同一个系统，用两条完全独立的路算输出，然后把结果叠在一起对比。</b>
+        路线 A：按差分方程<b>逐点递推</b>；路线 B：先取 <span class="mono">x=δ</span> 得到 h，
+        再<b>算卷积</b> <span class="mono">x∗h</span>。两条路若完全重合，就说明"h 完全决定系统"真的成立了。
+      </p>
+
+      <div id="lab-diff"></div>
+
+      <div class="box ok">
+        <span class="tag">读下面的"最大误差"</span>
+        <p style="margin-bottom:0">
+          只要它显示 <span class="mono">0</span>（或 <span class="mono">1e−15</span> 量级的浮点噪声），
+          就说明两条路线给出同一个答案——<b>这就是定理的数值证据</b>。
+          把 <span class="mono">a</span> 拖到 0.95 附近，h 衰减很慢（IIR 的"长记忆"），两条路仍然重合；
+          拖到 1.05，h 发散（不稳定系统），你会看到两条路一起爆炸——但依然重合。
+        </p>
+      </div>
+
+      <h2 id="s12">12. 卷积一览表</h2>
+
+      <table class="tbl sm">
+        <thead><tr><th class="c">x ∗ h</th><th class="c">结果</th><th>要点</th></tr></thead>
+        <tbody>
+          <tr><td class="ft c">x(t) ∗ δ(t)</td><td class="ft c">x(t)</td><td>δ 是卷积单位元（对应"恒等系统"）。</td></tr>
+          <tr><td class="ft c">x(t) ∗ δ(t−t<sub>0</sub>)</td><td class="ft c">x(t−t<sub>0</sub>)</td><td>与移位冲激卷积 = 纯延迟。</td></tr>
+          <tr><td class="ft c">x[n] ∗ u[n]</td><td class="ft c">Σ<sub>k≤n</sub>x[k]</td><td>累加器（离散积分器），逆系统是一阶差分。</td></tr>
+          <tr><td class="ft c">u(t) ∗ u(t)</td><td class="ft c">t·u(t)</td><td>两次积分 ⇒ 斜坡。</td></tr>
+          <tr><td class="ft c">u[n] ∗ u[n]</td><td class="ft c">(n+1)u[n]</td><td>离散版同上（注意有 +1）。</td></tr>
+          <tr><td class="ft c">e<sup>−at</sup>u(t) ∗ u(t)</td><td class="ft c"><span class="frac"><span class="num">1</span><span class="den">a</span></span>(1−e<sup>−at</sup>)u(t)</td><td>充电曲线（RC 电路）。</td></tr>
+          <tr><td class="ft c">a<sup>n</sup>u[n] ∗ u[n]</td><td class="ft c"><span class="frac"><span class="num">1−a<sup>n+1</sup></span><span class="den">1−a</span></span>u[n]</td><td>离散版充电曲线。</td></tr>
+          <tr><td class="ft c">rect(t/T) ∗ rect(t/T)</td><td class="ft c">T·tri(t/T)</td><td>矩形自卷积得三角形（第 6 章变换对会用）。</td></tr>
+          <tr><td class="ft c">δ(t−t₁) ∗ δ(t−t₂)</td><td class="ft c">δ(t−t₁−t₂)</td><td>两个纯延迟级联 = 延迟相加。</td></tr>
+        </tbody>
+      </table>
+
+      <table class="tbl sm">
+        <thead><tr><th>运算</th><th class="c">离散</th><th class="c">连续</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td>定义</td><td class="ft c">y[n]=Σ<sub>k</sub>x[k]h[n−k]</td><td class="ft c">y(t)=∫x(τ)h(t−τ)dτ</td><td>翻转、平移、相乘、(求和/积分)</td></tr>
+          <tr><td>交换律</td><td class="ft c">x∗h=h∗x</td><td class="ft c">同左</td><td>可挑更好算的一方翻转</td></tr>
+          <tr><td>分配律</td><td class="ft c">x∗(h₁+h₂)=x∗h₁+x∗h₂</td><td class="ft c">同左</td><td>并联 ⇒ h 相加</td></tr>
+          <tr><td>结合律</td><td class="ft c">(x∗h₁)∗h₂=x∗(h₁∗h₂)</td><td class="ft c">同左</td><td>级联 ⇒ h 卷积，顺序可换</td></tr>
+          <tr><td>输出长度</td><td class="ft c">L₁+L₂−1</td><td class="ft c">T₁+T₂</td><td>只对"有限长/有限宽"信号成立，是免费验算器</td></tr>
+          <tr><td>总面积</td><td class="ft c">Σy = (Σx)(Σh)</td><td class="ft c">∫y = (∫x)(∫h)</td><td>另一个免费验算器</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s13">13. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：忘记翻转</h4>
+          <p class="small">不翻转 <span class="mono">h</span> 就相乘求和，得到的是<b>相关</b>，不是卷积。翻转来自 <span class="mono">δ[n−k]</span> 的参数负号，不能省。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：只算了一个 n</h4>
+          <p class="small">卷积的结果是<b>一条关于 n 的函数曲线</b>，不是一次求和得到的一个数。手算时必须 n 从 −∞ 扫到 +∞（实际只在有限区间）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：忘了分段</h4>
+          <p class="small">只要 x 或 h 是"单边"的（含 u），公共非零区间就随 n 变，必须分段讨论 <span class="mono">n&lt;0</span> / <span class="mono">0≤n≤…</span> / <span class="mono">n&gt;…</span>。漏段是失分最多的地方。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：把求和变量和输出指标搞混</h4>
+          <p class="small"><span class="mono">x[k]</span> 里的 k 是哑变量（求和用完就没了）；n 是输出时刻，<b>不能</b>被求和消掉。写答案时若结果里还有 k，一定是错的。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：以为差分方程自己就能定系统</h4>
+          <p class="small">必须配附加条件。同一个 <span class="mono">y[n]−ay[n−1]=x[n]</span>，配"初始静止"是一个因果 LTI 系统，配别的条件就是另一个系统。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：把因果判据说成"h 的起点"</h4>
+          <p class="small">因果 ⇔ <b>h 在 n&lt;0 处全为 0</b>。注意是 h 的<b>下标</b>，不是"h 的下标可以平移成 0"。<span class="mono">h[n]=δ[n+1]</span> 是非因果的。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：用 Σ|h|&lt;∞ 去判非 LTI 系统</h4>
+          <p class="small">这套判据<b>只对 LTI 有效</b>。对非 LTI 系统，连"冲激响应"这个概念都不足以描述它。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：把级联当成"h 相加"</h4>
+          <p class="small">级联（串联）是 <b>h 卷积</b>；并联（输出相加）才是 <b>h 相加</b>。这两个方向的对应关系容易记反。</p>
+        </div>
+      </div>
+
+      <h2 id="s14">14. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz2"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 2 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ---------- 本页局部数学工具 ---------- */
+
+  /* 有限长序列：{off: 起始下标, v: 值数组}。取值越界返回 0 */
+  function seqGet(s, k) {
+    var i = k - s.off;
+    return (i >= 0 && i < s.v.length) ? s.v[i] : 0;
+  }
+  /* 线性插值版本（用来把离散序列画成连续曲线，让"翻转"看得见） */
+  function seqLin(s, k) {
+    var x = k - s.off;
+    if (x < 0 || x > s.v.length - 1) return 0;
+    var i = Math.floor(x), f = x - i;
+    if (i >= s.v.length - 1) return s.v[s.v.length - 1];
+    return s.v[i] + (s.v[i + 1] - s.v[i]) * f;
+  }
+  /* 按定义做卷积和（本页自己实现，方便逐项读出） */
+  function convSum(x, h) {
+    var out = [];
+    var nmin = x.off + h.off, nmax = x.off + h.off + x.v.length + h.v.length - 2;
+    for (var n = nmin; n <= nmax; n++) {
+      var s = 0;
+      for (var k = x.off; k < x.off + x.v.length; k++) s += seqGet(x, k) * seqGet(h, n - k);
+      out.push({ n: n, y: s });
+    }
+    return out;
+  }
+  function convVals(x, h) { return convSum(x, h).map(function (o) { return o.y; }); }
+
+  /* ---------- 实验 1（核心）：卷积滑动演示 ---------- */
+  var CV_CASES = {
+    a: { name: 'x={1,2,1}, h={1,1,1}（两个短序列，最干净）', x: { off: 0, v: [1, 2, 1] }, h: { off: 0, v: [1, 1, 1] } },
+    b: { name: 'x={0.5,2,0}, h={1,1,1}（课件滑动例题）', x: { off: 0, v: [0.5, 2, 0] }, h: { off: 0, v: [1, 1, 1] } },
+    c: { name: 'x={1,1,1,1,1}, h={1,0.8,0.6,0.4,0.2}（长一点，看得清滑动）', x: { off: 0, v: [1, 1, 1, 1, 1] }, h: { off: 0, v: [1, 0.8, 0.6, 0.4, 0.2] } },
+    d: { name: 'x 从 n=2 开始：x={1,1}, h={1,2,1}（起点不在 0）', x: { off: 2, v: [1, 1] }, h: { off: 0, v: [1, 2, 1] } },
+    e: { name: 'h 从 n=−1 开始：x={1,2,1}, h={1,1}（h 起点为 −1）', x: { off: 0, v: [1, 2, 1] }, h: { off: -1, v: [1, 1] } }
+  };
+
+  SSC.lab({
+    mount: '#lab-conv',
+    title: '实验 1 · 卷积滑动演示：翻转 → 平移 → 相乘 → 求和',
+    hint: '拖动 n：青色 h[n−k] 向右滑，绿色乘积累加值随之改变（三张图横轴都是 k，可上下对齐看）',
+    columns: 3,
+    canvases: [
+      { id: 'align', label: '① 对齐：x[k]（红圈）与已翻转平移的 h[n−k]（青曲线）', height: 250 },
+      { id: 'prod', label: '② 相乘：x[k]·h[n−k]（绿色面积 = 各乘积）', height: 250 },
+      { id: 'accplot', label: '③ 累加：y[n]（蓝点 = 这一格的累加结果）', height: 250 }
+    ],
+    controls: [
+      { id: 'n', label: '滑动量 n', min: -4, max: 12, step: 1, value: 0 },
+      { id: 'which', label: '测试用例', options: [
+        { v: 'a', t: 'x={1,2,1}, h={1,1,1}' },
+        { v: 'b', t: 'x={0.5,2,0}, h={1,1,1}（课件）' },
+        { v: 'c', t: 'x={1,1,1,1,1}, h={1,.8,.6,.4,.2}' },
+        { v: 'd', t: 'x 起点在 n=2' },
+        { v: 'e', t: 'h 起点在 n=−1' }
+      ], value: 'a' }
+    ],
+    buttons: [
+      { label: '从头开始 (n=最小值)', onClick: function (v, api) { api.set('n', -4); } },
+      { label: '跳到峰值区 (n=2)', onClick: function (v, api) { api.set('n', 2); } }
+    ],
+    draw: function (cv, v, api) {
+      var C = CV_CASES[v.which], x = C.x, h = C.h;
+      var n = Math.round(v.n);
+
+      /* k 轴范围 */
+      var kmin = Math.min(x.off, h.off, n - (h.off + h.v.length - 1)) - 1;
+      var kmax = Math.max(x.off + x.v.length - 1, n - h.off) + 1;
+      kmin = Math.min(kmin, n - 2); kmax = Math.max(kmax, n + 2);
+
+      /* 三条曲线/点列 */
+      var xs = [], xv = [], hv = [], pv = [];
+      for (var k = kmin; k <= kmax; k++) {
+        xs.push(k);
+        xv.push(seqGet(x, k));
+        hv.push(seqLin(h, n - k));           /* ← 翻转 + 平移都在这里 */
+        pv.push(seqGet(x, k) * seqLin(h, n - k));
+      }
+      var maxA = Math.max(1e-9, Math.max.apply(null, hv.map(Math.abs)).valueOf ? Math.max.apply(null, hv.map(Math.abs)) : 1);
+      var maxX = Math.max(1e-9, Math.max.apply(null, xv.map(Math.abs)));
+      var topA = Math.max(maxA, maxX);
+
+      /* ① 对齐图 */
+      SSC.plot(cv.align, {
+        xmin: kmin - 0.5, xmax: kmax + 0.5, ymin: -1.25 * topA, ymax: 1.25 * topA,
+        xlabel: 'k（哑变量）', ylabel: '幅度',
+        curves: [
+          { f: function (kk) { return seqLin(h, n - kk); }, color: '#0e7490', width: 2.4, label: 'h[n−k]（已翻转平移）' },
+          { f: function (kk) { return seqLin(h, -kk); }, color: '#b45309', width: 1.3, dash: [5, 4], label: 'h[−k]（只翻转，n=0 时）' }
+        ],
+        stems: [{ xs: xs, ys: xv, color: '#dc2626', label: 'x[k]（固定不动）' }],
+        points: xs.map(function (kk, i) { return { x: kk, y: hv[i], color: '#0e7490' }; }),
+        vlines: [{ x: n, color: '#7c3aed', dash: [3, 3], label: 'k=n' }],
+        legend: true
+      });
+
+      /* ② 相乘图 */
+      var maxP = Math.max(1e-9, Math.max.apply(null, pv.map(Math.abs)));
+      SSC.plot(cv.prod, {
+        xmin: kmin - 0.5, xmax: kmax + 0.5, ymin: -1.3 * maxP, ymax: 1.35 * maxP,
+        xlabel: 'k', ylabel: 'x[k]·h[n−k]',
+        stems: [
+          { xs: xs, ys: pv, color: '#15803d', label: '逐项乘积（绿茎）' },
+          { xs: xs, ys: xv.map(function (q) { return q * maxP / maxX; }), color: 'rgba(220,38,38,.35)', label: 'x[k]（缩放到同高度，作参照）' }
+        ],
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        legend: true
+      });
+
+      /* ③ 累加图 */
+      var yall = convSum(x, h);
+      var ys = yall.map(function (o) { return o.y; });
+      var ns = yall.map(function (o) { return o.n; });
+      var ymax = Math.max(1e-9, Math.max.apply(null, ys.map(Math.abs)));
+      var partial = 0, terms = [];
+      for (var kk = kmin; kk <= kmax; kk++) {
+        var term = seqGet(x, kk) * seqLin(h, n - kk);
+        if (Math.abs(term) > 1e-12) { partial += term; terms.push(SSC.fmt(seqGet(x, kk), 2) + '×' + SSC.fmt(seqLin(h, n - kk), 2)); }
+      }
+      var yN = partial;
+      SSC.plot(cv.accplot, {
+        xmin: Math.min(ns[0], kmin) - 0.5, xmax: Math.max(ns[ns.length - 1], kmax) + 0.5,
+        ymin: -1.3 * ymax, ymax: 1.35 * ymax,
+        xlabel: 'n', ylabel: 'y[n]',
+        stems: [{ xs: ns, ys: ys, color: '#4338ca', label: '完整 y[n] = x∗h' }],
+        points: [{ x: n, y: yN, color: '#dc2626', r: 6 }],
+        vlines: [{ x: n, color: '#7c3aed', dash: [3, 3], label: '当前 n=' + n }],
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        legend: true
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">当前 n</div><div class="v">' + n + '</div></div>' +
+        '<div class="stat"><div class="k">参与相加的项数</div><div class="v">' + terms.length + '</div></div>' +
+        '<div class="stat"><div class="k">y[n] = 各项之和</div><div class="v">' + SSC.fmt(yN, 4) + '</div></div>' +
+        '<div style="flex-basis:100%;font-family:var(--mono);font-size:13px;background:color-mix(in srgb,var(--accent-soft) 45%,var(--panel));padding:8px 11px;border-radius:8px">' +
+        'y[' + n + '] = Σ<sub>k</sub> x[k]·h[n−k] = ' +
+        (terms.length ? terms.join('  +  ') + '  =  <b>' + SSC.fmt(yN, 4) + '</b>' : '（公共区间为空，全部为 0）') +
+        '</div>'
+      );
+    },
+    note: function (v) {
+      var C = CV_CASES[v.which], x = C.x, h = C.h;
+      var n = Math.round(v.n);
+      var lo = x.off + h.off, hi = x.off + h.off + x.v.length + h.v.length - 2;
+      var out = '当前用例：' + C.name +
+        '<br>输出 y[n] 非零的范围是 <b>n ∈ [' + lo + ', ' + hi + ']</b>（起始下标相加、结束下标相加），共 <b>' +
+        (hi - lo + 1) + '</b> 个点。';
+      if (n < lo) out += '<br><b>n 太小了</b>：翻转后的 h[n−k] 还在 x 的左边，两者没有重叠 ⇒ 这一格 y=0。继续往右拖。';
+      else if (n > hi) out += '<br><b>n 太大了</b>：h[n−k] 已经滑过 x 的右边，重叠消失 ⇒ y=0。<b>这就是"输出长度有限"的原因。</b>';
+      else {
+        var cnt = 0;
+        for (var k = x.off; k < x.off + x.v.length; k++) if (Math.abs(seqGet(x, k) * seqGet(h, n - k)) > 1e-12) cnt++;
+        out += '<br>此刻 <b>' + cnt + ' 项</b>重叠。重叠数量随 n <b>先增后减</b>（像两块布互相滑过），' +
+          '所以卷积结果的形状总是"爬升 → 平台 → 下降"。';
+      }
+      out += '<br><span class="muted">注意中间那张图的横轴对齐和左图一致：绿茎的高度 = 红圈高度 × 青曲线在同一 k 处的高度。请上下对照着看。</span>';
+      return out;
+    }
+  });
+
+  /* ---------- 实验 2：翻转这一步单独看 ---------- */
+  var FLIP_H = {
+    a: { name: 'h[k] = e^(−k/1.5)·u[k]（缓慢衰减）', f: function (k) { return Math.exp(-k / 1.5) * SSC.uSeq(Math.round(k)); } },
+    b: { name: 'h[k] = 0.6^k·u[k]（几何序列）', f: function (k) { return Math.pow(0.6, k) * SSC.uSeq(Math.round(k)); } },
+    c: { name: 'h[k] = 三角：(1,2,3,2,1) 插值', f: function (k) { return SSC.tri((k - 2) / 3) * 3; } }
+  };
+
+  SSC.lab({
+    mount: '#lab-flip',
+    title: '实验 2 · 把"翻转"单独放大：h[k] → h[βk] → h[n−k]',
+    hint: 'β=1 是原样，β=−1 是完全翻面，中间是"翻到一半"；再拖 n 让翻转后的曲线整体平移',
+    columns: 2,
+    canvases: [
+      { id: 'hflip', label: '翻转过程：h[β·k]（β 从 1 连续变到 −1）', height: 230 },
+      { id: 'hfinal', label: '最终形态：h[n−k]（青）叠在 h[k]（橙虚线）上', height: 230 }
+    ],
+    controls: [
+      { id: 'beta', label: '翻转程度 β（1=原样，0=压平，−1=完全翻转）', min: -1, max: 1, step: 0.02, value: 1 },
+      { id: 'n', label: '平移量 n', min: -3, max: 12, step: 1, value: 4 },
+      { id: 'kind', label: '基准 h', options: [
+        { v: 'a', t: '指数衰减 e^(−k/1.5)u[k]' },
+        { v: 'b', t: '几何 0.6^k u[k]' },
+        { v: 'c', t: '三角形 (1,2,3,2,1)' }
+      ], value: 'b' }
+    ],
+    draw: function (cv, v) {
+      var H = FLIP_H[v.kind].f;
+      var be = v.beta, n = Math.round(v.n);
+      SSC.plot(cv.hflip, {
+        xmin: -8, xmax: 12, ymin: -0.5, ymax: 3.4,
+        xlabel: 'k', ylabel: '幅度',
+        curves: [
+          { f: function (k) { return H(be * k); }, color: '#4338ca', width: 2.6, label: 'h[β·k]（β=' + SSC.fmt(be, 2) + '）' },
+          { f: function (k) { return H(k); }, color: '#b45309', width: 1.5, dash: [5, 4], label: 'h[k]（原样）' },
+          { f: function (k) { return H(-k); }, color: '#0e7490', width: 1.5, dash: [5, 4], label: 'h[−k]（完全翻转）' }
+        ],
+        vlines: [{ x: 0, color: 'rgba(110,130,165,.6)' }],
+        legend: true
+      });
+      SSC.plot(cv.hfinal, {
+        xmin: -8, xmax: 12, ymin: -0.5, ymax: 3.4,
+        xlabel: 'k', ylabel: '幅度',
+        curves: [
+          { f: function (k) { return H(n - k); }, color: '#0e7490', width: 2.8, label: 'h[n−k]（翻转 + 平移 n=' + n + '）' },
+          { f: function (k) { return H(k); }, color: '#b45309', width: 1.5, dash: [5, 4], label: 'h[k]（原样，参照）' }
+        ],
+        points: (function () {
+          var P = [];
+          for (var k = n - 12; k <= n + 2; k += 1) P.push({ x: k, y: H(n - k), color: '#0e7490', r: 3 });
+          return P;
+        })(),
+        vlines: [{ x: n, color: '#7c3aed', dash: [3, 3], label: 'k=n' }],
+        legend: true
+      });
+    },
+    note: function (v) {
+      var n = Math.round(v.n), be = v.beta;
+      return '青线是 <b>h[n−k]</b>：它把 <b>h[k] 翻转</b>（关于 k=0 左右镜像）之后<b>整体右移 n=' + n + '</b>。' +
+        '<br>注意它和橙色虚线 h[k] 的对称轴：当 n=0 时两条线严格关于 <b>k=0</b> 对称；n≠0 时对称中心移到 <b>k=n/2 = ' + SSC.fmt(n / 2, 2) + '</b>。' +
+        (Math.abs(be - 1) < 1e-9 ? '<br>现在 β=1，蓝线与橙虚线完全重合（还没翻）。' :
+          (Math.abs(be + 1) < 1e-9 ? '<br>现在 β=−1，蓝线与青虚线完全重合（<b>已经翻好了</b>）。' :
+            '<br>现在 β=' + SSC.fmt(be, 2) + '，蓝线是"翻到一半"的中间态：右半部分被压向原点，左半部分开始翘起来。')) +
+        '<br><span class="muted">把 β 慢慢从 1 拖到 −1，同时盯住 k=0 那一点：它始终不动（因为 β·0=0）——翻转是"绕原点拧转"，不是平移。</span>';
+    }
+  });
+
+  /* ---------- 实验 3：δ 平移 / 累加器 / 级联换序 ---------- */
+  var X_TRI = { off: 0, v: [0, 1, 2, 3, 2, 1, 0] };   /* 长度 7 */
+  var H_A = { off: 0, v: [1, 0.8, 0.6, 0.4] };        /* 系统 A */
+  var H_B = { off: 0, v: [1, -0.5, 0.25] };           /* 系统 B */
+
+  SSC.lab({
+    mount: '#lab-ident',
+    title: '实验 3 · 三条卷积恒等式：δ 平移 / 累加器 / 级联换序',
+    hint: '先用下拉框选恒等式，再调对应参数',
+    columns: 2,
+    canvases: [
+      { id: 'a', label: '输入与 h（或 h₁、h₂）', height: 210 },
+      { id: 'b', label: '输出 y[n]（以及对照曲线）', height: 210 }
+    ],
+    controls: [
+      { id: 'which', label: '恒等式', options: [
+        { v: 'delta', t: '① x ∗ δ[n−n₀] = 平移' },
+        { v: 'acc', t: '② x ∗ u[n] = 累加器' },
+        { v: 'casc', t: '③ 级联 (x∗h₁)∗h₂ 与 (x∗h₂)∗h₁' }
+      ], value: 'delta' },
+      { id: 'n0', label: 'n₀ / 级联第一级起点（仅 ① 用）', min: -3, max: 6, step: 1, value: 3 }
+    ],
+    draw: function (cv, v) {
+      var n0 = Math.round(v.n0);
+
+      if (v.which === 'delta') {
+        var hd = { off: n0, v: [1] };
+        var yD = convSum(X_TRI, hd);
+        SSC.plot(cv.a, {
+          xmin: -6, xmax: 14, ymin: -0.3, ymax: 3.4,
+          xlabel: 'n', ylabel: '幅度',
+          stems: [
+            { xs: X_TRI.v.map(function (_, i) { return i; }), ys: X_TRI.v, color: '#dc2626', label: 'x[n]（输入）' },
+            { xs: [n0], ys: [1], color: '#7c3aed', label: 'δ[n−n₀]（n₀=' + n0 + '）' }
+          ],
+          vlines: [{ x: n0, color: '#7c3aed', dash: [3, 3] }],
+          legend: true
+        });
+        SSC.plot(cv.b, {
+          xmin: -6, xmax: 14, ymin: -0.3, ymax: 3.4,
+          xlabel: 'n', ylabel: '幅度',
+          stems: [
+            { xs: yD.map(function (o) { return o.n; }), ys: yD.map(function (o) { return o.y; }), color: '#4338ca', label: 'y[n]=x[n−n₀]（输出）' },
+            { xs: X_TRI.v.map(function (_, i) { return i; }), ys: X_TRI.v, color: '#c3ccdd', label: 'x[n]（原样，参照）' }
+          ],
+          legend: true
+        });
+      } else if (v.which === 'acc') {
+        var hu = { off: 0, v: [] };
+        for (var i = 0; i <= 13; i++) hu.v.push(1);
+        var yA = convSum(X_TRI, hu);
+        SSC.plot(cv.a, {
+          xmin: -1, xmax: 14, ymin: -0.3, ymax: 3.4,
+          xlabel: 'n', ylabel: '幅度',
+          stems: [{ xs: X_TRI.v.map(function (_, j) { return j; }), ys: X_TRI.v, color: '#dc2626', label: 'x[n]（输入脉冲）' }],
+          curves: [{ f: function (k) { return SSC.uStep(k); }, color: '#7c3aed', width: 1.8, dash: [5, 4], label: 'h[n]=u[n]' }],
+          legend: true
+        });
+        var run = 0, cum = [];
+        for (var j = 0; j < X_TRI.v.length; j++) { run += X_TRI.v[j]; cum.push(run); }
+        SSC.plot(cv.b, {
+          xmin: -1, xmax: 14, ymin: -0.5, ymax: 9.5,
+          xlabel: 'n', ylabel: '幅度',
+          stems: [
+            { xs: yA.map(function (o) { return o.n; }), ys: yA.map(function (o) { return o.y; }), color: '#4338ca', label: 'y[n]=x∗u（输出）' },
+            { xs: cum.map(function (_, j) { return j; }), ys: cum, color: '#15803d', label: '输入的累加和 Σx（应重合）' }
+          ],
+          legend: true
+        });
+      } else {
+        /* 级联：h₁∗h₂ 与 h₂∗h₁ 应当完全相同 */
+        var hAB = { off: H_A.off + H_B.off, v: convVals(H_A, H_B) };
+        var hBA = { off: H_B.off + H_A.off, v: convVals(H_B, H_A) };
+        var y1 = convSum(X_TRI, hAB);
+        var y2 = convSum(X_TRI, hBA);
+        SSC.plot(cv.a, {
+          xmin: -1, xmax: 14, ymin: -0.5, ymax: 2.4,
+          xlabel: 'n', ylabel: '幅度',
+          stems: [
+            { xs: H_A.v.map(function (_, j) { return j + H_A.off; }), ys: H_A.v, color: '#0e7490', label: 'h₁（系统 A）' },
+            { xs: H_B.v.map(function (_, j) { return j + H_B.off; }), ys: H_B.v, color: '#b45309', label: 'h₂（系统 B）' },
+            { xs: hAB.v.map(function (_, j) { return j + hAB.off; }), ys: hAB.v, color: '#4338ca', label: 'h₁∗h₂（等效系统）' }
+          ],
+          legend: true
+        });
+        SSC.plot(cv.b, {
+          xmin: -1, xmax: 16, ymin: -1.6, ymax: 3.0,
+          xlabel: 'n', ylabel: '幅度',
+          stems: [
+            { xs: y1.map(function (o) { return o.n; }), ys: y1.map(function (o) { return o.y; }), color: '#4338ca', label: 'x∗(h₁∗h₂)：A 在前' },
+            { xs: y2.map(function (o) { return o.n; }), ys: y2.map(function (o) { return o.y; }), color: '#dc2626', label: 'x∗(h₂∗h₁)：B 在前' }
+          ],
+          legend: true
+        });
+        /* 数值对照：两条路线的最大差 */
+        var m = 0;
+        for (var q = 0; q < Math.min(y1.length, y2.length); q++) m = Math.max(m, Math.abs(y1[q].y - y2[q].y));
+        api.readout(
+          '<div class="stat"><div class="k">h₁∗h₂（等效冲激响应）</div><div class="v" style="font-size:13px">' +
+          (hAB.v.map(function (q2) { return SSC.fmt(q2, 3); }).join(', ')) + '</div></div>' +
+          '<div class="stat"><div class="k">h₂∗h₁</div><div class="v" style="font-size:13px">' +
+          (hBA.v.map(function (q2) { return SSC.fmt(q2, 3); }).join(', ')) + '</div></div>' +
+          '<div class="stat"><div class="k">两条路线的最大差</div><div class="v">' + SSC.fmt(m, 12) + '</div></div>'
+        );
+      }
+    },
+    note: function (v) {
+      if (v.which === 'delta') {
+        return '与 <b>δ[n−n₀]</b> 卷积的结果，就是原信号整体<b>右移 n₀</b>、形状完全不变。' +
+          '拖 n₀ 看蓝色茎叶整排平移。<br>这就是"<b>纯延迟系统</b>"：它的 h 是一根移位冲激，所以延迟系统的级联就是"延迟相加"。' +
+          '<br>数学出处：<span class="mono">Σ<sub>k</sub>x[k]δ[n−n₀−k]</span> 中 δ 只在 <span class="mono">k=n−n₀</span> 处非零。';
+      }
+      if (v.which === 'acc') {
+        return '与 <b>u[n]</b> 卷积就是<b>累加</b>：输出在每一时刻等于输入从 −∞ 到该时刻的和。' +
+          '绿茎（直接算累加和）与蓝茎（走卷积定义）应当<b>逐点重合</b>——这就是"离散积分器"的两种算法是同一件事。' +
+          '<br>它的逆系统是一阶差分 <span class="mono">δ[n]−δ[n−1]</span>，级联后还原成恒等系统。';
+      }
+      return '两条曲线（<b>A 在前</b> / <b>B 在前</b>）完全重合 ⇒ <b>级联顺序不影响总输出</b>。' +
+        '<br>理由是结合律 + 交换律：<span class="mono">h₁∗h₂ = h₂∗h₁</span>。' +
+        '<br>注意左上图的蓝茎：级联后的等效冲激响应是 <b>h₁∗h₂</b>（比原来任何一个都长）。' +
+        '<br><span class="muted">例外提醒：如果两个系统里有非 LTI 的（比如带时变增益），这条就不再成立。</span>';
+    }
+  });
+
+  /* ---------- 实验 4：差分方程 → h → 卷积验证 ---------- */
+  SSC.lab({
+    mount: '#lab-diff',
+    title: '实验 4 · 递归差分方程：递推得到的 y 与卷积 x∗h 必须一致',
+    hint: '拖 a（递归系数）与输入类型，看着两条曲线重合；读下面的最大误差',
+    columns: 3,
+    canvases: [
+      { id: 'ir', label: '① 冲激响应 h[n]（红色理论值 aⁿ 叠在蓝色递推值上）', height: 220 },
+      { id: 'xin', label: '② 输入 x[n]', height: 220 },
+      { id: 'y', label: '③ 输出 y[n]：递推（蓝）与卷积（红虚线）', height: 220 }
+    ],
+    controls: [
+      { id: 'a', label: '递归系数 a（|a|<1 稳定）', min: -1.3, max: 1.3, step: 0.05, value: 0.6 },
+      { id: 'xin', label: '输入', options: [
+        { v: 'imp', t: 'δ[n]（冲激：输出就是 h）' },
+        { v: 'step', t: 'u[n]（阶跃：看爬升）' },
+        { v: 'pulse', t: 'rect：n=0..4 为 1' },
+        { v: 'alt', t: '交替 (±1)ⁿ' }
+      ], value: 'step' },
+      { id: 'N', label: '序列长度 N', min: 6, max: 30, step: 1, value: 16 }
+    ],
+    draw: function (cv, v, api) {
+      var a = v.a, N = Math.round(v.N);
+      var i, n, x = [];
+      for (i = 0; i < N; i++) {
+        if (v.xin === 'imp') x.push(i === 0 ? 1 : 0);
+        else if (v.xin === 'step') x.push(1);
+        else if (v.xin === 'pulse') x.push(i <= 4 ? 1 : 0);
+        else x.push(i % 2 === 0 ? 1 : -1);
+      }
+
+      /* 路线 A：递推 y[n] = x[n] + a·y[n-1]，初始静止 */
+      var yR = [], prev = 0;
+      for (n = 0; n < N; n++) { var cur = x[n] + a * prev; yR.push(cur); prev = cur; }
+
+      /* 路线 B：先取 h（x=δ 时的递推结果），再算卷积 x∗h */
+      var hR = [], p2 = 0;
+      for (n = 0; n < N; n++) { var inp = (n === 0 ? 1 : 0); var c2 = inp + a * p2; hR.push(c2); p2 = c2; }
+      var hSeq = { off: 0, v: hR };
+      var xSeq = { off: 0, v: x };
+      var yC = convVals(xSeq, hSeq);           /* 长度 2N−1，截到前 N 个即可比较 */
+      var theo = [];
+      for (n = 0; n < N; n++) theo.push(Math.pow(a, n));
+
+      var dmax = 0;
+      for (n = 0; n < N; n++) dmax = Math.max(dmax, Math.abs(yR[n] - (yC[n] || 0)));
+
+      var nsAll = []; for (n = 0; n < N; n++) nsAll.push(n);
+      SSC.plot(cv.ir, {
+        xmin: -1, xmax: N, ymin: -1.4 * Math.max(1, Math.max.apply(null, hR.map(Math.abs))),
+        ymax: 1.4 * Math.max(1, Math.max.apply(null, hR.map(Math.abs))),
+        xlabel: 'n', ylabel: 'h[n]',
+        stems: [{ xs: nsAll, ys: hR, color: '#4338ca', label: '递推得到的 h[n]' }],
+        curves: [{ f: function (k) { return Math.pow(a, k) * SSC.uSeq(Math.round(k)); }, color: '#dc2626', width: 1.8, dash: [5, 4], label: '理论 a^n u[n]' }],
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        legend: true
+      });
+      SSC.plot(cv.xin, {
+        xmin: -1, xmax: N, ymin: -1.4, ymax: 1.4,
+        xlabel: 'n', ylabel: 'x[n]',
+        stems: [{ xs: nsAll, ys: x, color: '#0e7490', label: '输入 x[n]' }],
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        legend: true
+      });
+      var ymax = Math.max(1e-9, Math.max.apply(null, yR.map(Math.abs)));
+      SSC.plot(cv.y, {
+        xmin: -1, xmax: N, ymin: -1.4 * ymax, ymax: 1.5 * ymax,
+        xlabel: 'n', ylabel: 'y[n]',
+        stems: [{ xs: nsAll, ys: yR, color: '#4338ca', label: '路线 A：按差分方程递推' }],
+        curves: [{ f: function (k) { var j = Math.round(k); return (j >= 0 && j < yC.length) ? yC[j] : 0; }, color: '#dc2626', width: 1.8, dash: [5, 4], label: '路线 B：卷积 x∗h' }],
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        legend: true
+      });
+
+      var sh = 0; for (n = 0; n < N; n++) sh += Math.abs(hR[n]);
+      api.readout(
+        '<div class="stat"><div class="k">两条路线的最大误差</div><div class="v">' + SSC.fmt(dmax, 10) + '</div></div>' +
+        '<div class="stat"><div class="k">Σ|h|（只截到 n=N−1，是有限近似）</div><div class="v">' + SSC.fmt(sh, 5) + '</div></div>' +
+        '<div class="stat"><div class="k">稳定性判定</div><div class="v" style="font-size:13px">' +
+        (Math.abs(v.a) < 1 ? '|a|&lt;1 ⇒ 收敛 ⇒ <b>稳定</b>' : '|a|≥1 ⇒ 发散 ⇒ <b>不稳定</b>') + '</div></div>' +
+        '<div class="stat"><div class="k">理论 Σ|a|ⁿ = 1/(1−|a|)</div><div class="v">' +
+        (Math.abs(v.a) < 1 ? SSC.fmt(1 / (1 - Math.abs(v.a)), 4) : '∞') + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var a = v.a;
+      var stable = Math.abs(a) < 1;
+      return '递推式 <b>y[n] = x[n] + a·y[n−1]</b>（初始静止）。取 x=δ[n] 就得 h[n]；' +
+        '把 h 代进 <b>y[n]=Σ<sub>k</sub>x[k]h[n−k]</b> 算出的结果，与直接递推的结果<b>逐点相同</b> —— ' +
+        '这就是"<b>h 完全决定 LTI 系统</b>"的数值证据。' +
+        '<br>h[n] = aⁿu[n] 是<b>几何序列</b>，对应连续时间的 h(t)=e<sup>−at</sup>u(t)（指数）。' +
+        '<br>当前 a = ' + SSC.fmt(a, 2) + '：|a| ' + (stable ? '&lt;' : '≥') + ' 1 ⇒ 系统' + (stable ? '<b>稳定</b>（h 绝对可和，Σ|h|=1/(1−|a|) 有限）' : '<b>不稳定</b>（h 的绝对值之和发散；看右图两条线一起爆炸，但依然重合）') + '。' +
+        '<br>顺带看 <b>a 为负数</b> 的情形：h 的符号正负交替（-1 的幂），这正是"振荡"的离散版本（第 13 章 z 平面负实轴上极点会解释它）。';
+    }
+  });
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz2', [
+    {
+      q: '两个有限长序列 x[n]={1,2,1}（n=0,1,2）与 h[n]={1,1,1}（n=0,1,2）卷积，y[n] 是多少？',
+      opts: [
+        'y = {1, 3, 4, 3, 1}',
+        'y = {1, 2, 1, 1, 1}',
+        'y = {1, 2, 4, 2, 1}',
+        'y = {1, 3, 4}'
+      ],
+      a: 0,
+      why: 'y[0]=1, y[1]=1+2=3, y[2]=1+2+1=4, y[3]=2+1=3, y[4]=1。免费验算：长度 3+3−1=5 ✓，总和 Σy=12=Σx·Σh=4·3 ✓。',
+      tag: '卷积计算'
+    },
+    {
+      q: '卷积 y[n]=Σ_k x[k]h[n−k] 里的 h[n−k] 是怎么来的？',
+      opts: [
+        '是 h[k] 先关于 k=0 翻转成 h[−k]、再右移 n 得到的',
+        '是 h[k] 直接右移 n 得到的，没有翻转',
+        '是把 x[k] 翻转平移得到的',
+        '是 h[n] 乘以 k 得到的'
+      ],
+      a: 0,
+      why: '参数 −k 是时间反转，+n 是时间平移，顺序就是"先翻转、再平移"。这个负号来自 δ[n−k]：输入的第 k 根冲激在 n 时刻的响应是 h[n−k]，负号是"延迟量 n−k"本身带来的，不能省。不翻转相乘求和得到的是相关（correlation），不是卷积。',
+      tag: '概念'
+    },
+    {
+      q: '一个 LTI 系统要"无记忆"，它的冲激响应必须满足？',
+      opts: [
+        'h[n] = K·δ[n]（h 只在原点非零）',
+        'h[n] 是有限长的即可',
+        'h[n] = δ[n−1]',
+        'h[n] 绝对可和即可'
+      ],
+      a: 0,
+      why: '把 h=Kδ 代进卷积和得 y[n]=Kx[n]，只用到同一时刻的输入。若 h 在 k≠0 处非零，输出就会掺进 x[n−k]，那就是有记忆。所以"无记忆的 LTI 系统"只有纯放大一种。注意 h=δ[n−1] 是纯延迟，有记忆。',
+      tag: '系统性质'
+    },
+    {
+      q: '已知某 LTI 系统的冲激响应 h[n]=(0.5)^n·u[n]。该系统是否因果、是否稳定？',
+      opts: [
+        '因果且稳定（h 在 n<0 时为 0；Σ|h| = 1/(1−0.5) = 2 < ∞）',
+        '非因果但稳定',
+        '因果但不稳定（Σ|h| 发散）',
+        '既非因果也不稳定'
+      ],
+      a: 0,
+      why: 'h[n]=(0.5)^n u[n] 在 n<0 时全为 0 ⇒ 因果。Σ|h| = Σ(0.5)^n = 1/(1−0.5) = 2 有限 ⇒ 稳定。若把底数换成 1.2，则 Σ1.2ⁿ 发散 ⇒ 不稳定（但依然因果）。',
+      tag: '因果与稳定'
+    },
+    {
+      q: '两个 LTI 系统级联（串联）。它们的等效冲激响应是什么？',
+      opts: [
+        'h₁[n] ∗ h₂[n]（两者卷积）',
+        'h₁[n] + h₂[n]（两者相加）',
+        'h₁[n]·h₂[n]（逐点相乘）',
+        '只能靠解差分方程才能知道'
+      ],
+      a: 0,
+      why: '结合律：(x∗h₁)∗h₂ = x∗(h₁∗h₂)。所以级联等价于一个 h=h₁∗h₂ 的系统。注意"h 相加"对应的是并联（分配律），"逐点相乘"根本不是卷积运算。再配合交换律 h₁∗h₂=h₂∗h₁，级联顺序可以任意调换。',
+      tag: '性质'
+    },
+    {
+      q: '差分方程 y[n] − a·y[n−1] = x[n] 单独一个方程，能不能唯一确定一个 LTI 系统？',
+      opts: [
+        '不能，还必须补附加条件（本课程用初始静止）',
+        '能，方程本身就完全确定了系统',
+        '能，只要 a 已知就确定了',
+        '不能，还必须知道输入 x 的具体形式'
+      ],
+      a: 0,
+      why: '差分/微分方程是隐式描述（input-output 之间的约束），不是显式公式。要唯一确定输出必须给附加条件。同一个方程配"初始静止"是一个因果 LTI 系统，配别的初始条件就是另一个系统。"知道输入 x"是求某个具体输出所需的，而不是"确定系统"所需的。',
+      tag: '差分方程'
+    },
+    {
+      q: 'x(t) ∗ δ(t−t₀) 等于什么？',
+      opts: [
+        'x(t−t₀)（原信号平移 t₀）',
+        'x(t)（不变）',
+        'δ(t−t₀)',
+        'x(t₀)·δ(t)'
+      ],
+      a: 0,
+      why: '由筛选性质，∫x(τ)δ(t−t₀−τ)dτ 中 δ 只在 τ=t−t₀ 处非零，取到 x(t−t₀)。人话：与移位冲激卷积 = 纯延迟。这也说明 δ 是卷积的单位元（t₀=0 时得到 x(t)），而纯延迟系统的逆系统是 δ(t+t₀)。',
+      tag: '恒等式'
+    }
+  ], '第 2 章自测 · 7 题');
+});
+</script>
+</body>
+</html>

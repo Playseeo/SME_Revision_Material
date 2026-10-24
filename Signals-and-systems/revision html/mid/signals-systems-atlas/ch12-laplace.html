@@ -1,0 +1,1378 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 12 章　拉普拉斯变换（连续世界的 z）｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch12">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第五段 · 两个"万能"变换 · 第 12 章</div>
+        <h1>拉普拉斯变换</h1>
+        <p class="lede">
+          傅里叶变换有个门槛：信号必须"绝对可积"。可现实中一大批信号过不了这道门槛——
+          <span class="mono">e<sup>2t</sup>u(t)</span> 越涨越高、<span class="mono">u(t)</span> 永远不衰减、
+          <span class="mono">t·u(t)</span> 更是涨到无穷。<b>这一章只做一件事</b>：给信号乘上一个"衰减旋钮"
+          <span class="mono">e<sup>−σt</sup></span>，把野信号按下去，再去做傅里叶变换。
+          旋钮一加，能分析的信号范围立刻扩大；代价是结果不再是"一条频率曲线"，
+          而是<b>整个复平面 <i>s</i> 上的一个函数</b>——你必须同时说清"这个函数在哪块区域里才算数"。
+          那块区域叫<span class="term" data-def="region of convergence，中文含义：收敛域（缩写 ROC）。使拉氏变换积分收敛的那些 s 组成的区域。它决定同一个 X(s) 到底对应哪个时域信号，也决定系统是否稳定。">收敛域（ROC）</span>，
+          它是本章的主角。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch06-ctft.html">第 6 章 连续时间傅里叶变换</a>（要知道 <span class="mono">X(jω)</span> 的定义与性质）<br>
+          <a href="ch03-eigenfunction.html">第 3 章 复指数是特征函数</a>（<span class="mono">e<sup>st</sup> → H(s)e<sup>st</sup></span> 是本章的地基）
+        </div>
+        <div class="cell mid"><b>这一站</b>拉氏定义、s 平面的 ROC、部分分式反变换、系统函数与稳定性、单边拉氏</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch13-ztransform.html">第 13 章 z 变换</a>（把 <span class="mono">s</span> 换成 <span class="mono">z=e<sup>sT</sup></span>，离散版）<br>
+          <a href="ch14-atlas.html">第 14 章 总对照</a>（想先看全局关系图）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 动机：傅里叶变换的三个"漏网之鱼"</a>
+        <a href="#s2">2. 定义：给信号装一个衰减旋钮</a>
+        <a href="#s3">3. 收敛域 ROC 的三条铁律</a>
+        <a href="#s4">4. 动手：在 s 平面上拖极点、看 ROC 与稳定性</a>
+        <a href="#s5">5. 常用变换对（含推导）</a>
+        <a href="#s6">6. 反变换：部分分式 + 查表（完整算例）</a>
+        <a href="#s7">7. 动手：同一个 X(s)，三种 ROC，三个不同的信号</a>
+        <a href="#s8">8. 动手：把极点推向虚轴会怎样</a>
+        <a href="#s9">9. 几何法：用向量长度直接读出 |H(jω)|</a>
+        <a href="#s10">10. 性质表（含初值/终值定理）</a>
+        <a href="#s11">11. 系统函数 H(s)：因果、稳定与方框图</a>
+        <a href="#s12">12. 单边拉氏变换：带初始条件解微分方程</a>
+        <a href="#s13">13. 常见坑</a>
+        <a href="#s14">14. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 动机：傅里叶变换的三个"漏网之鱼"</h2>
+
+      <p>
+        先复盘第 6 章的收敛条件：傅里叶变换 <span class="mono">X(jω) = ∫x(t)e<sup>−jωt</sup>dt</span>
+        收敛的<b>充分</b>条件是<span class="term" data-def="absolutely integrable，中文含义：绝对可积。指 ∫|x(t)|dt 是有限值。它是傅里叶变换存在的一个充分条件，但不是必要条件。">绝对可积</span>：
+        <span class="mono">∫<sub>−∞</sub><sup>∞</sup>|x(t)|dt &lt; ∞</span>。
+        原因是 <span class="mono">|e<sup>−jωt</sup>| = 1</span>，探针不放大也不缩小，所以积分能不能收敛完全取决于 |x(t)| 的面积。
+      </p>
+
+      <p>下面这三个信号很有代表性，它们都被傅里叶变换挡在门外：</p>
+
+      <table class="tbl sm">
+        <thead><tr><th class="c">信号</th><th class="c">∫|x(t)|dt</th><th>傅里叶变换</th><th>问题出在哪</th></tr></thead>
+        <tbody>
+          <tr><td class="ft c">e<sup>−at</sup>u(t)（a&gt;0）</td><td class="c">1/a，有限</td><td class="c">1/(a+jω) ✓ 存在</td><td>会衰减，没问题</td></tr>
+          <tr><td class="ft c">e<sup>at</sup>u(t)（a&gt;0）</td><td class="c">∞</td><td class="c">不存在</td><td>t→+∞ 时指数爆炸</td></tr>
+          <tr><td class="ft c">u(t)</td><td class="c">∞</td><td class="c">1/(jω)+πδ(ω)（广义）</td><td>不衰减，只能靠 δ 帮忙</td></tr>
+          <tr><td class="ft c">t·u(t)</td><td class="c">∞</td><td class="c">不存在</td><td>线性增长，更没救</td></tr>
+          <tr><td class="ft c">cos ω<sub>0</sub>t</td><td class="c">∞</td><td class="c">一对 δ（广义）</td><td>不衰减，但只有两根谱线</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <span class="tag">关键一招：先"压住"再变换</span>
+        <p>
+          拿 <span class="mono">x(t) = e<sup>2t</sup>u(t)</span> 举例，它在 <span class="mono">t→+∞</span> 时爆炸。
+          现在给它乘一个<b>衰减因子</b> <span class="mono">e<sup>−σt</sup></span>（σ 是实数，自己挑）：
+        </p>
+        <div class="eq center-eq">
+          x(t)e<sup>−σt</sup> = e<sup>2t</sup>e<sup>−σt</sup>u(t) = e<sup>−(σ−2)t</sup>u(t)
+        </div>
+        <p style="margin-bottom:0">
+          只要挑 <b>σ &gt; 2</b>，这个新信号就是衰减的、绝对可积的——它<b>有</b>傅里叶变换！
+          也就是说：原来那个野信号，虽然自己没有傅里叶变换，但"乘上合适的衰减因子之后有"。
+          拉普拉斯变换要做的，就是把这件事系统化：<b>把 σ 当成参数，看它在哪些取值下能救活这个积分</b>。
+          能救活的那一片 σ（连同 ω）就是 ROC。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 定义：给信号装一个衰减旋钮</h2>
+
+      <div class="box">
+        <span class="tag">一句话人话版</span>
+        <p style="margin-bottom:0">
+          <b>拉普拉斯变换 = 先乘 <span class="mono">e<sup>−σt</sup></span> 压住信号，再做傅里叶变换，最后把 σ 和 ω 打包成一个复数 <span class="mono">s</span> 记下来。</b>
+          所以它不是新东西，是傅里叶变换"加了旋钮"的版本。
+        </p>
+      </div>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：从"压住再变换"到拉普拉斯变换的定义式</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：写出傅里叶变换，说清它为什么有时不收敛。</b></p>
+            <div class="eq">
+              X(jω) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t) e<sup>−jωt</sup> d<i>t</i>
+              <span class="lbl">(12-1)</span>
+            </div>
+            <p class="why">为什么：<span class="mono">e<sup>−jωt</sup></span> 的模恒为 1，它只"转相"不"变大小"。
+              于是积分收不收敛，全看 |x(t)| 在无穷远处的衰减够不够快。不衰减或增长的信号就卡在这里。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：引入实数 σ，给信号乘上 <span class="mono">e<sup>−σt</sup></span>，对乘积做傅里叶变换。</b></p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              <span style="font-size:22px">[</span> x(t) e<sup>−σt</sup> <span style="font-size:22px">]</span> e<sup>−jωt</sup> d<i>t</i>
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              x(t) e<sup>−(σ+jω)t</sup> d<i>t</i>
+            </div>
+            <p class="why">为什么：两个指数相乘，指数相加——这是幂运算最基本的规则。
+              这一步把"衰减"和"转相"合并进了同一个指数里。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：把 <span class="mono">σ+jω</span> 打包成一个复变量 <i>s</i>，得到定义。</b></p>
+            <div class="eq center-eq">
+              <b>拉普拉斯变换：</b>　X(s) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t) e<sup>−st</sup> d<i>t</i>,
+              　s = σ + jω
+              <span class="lbl">(12-2)</span>
+            </div>
+            <p class="why">为什么可以这样打包：因为确定一个复指数 <span class="mono">e<sup>−st</sup></span> 只需要两个实数（衰减率 σ 与振荡率 ω），
+              而这两个实数恰好就是复数 <i>s</i> 的实部与虚部。所以 <span class="mono">X(s)</span> 是"复频率 s 的函数"，
+              而不是两个独立变量的函数——它住在<span class="term" data-def="s-plane，中文含义：s 平面。以 Re{s}=σ 为横轴、Im{s}=ω 为纵轴的复平面；拉氏变换在这里是"处处定义的函数"，ROC 是其中一片区域。">s 平面</span>上。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：把傅里叶变换也写进同一个记号里。</b></p>
+            <div class="eq center-eq">
+              X(s)|<sub>s = jω</sub> = X(jω)
+              <span class="lbl">(12-3)</span>
+            </div>
+            <p class="why">为什么：令 σ = 0（旋钮不衰减），<span class="mono">e<sup>−st</sup></span> 就退化成 <span class="mono">e<sup>−jωt</sup></span>，
+              这不就是式 (12-1) 吗。所以 <b>傅里叶变换 = 拉普拉斯变换在虚轴上的取值</b>。
+              但请把前提刻在脑子里：<b>只有当虚轴 σ=0 这条线落在 ROC 里，这个等式才成立</b>。
+              这正是后面"稳定性"要反复用的一句话。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 5 步：反变换（怎么把 x(t) 拼回去）。</b></p>
+            <p>既然 <span class="mono">X(σ+jω)</span> 是 <span class="mono">x(t)e<sup>−σt</sup></span> 的傅里叶变换，那就用傅里叶反变换公式先还原它：</p>
+            <div class="eq">
+              x(t)e<sup>−σt</sup> = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(σ+jω) e<sup>jωt</sup> d<i>ω</i>
+            </div>
+            <p>两边同乘 <span class="mono">e<sup>σt</sup></span>，并把 σ 吸收进指数：</p>
+            <div class="eq">
+              x(t) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              X(σ+jω) e<sup>(σ+jω)t</sup> d<i>ω</i>
+              &nbsp;&nbsp;<span class="why" style="color:var(--accent);font-size:14px">把积分变量从 ω 换成 s = σ+jω（σ 固定，故 ds = j dω）</span>
+            </div>
+            <div class="eq center-eq">
+              x(t) = <span class="frac"><span class="num">1</span><span class="den">2πj</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>σ+j∞</span><span>σ−j∞</span></span></span>
+              X(s) e<sup>st</sup> d<i>s</i>
+              <span class="lbl">(12-4)</span>
+            </div>
+            <p class="why">为什么这一步很关键：积分路径是一条<b>平行于虚轴的竖直线</b> <span class="mono">Re{s}=σ</span>，
+              而且这条线<b>必须整条落在 ROC 里</b>（否则 X(σ+jω) 根本不存在，还原无从谈起）。
+              这就是"反变换必须先知道 ROC"的数学根源。<br>
+              好在实际算题时你<b>不会</b>真去算这个复变积分：只要 X(s) 是有理函数，
+              用第 6 节的<span class="term" data-def="partial-fraction expansion，中文含义：部分分式展开。把一个有理分式拆成若干个简单分式之和（如 A/(s+a)），使每一项都能查表反变换的代数技巧。">部分分式</span>展开加查表就够了。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">结论：拉普拉斯变换对（完整写法必须带 ROC）</span>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>正变换</b>　X(s) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span> x(t) e<sup>−st</sup> d<i>t</i>,
+              　s = σ + jω
+            </div>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>反变换</b>　x(t) = <span class="frac"><span class="num">1</span><span class="den">2πj</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>σ+j∞</span><span>σ−j∞</span></span></span> X(s) e<sup>st</sup> d<i>s</i>
+              （路径 <span class="mono">Re{s}=σ</span> 在 ROC 内）
+            </div>
+            <p style="margin-bottom:0" class="small">
+              记号：<span class="mono">x(t) <span class="op ft">⟷</span> X(s)，ROC = …</span>。
+              <b>只写 X(s) 不写 ROC，是不完整的答案</b>——第 7 节的实验台会让你亲眼看到原因。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h3>2.1 定义式里每个符号的含义</h3>
+      <table class="tbl sm">
+        <thead><tr><th>符号</th><th>中文名 / 含义</th><th>直观理解</th></tr></thead>
+        <tbody>
+          <tr><td class="ft">s = σ + jω</td><td>复频率（复变量）</td><td>σ 是"衰减旋钮"，ω 是"振荡频率"。两个数合成一个复数。</td></tr>
+          <tr><td class="ft">σ = Re{s}</td><td>衰减因子（实部）</td><td>σ 越大，<span class="mono">e<sup>−σt</sup></span> 压得越狠，越容易收敛。</td></tr>
+          <tr><td class="ft">ω = Im{s}</td><td>角频率（虚部）</td><td>和第 6 章的 ω 完全一样，单位 rad/s。</td></tr>
+          <tr><td class="ft">X(s)</td><td>拉普拉斯变换（复函数）</td><td>在每个复频率 s 上放一个复数。它比频谱信息更多：多出的那一维正是 σ。</td></tr>
+          <tr><td class="ft">虚轴 σ=0</td><td>傅里叶变换住的那条线</td><td>在这条线上 <span class="mono">X(s)=X(jω)</span>——前提是这条线在 ROC 内。</td></tr>
+          <tr><td class="ft">ROC</td><td><span class="term" data-def="region of convergence，中文含义：收敛域。∫x(t)e^{−st}dt 收敛的那些 s 的集合；有理变换的 ROC 是被极点切出来的竖条/半平面。">收敛域</span>（ROC）</td><td>"X(s) 在这个区域里才算数"。它是答案的一部分，不是备注。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s3">3. 收敛域 ROC 的三条铁律</h2>
+      <p>
+        ROC 看着抽象，其实只有三条"铁律"需要背。它们全部来自同一个事实：
+        收敛只看 <span class="mono">∫|x(t)|e<sup>−σt</sup>dt</span> 是否有限——
+        <b>这个条件只和 σ 有关，和 ω 完全无关</b>。
+      </p>
+
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">铁律 1：ROC 是"竖条"</h4>
+          <p class="small" style="margin-bottom:0">
+            因为收敛条件只依赖 σ = Re{s}，所以只要某个 <span class="mono">s</span> 能收敛，
+            所有与它<b>同 σ、不同 ω</b> 的点也都能收敛。于是 ROC 必定是
+            <b>平行于虚轴的竖直条带</b>（半平面是它退化到无穷的情形）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">铁律 2：ROC 里没有极点</h4>
+          <p class="small" style="margin-bottom:0">
+            定义 <span class="term" data-def="pole，中文含义：极点。使 X(s)→∞ 的 s 值，即分母多项式的根，零极点图上画成 ×。极点永远不在 ROC 里。">极点</span>（pole）：
+            让 <span class="mono">X(s)→∞</span> 的 s，也就是分母多项式的根（图上画 ×）。
+            积分在极点处不可能收敛（被积函数在那儿发散），<b>所以极点一律被 ROC 排除在外</b>。
+            与之相对的 <span class="term" data-def="zero，中文含义：零点。使 X(s)=0 的 s 值，即分子多项式的根，零极点图上画成 ○。零点不会破坏收敛，但会让频响在该频率处出现凹陷。">零点</span>（zero）
+            是<b>分子</b>的根（图上画 ○）：它不破坏收敛，但会让频响在该处凹陷。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">铁律 3：有理变换的 ROC 由极点划界</h4>
+          <p class="small" style="margin-bottom:0">
+            对有理 X(s)，ROC 的左右边界<b>只能落在极点上，或者延伸到无穷</b>。
+            于是"极点位置 + 时域信号是右边还是左边"就能唯一确定 ROC。
+          </p>
+        </div>
+      </div>
+
+      <details class="deriv">
+        <summary>三条铁律的由来 + 四种信号的 ROC 形状（右边 / 左边 / 双边 / 有限长）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>(a) ROC 只依赖 σ：为什么它一定是竖条。</b></p>
+            <p>把 <span class="mono">s = σ+jω</span> 代进定义，取模：</p>
+            <div class="eq">
+              |x(t)e<sup>−st</sup>| = |x(t)| · |e<sup>−σt</sup>| · |e<sup>−jωt</sup>| = |x(t)| e<sup>−σt</sup>
+            </div>
+            <p class="why">为什么：<span class="mono">|e<sup>−jωt</sup>|=1</span>，ω 在取模时直接消失了。
+              所以"绝对可积"这件事<b>只跟 σ 有关</b>：一个 σ 行，整条竖线要么全收敛、要么全不收敛。
+              这就是 ROC 是竖条的证明——一句话说完。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(b) 右边信号（right-sided）→ ROC 是最右极点右边的半平面。</b></p>
+            <p>所谓<b>右边信号</b>，指存在某个 <span class="mono">T<sub>1</sub></span> 使得 <span class="mono">t &lt; T<sub>1</sub></span> 时 <span class="mono">x(t)=0</span>（例如所有 <span class="mono">u(t)</span> 乘出来的信号）。</p>
+            <p>设某条线 <span class="mono">σ<sub>0</sub></span> 在 ROC 内，即 <span class="mono">∫|x(t)|e<sup>−σ<sub>0</sub>t</sup>dt &lt; ∞</span>。
+              现在取更大的 <span class="mono">σ<sub>1</sub> &gt; σ<sub>0</sub></span>，在 <span class="mono">t→+∞</span> 方向压得更狠，
+              而在 <span class="mono">t→−∞</span> 方向 x(t) 本来就是 0，压不压都无所谓：</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>T<sub>1</sub></span></span></span> |x(t)|e<sup>−σ<sub>1</sub>t</sup>dt
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>T<sub>1</sub></span></span></span> |x(t)|e<sup>−σ<sub>0</sub>t</sup> · e<sup>−(σ<sub>1</sub>−σ<sub>0</sub>)t</sup> dt
+              ≤ e<sup>−(σ<sub>1</sub>−σ<sub>0</sub>)T<sub>1</sub></sup>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>T<sub>1</sub></span></span></span> |x(t)|e<sup>−σ<sub>0</sub>t</sup>dt
+            </div>
+            <p class="why">为什么能这样放缩：在积分区间 <span class="mono">t ≥ T<sub>1</sub></span> 上，
+              <span class="mono">e<sup>−(σ<sub>1</sub>−σ<sub>0</sub>)t</sup></span> 是减函数，最大值在左端点 <span class="mono">t=T<sub>1</sub></span>，
+              把它提出来即可。右边是有限数乘以有限数，所以仍然有限。
+              <b>结论：σ 越大越容易收敛 → ROC 向右无限延伸，被最右边的极点挡住。</b></p>
+          </div>
+
+          <div class="step">
+            <p><b>(c) 左边信号（left-sided）→ ROC 是最左极点左边的半平面。</b></p>
+            <p>对称地，<b>左边信号</b>指某个 <span class="mono">T<sub>2</sub></span> 之后 <span class="mono">x(t)=0</span>（例如 <span class="mono">u(−t)</span> 那类）。
+              这次危险方向是 <span class="mono">t→−∞</span>：σ 越<b>小</b>（越负），<span class="mono">e<sup>−σt</sup></span> 在负时间轴压得越狠。
+              所以 ROC 向左延伸，被最左边的极点挡住。</p>
+            <p class="why">为什么和学生常犯的直觉相反：不是"σ 越大越好"，而要看信号往哪边跑。
+              右边信号怕 +∞ 爆炸（要用大 σ 压），左边信号怕 −∞ 爆炸（要用小 σ 压）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(d) 双边信号 → 条带；有限长信号 → 整个 s 平面。</b></p>
+            <p>双边信号 = 右边部分 + 左边部分，两部分<b>同时</b>收敛才算数，所以 ROC 是两者的交集 = 竖直条带
+              <span class="mono">σ<sub>R</sub> &lt; Re{s} &lt; σ<sub>L</sub></span>。如果这个交集是空的（<span class="mono">σ<sub>R</sub> ≥ σ<sub>L</sub></span>），
+              那这个信号的拉氏变换根本不存在。</p>
+            <p>而<b>有限长信号</b>（只在一段有限区间内非零、且绝对可积）最省事：
+              它在两个方向上都是 0，<span class="mono">e<sup>−σt</sup></span> 在有限区间上一定有界，
+              所以 <b>ROC = 整个 s 平面</b>。典型例子就是 <span class="mono">δ(t) ⟷ 1</span>。</p>
+            <p class="why">为什么"有限区间上有界"就够了：积分区间有限 + 被积函数有界 ⟹ 积分有限。
+              这就是有限长信号不需要任何旋钮帮助的原因。</p>
+          </div>
+
+          <div class="box warn" style="margin-top:14px">
+            <span class="tag">记法提醒</span>
+            <p style="margin-bottom:0">
+              习惯上"信号右边/左边"说 x(t) 的时间支撑，"因果/反因果"说的是系统（因果 ⟺ h(t)=0, t&lt;0）。
+              两者形状相同，但语境不同：本章第 11 节讨论系统时会换成后者。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s4">4. 动手：在 s 平面上拖极点、看 ROC 与稳定性</h2>
+      <p>
+        前面三条铁律，用一张图就能一次看全。下面是第 2 章那个二阶系统的极零点图：
+        <span class="mono">H(s) = 1/(s<sup>2</sup>+2s+2)</span>，极点本来在 <span class="mono">−1±j</span>。
+        <b>用鼠标拖动 ×（极点）和 ○（零点）</b>，盯着绿色 ROC、右边的 <span class="mono">|H(jω)|</span> 和下面的结论条。
+      </p>
+
+      <div class="lab">
+        <div class="lab-head"><b>实验 1 · s 平面：极点零点、ROC、虚轴、稳定性</b>
+          <span class="hint">拖动极点穿过虚轴，看稳定性结论怎么翻脸</span></div>
+        <div class="canvases g2c">
+          <div class="cv-cell">
+            <div class="cv-label">s 平面（× = 极点，○ = 零点，绿色 = ROC）</div>
+            <canvas id="pz-s" style="height:300px"></canvas>
+          </div>
+          <div class="cv-cell">
+            <div class="cv-label">频率响应 |H(jω)|（在虚轴上取值）</div>
+            <canvas id="pz-s-resp" style="height:300px"></canvas>
+          </div>
+        </div>
+        <div class="readout" id="pz-s-stats"></div>
+        <div class="lab-actions">
+          <button class="btn sm" id="pz-s-causal">因果（右边信号）</button>
+          <button class="btn ghost sm" id="pz-s-anticausal">反因果（左边信号）</button>
+          <button class="btn ghost sm" id="pz-s-strip">双边（竖条带 ROC）</button>
+          <button class="btn ghost sm" id="pz-s-reset">重置（−1±j）</button>
+        </div>
+        <div class="lab-note" id="pz-s-note"></div>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">从这个实验台要读出来的四句话</span>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>ROC 是竖条</b>：绿色区域永远左右平推，上下无限——因为收敛只看 σ。</li>
+          <li><b>极点被排除</b>：绿色区域永远绕开 ×；边界恰好压在极点上。</li>
+          <li><b>虚轴在 ROC 内 ⟺ 傅里叶变换存在 ⟺ 系统稳定</b>。把极点拖进右半平面（Re&gt;0），因果 ROC 就再也盖不住虚轴，结论立刻变"不稳定"，同时 |H(jω)| 在极点靠近处炸出一个尖峰。</li>
+          <li><b>因果 + 稳定 ⟺ 极点全在左半平面</b>（Re{<i>p</i>}&lt;0）。这是考试里出现频率最高的一句判据。</li>
+        </ul>
+      </div>
+
+      <h2 id="s5">5. 常用变换对（含推导）</h2>
+      <p class="small muted">和傅里叶一样：先把这几对当"单词"背熟，复杂信号都能拆成它们的组合。</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">① 单边指数（本章的万能积木）</h4>
+          <div class="eq" style="font-size:17px">
+            e<sup>−at</sup>u(t) <span class="op ft">⟷</span> <span class="frac"><span class="num">1</span><span class="den">s + a</span></span>,
+            　Re{s} &gt; −a
+          </div>
+          <details class="deriv">
+            <summary>推导</summary>
+            <div class="body">
+              <div class="eq">
+                X(s) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0</span></span></span>
+                e<sup>−at</sup>e<sup>−st</sup>d<i>t</i>
+                = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0</span></span></span>
+                e<sup>−(s+a)t</sup>d<i>t</i>
+                = <span class="frac"><span class="num">1</span><span class="den">s + a</span></span>
+                <span class="why" style="color:var(--accent);font-size:14px">（上限代入 t→∞ 时为 0）</span>
+              </div>
+              <p class="tiny">为什么上限是 0：只有当 <span class="mono">Re{s+a} &gt; 0</span> 时，
+                <span class="mono">e<sup>−(s+a)t</sup></span> 才随 t→∞ 衰减到 0；否则积分发散。
+                这个不等式 <span class="mono">Re{s} &gt; −a</span> 就是 ROC。<b>注意：a 可以取负值</b>——
+                这时极点 −a 跑到右半平面，信号本身就是增长的，但只要 σ 足够大仍能收敛。</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">② 阶跃（它就是 a = 0 的特例）</h4>
+          <div class="eq" style="font-size:17px">
+            u(t) <span class="op ft">⟷</span> <span class="frac"><span class="num">1</span><span class="den">s</span></span>,
+            　Re{s} &gt; 0
+          </div>
+          <p class="tiny" style="margin-bottom:0">
+            把 a = 0 代进 ① 就得到它。ROC 是 <span class="mono">Re{s}&gt;0</span>——<b>虚轴不在 ROC 内</b>，
+            这正是第 6 章里 <span class="mono">u(t)</span> 的傅里叶变换要额外加 <span class="mono">πδ(ω)</span> 的原因。
+            同一个 u(t)，在 s 域里反而干净得多。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">③ 冲激（ROC = 全平面）</h4>
+          <div class="eq" style="font-size:17px">
+            δ(t) <span class="op ft">⟷</span> 1,　全 s 平面
+          </div>
+          <p class="tiny" style="margin-bottom:0">
+            用筛选性质：<span class="mono">∫δ(t)e<sup>−st</sup>dt = e<sup>−s·0</sup> = 1</span>，
+            对任何 s 都成立，所以 ROC 是整个平面。时移版本
+            <span class="mono">δ(t−T) ⟷ e<sup>−sT</sup></span>（由时移性质得到）。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">④ 幂次（重极点的来源）</h4>
+          <div class="eq" style="font-size:17px">
+            <span class="frac"><span class="num">t<sup>n−1</sup></span><span class="den">(n−1)!</span></span> e<sup>−at</sup>u(t)
+            <span class="op ft">⟷</span>
+            <span class="frac"><span class="num">1</span><span class="den">(s + a)<sup>n</sup></span></span>,
+            　Re{s} &gt; −a
+          </div>
+          <p class="tiny" style="margin-bottom:0">
+            <span class="mono">n=1</span> 就是 ①；<span class="mono">n=2, a=0</span> 给出
+            <span class="mono">t·u(t) ⟷ 1/s<sup>2</sup></span>。
+            记忆法：<b>s 域里的重极点 ⟺ 时域里多乘一个 t</b>（对应关系由 s 域微分性质给出：
+            <span class="mono">t x(t) ⟷ −dX(s)/ds</span>）。
+          </p>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">⑤ 正弦与余弦</h4>
+          <div class="eq" style="font-size:16px">
+            cos(ω<sub>0</sub>t)u(t) <span class="op ft">⟷</span>
+            <span class="frac"><span class="num">s</span><span class="den">s<sup>2</sup> + ω<sub>0</sub><sup>2</sup></span></span>,　Re{s} &gt; 0
+          </div>
+          <div class="eq" style="font-size:16px">
+            sin(ω<sub>0</sub>t)u(t) <span class="op ft">⟷</span>
+            <span class="frac"><span class="num">ω<sub>0</sub></span><span class="den">s<sup>2</sup> + ω<sub>0</sub><sup>2</sup></span></span>,　Re{s} &gt; 0
+          </div>
+          <details class="deriv">
+            <summary>推导（用欧拉公式 + s 域平移）</summary>
+            <div class="body">
+              <div class="step">
+                <p>先把余弦拆成一对复指数：</p>
+                <div class="eq">cos(ω<sub>0</sub>t) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>
+                  (e<sup>jω<sub>0</sub>t</sup> + e<sup>−jω<sub>0</sub>t</sup>)</div>
+                <p class="why">为什么：这是欧拉公式的逆用。拆开之后每一项都是①的形式（<span class="mono">a = ∓jω<sub>0</sub></span>）。</p>
+              </div>
+              <div class="step">
+                <p>用 ① 分别变换再相加：</p>
+                <div class="eq">
+                  <span class="frac"><span class="num">1</span><span class="den">2</span></span>
+                  <span style="font-size:20px">[</span>
+                  <span class="frac"><span class="num">1</span><span class="den">s − jω<sub>0</sub></span></span> +
+                  <span class="frac"><span class="num">1</span><span class="den">s + jω<sub>0</sub></span></span>
+                  <span style="font-size:20px">]</span>
+                  = <span class="frac"><span class="num">s</span><span class="den">s<sup>2</sup> + ω<sub>0</sub><sup>2</sup></span></span>
+                </div>
+                <p class="why">为什么可以直接相加：拉氏变换是线性运算（积分是线性的），
+                  而且两个 ROC 的交集 <span class="mono">Re{s}&gt;0</span> 就是结果的 ROC。
+                  通分就是最后那一步，纯代数。</p>
+              </div>
+              <p class="tiny">带衰减的版本（用到 s 域平移 <span class="mono">e<sup>−at</sup>x(t) ⟷ X(s+a)</span>）：
+                <span class="mono">e<sup>−at</sup>cos(ω<sub>0</sub>t)u(t) ⟷ (s+a)/((s+a)<sup>2</sup>+ω<sub>0</sub><sup>2</sup>)</span>。</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">⑥ 左边信号：同一个式子，另一个 ROC</h4>
+          <div class="eq" style="font-size:16px">
+            −e<sup>−at</sup>u(−t) <span class="op ft">⟷</span>
+            <span class="frac"><span class="num">1</span><span class="den">s + a</span></span>,　Re{s} &lt; −a
+          </div>
+          <p class="tiny" style="margin-bottom:0">
+            <b>代数表达式和 ① 一模一样，ROC 却完全相反。</b>
+            这不是印刷错误，是拉氏变换最重要的性格：<b>X(s) 的代数式 + ROC 才等于一个信号</b>。
+            第 7 节的实验台会把这件事演给你看。
+          </p>
+        </div>
+      </div>
+
+      <h3>5.1 变换对速查表（背这一张就够）</h3>
+      <table class="tbl sm">
+        <thead><tr><th class="c">x(t)</th><th class="c">X(s)</th><th class="c">ROC</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td class="ft c">δ(t)</td><td class="ft c">1</td><td class="c">全 s 平面</td><td>有限长信号</td></tr>
+          <tr><td class="ft c">δ(t−T)</td><td class="ft c">e<sup>−sT</sup></td><td class="c">全 s 平面</td><td>时移性质</td></tr>
+          <tr><td class="ft c">u(t)</td><td class="ft c">1/s</td><td class="c">Re{s} &gt; 0</td><td>虚轴不在 ROC 内</td></tr>
+          <tr><td class="ft c">−u(−t)</td><td class="ft c">1/s</td><td class="c">Re{s} &lt; 0</td><td>左边版本</td></tr>
+          <tr><td class="ft c">e<sup>−at</sup>u(t)</td><td class="ft c">1/(s+a)</td><td class="c">Re{s} &gt; −a</td><td>最常用的一对</td></tr>
+          <tr><td class="ft c">−e<sup>−at</sup>u(−t)</td><td class="ft c">1/(s+a)</td><td class="c">Re{s} &lt; −a</td><td>同式异 ROC</td></tr>
+          <tr><td class="ft c">t<sup>n−1</sup>/(n−1)!·u(t)</td><td class="ft c">1/s<sup>n</sup></td><td class="c">Re{s} &gt; 0</td><td>n 阶重极点</td></tr>
+          <tr><td class="ft c">t<sup>n−1</sup>/(n−1)!·e<sup>−at</sup>u(t)</td><td class="ft c">1/(s+a)<sup>n</sup></td><td class="c">Re{s} &gt; −a</td><td>凑重极点用</td></tr>
+          <tr><td class="ft c">cos(ω<sub>0</sub>t)u(t)</td><td class="ft c">s/(s<sup>2</sup>+ω<sub>0</sub><sup>2</sup>)</td><td class="c">Re{s} &gt; 0</td><td>极点 ±jω<sub>0</sub></td></tr>
+          <tr><td class="ft c">sin(ω<sub>0</sub>t)u(t)</td><td class="ft c">ω<sub>0</sub>/(s<sup>2</sup>+ω<sub>0</sub><sup>2</sup>)</td><td class="c">Re{s} &gt; 0</td><td>极点 ±jω<sub>0</sub></td></tr>
+          <tr><td class="ft c">e<sup>−at</sup>cos(ω<sub>0</sub>t)u(t)</td><td class="ft c">(s+a)/((s+a)<sup>2</sup>+ω<sub>0</sub><sup>2</sup>)</td><td class="c">Re{s} &gt; −a</td><td>复极点 −a±jω<sub>0</sub></td></tr>
+          <tr><td class="ft c">e<sup>−at</sup>sin(ω<sub>0</sub>t)u(t)</td><td class="ft c">ω<sub>0</sub>/((s+a)<sup>2</sup>+ω<sub>0</sub><sup>2</sup>)</td><td class="c">Re{s} &gt; −a</td><td>复极点 −a±jω<sub>0</sub></td></tr>
+          <tr><td class="ft c">d<sup>n</sup>δ(t)/dt<sup>n</sup></td><td class="ft c">s<sup>n</sup></td><td class="c">全 s 平面</td><td>微分性质</td></tr>
+          <tr><td class="ft c">t·e<sup>−at</sup>u(t)</td><td class="ft c">1/(s+a)<sup>2</sup></td><td class="c">Re{s} &gt; −a</td><td>s 域微分</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">看表的一个诀窍</span>
+        <p style="margin-bottom:0">
+          右列的分母是 <span class="mono">(s+a)</span> 的形式 ⟹ 极点 <span class="mono">s=−a</span> ⟹
+          ROC 是"越过这个极点的竖线"。<b>看到 X(s) 先找极点，再看 ROC 落在哪几个极点之间，最后才选时域形状</b>——
+          这个顺序在第 6、7 节会被反复使用。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 反变换：部分分式 + 查表（完整算例）</h2>
+      <p>
+        式 (12-4) 那条复变积分在实际计算里几乎用不上。对有理 X(s)，标准流程只有四步，
+        而且第 4 步往往是初学者丢分的地方：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">反变换四步法（请按顺序执行）</span>
+        <ol style="margin:6px 0 0;padding-left:20px">
+          <li><b>检查真分式</b>：分子次数必须<b>小于</b>分母次数。不是的话先做多项式长除，除出来的整数多项式对应 δ 及其导数。</li>
+          <li><b>因式分解分母</b>，找出所有极点（含重数）。</li>
+          <li><b>部分分式展开</b>，定出每个系数：<span class="mono">A<sub>i</sub> = [(s+a<sub>i</sub>)X(s)]|<sub>s=−a<sub>i</sub></sub></span>。</li>
+          <li><b>逐项按 ROC 决定方向</b>：极点 <span class="mono">s=−a</span> 若在 ROC 的<b>左</b>边，该项是右边信号 <span class="mono">Ae<sup>−at</sup>u(t)</span>；
+              若在 ROC 的<b>右</b>边，该项是左边信号 <span class="mono">−Ae<sup>−at</sup>u(−t)</span>。</li>
+        </ol>
+      </div>
+
+      <details class="deriv" open>
+        <summary>系数公式 A<sub>i</sub> = [(s+a<sub>i</sub>)X(s)]|<sub>s=−a<sub>i</sub></sub> 是怎么来的</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>假设 X(s) 已经拆成了这个样子</b>（分母是三个互不相同的单实极点）：</p>
+            <div class="eq">
+              X(s) = <span class="frac"><span class="num">A<sub>1</sub></span><span class="den">s + a<sub>1</sub></span></span> +
+              <span class="frac"><span class="num">A<sub>2</sub></span><span class="den">s + a<sub>2</sub></span></span> +
+              <span class="frac"><span class="num">A<sub>3</sub></span><span class="den">s + a<sub>3</sub></span></span>
+            </div>
+          </div>
+          <div class="step">
+            <p><b>想求 A<sub>1</sub>，就把两边同乘 (s+a<sub>1</sub>)：</b></p>
+            <div class="eq">
+              (s+a<sub>1</sub>)X(s) = A<sub>1</sub> + A<sub>2</sub><span class="frac"><span class="num">s+a<sub>1</sub></span><span class="den">s+a<sub>2</sub></span></span>
+              + A<sub>3</sub><span class="frac"><span class="num">s+a<sub>1</sub></span><span class="den">s+a<sub>3</sub></span></span>
+            </div>
+            <p class="why">为什么：这一步是纯粹的代数操作，左边等于右边恒成立（只要 <span class="mono">s ≠ −a<sub>1</sub></span>）。
+              而我们要的就是 <span class="mono">s = −a<sub>1</sub></span> 这个"本来不能代"的点。</p>
+          </div>
+          <div class="step">
+            <p><b>现在令 s → −a<sub>1</sub>：后两项的分子都是 (s+a<sub>1</sub>) → 0，而分母不为 0，于是后两项一起消失，只剩 A<sub>1</sub>。</b></p>
+            <div class="eq center-eq">
+              A<sub>1</sub> = [(s + a<sub>1</sub>)X(s)]|<sub>s = −a<sub>1</sub></sub>
+              <span class="lbl">(12-5)</span>
+            </div>
+            <p class="why">为什么"消失"就安全：直接代 s=−a<sub>1</sub> 时 (s+a<sub>1</sub>)X(s) 是 0/0 型，
+              但这个 0/0 有极限，极限值就是 A<sub>1</sub>。所以实际操作时你先<b>约分</b>再代入，不会真的遇到 0/0。</p>
+          </div>
+          <div class="step">
+            <p><b>如果有重极点 (s+a)<sup>n</sup> 呢？</b>就要多留几项，系数用求导公式：</p>
+            <div class="eq">
+              A<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">(n−k)!</span></span>
+              <span class="frac"><span class="num">d<sup>n−k</sup></span><span class="den">ds<sup>n−k</sup></span></span>
+              <span style="font-size:20px">[</span>(s+a)<sup>n</sup>X(s)<span style="font-size:20px">]</span>|<sub>s=−a</sub>
+            </div>
+            <p class="why">为什么要求导：把两边乘 (s+a)<sup>n</sup> 之后，只有求 <span class="mono">n−k</span> 次导才能把挂在 A<sub>k</sub> 前面的
+              <span class="mono">(s+a)<sup>n−k</sup></span> 消成常数（其它项的 (s+a) 因子会保留下来，代入 s=−a 后归零）。</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box">
+        <span class="tag">完整算例（请跟着算一遍，这是本章最重要的一次练习）</span>
+        <p><b>题目：</b>已知</p>
+        <div class="eq center-eq">
+          X(s) = <span class="frac"><span class="num">1</span><span class="den">(s + 1)(s + 2)</span></span>
+        </div>
+        <p>分别在三种 ROC 下求 x(t)：(i) <span class="mono">Re{s} &gt; −1</span>；(ii) <span class="mono">Re{s} &lt; −2</span>；
+          (iii) <span class="mono">−2 &lt; Re{s} &lt; −1</span>。</p>
+      </div>
+
+      <details class="deriv" open>
+        <summary>算例全过程：拆项 → 定系数 → 按 ROC 决定左右 → 写出 x(t)（三种情形）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：检查真分式。</b>分子是常数（0 次），分母是 2 次，0 &lt; 2 ✓ 是真分式，可以直接拆。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：因式分解，写出待定形式。</b>极点是 <span class="mono">s = −1</span> 与 <span class="mono">s = −2</span>（都是单极点），于是</p>
+            <div class="eq">
+              <span class="frac"><span class="num">1</span><span class="den">(s+1)(s+2)</span></span>
+              = <span class="frac"><span class="num">A</span><span class="den">s + 1</span></span> +
+              <span class="frac"><span class="num">B</span><span class="den">s + 2</span></span>
+            </div>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：定系数（"盖住法"）。</b></p>
+            <div class="eq">
+              A = <span style="font-size:20px">[</span>(s+1)·<span class="frac"><span class="num">1</span><span class="den">(s+1)(s+2)</span></span><span style="font-size:20px">]</span>|<sub>s=−1</sub>
+              = <span class="frac"><span class="num">1</span><span class="den">s + 2</span></span>|<sub>s=−1</sub>
+              = <span class="frac"><span class="num">1</span><span class="den">−1 + 2</span></span> = <b>1</b>
+            </div>
+            <div class="eq">
+              B = <span style="font-size:20px">[</span>(s+2)·<span class="frac"><span class="num">1</span><span class="den">(s+1)(s+2)</span></span><span style="font-size:20px">]</span>|<sub>s=−2</sub>
+              = <span class="frac"><span class="num">1</span><span class="den">s + 1</span></span>|<sub>s=−2</sub>
+              = <span class="frac"><span class="num">1</span><span class="den">−2 + 1</span></span> = <b>−1</b>
+            </div>
+            <p class="why">为什么"盖住法"能用：先把 (s+1) 约掉再代入，等价于"把 (s+1) 盖住、把 s=−1 代进剩下的部分"。
+              两个系数都算完，代回去可以快速验证：
+              <span class="mono">1/(s+1) − 1/(s+2) = [(s+2)−(s+1)]/((s+1)(s+2)) = 1/((s+1)(s+2))</span> ✓。</p>
+            <p>所以代数部分是（<b>三问共用</b>）：</p>
+            <div class="eq center-eq">
+              X(s) = <span class="frac"><span class="num">1</span><span class="den">s + 1</span></span> −
+              <span class="frac"><span class="num">1</span><span class="den">s + 2</span></span>
+              <span class="lbl">(12-6)</span>
+            </div>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步（i）：ROC 是 Re{s} &gt; −1 —— 两个极点都在 ROC 左边，两项都是右边信号。</b></p>
+            <p>极点 <span class="mono">−1</span> 在 ROC 左侧 ⟹ <span class="mono">1/(s+1) ⟷ e<sup>−t</sup>u(t)</span>；
+              极点 <span class="mono">−2</span> 也在左侧 ⟹ <span class="mono">−1/(s+2) ⟷ −e<sup>−2t</sup>u(t)</span>。</p>
+            <div class="eq center-eq">
+              x(t) = ( e<sup>−t</sup> − e<sup>−2t</sup> ) u(t),
+              　Re{s} &gt; −1
+              <span class="lbl">(12-7)</span>
+            </div>
+            <p class="why">为什么：这两项查表都是①（a=1 与 a=2），ROC 条件 <span class="mono">Re{s}&gt;−1</span> 与
+              <span class="mono">Re{s}&gt;−2</span> 的交集正好是 <span class="mono">Re{s}&gt;−1</span>，与题目一致。
+              这是<b>因果（右边）信号</b>，而且虚轴在 ROC 内，所以它的傅里叶变换存在。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步（ii）：ROC 是 Re{s} &lt; −2 —— 两个极点都在 ROC 右边，两项都是左边信号。</b></p>
+            <p>极点 <span class="mono">−1</span> 在 ROC 右侧 ⟹ <span class="mono">1/(s+1) ⟷ −e<sup>−t</sup>u(−t)</span>；
+              极点 <span class="mono">−2</span> 也在右侧 ⟹ <span class="mono">−1/(s+2) ⟷ +e<sup>−2t</sup>u(−t)</span>。</p>
+            <div class="eq center-eq">
+              x(t) = ( −e<sup>−t</sup> + e<sup>−2t</sup> ) u(−t),
+              　Re{s} &lt; −2
+              <span class="lbl">(12-8)</span>
+            </div>
+            <p class="why">为什么系数会变号：左边信号那一对是 <span class="mono">−e<sup>−at</sup>u(−t) ⟷ 1/(s+a)</span>（Re{s}&lt;−a）。
+              反推时每项都要乘一个 −1。ROC 不含虚轴 ⟹ <b>这个信号没有普通意义下的傅里叶变换</b>，
+              因为它随 <span class="mono">t→−∞</span> 指数发散。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步（iii）：ROC 是 −2 &lt; Re{s} &lt; −1 —— 一条竖条带，两个极点一边一个，于是两项一右一左。</b></p>
+            <p>极点 <span class="mono">−1</span> 在 ROC <b>右</b>边 ⟹ 该项是左边信号 <span class="mono">−e<sup>−t</sup>u(−t)</span>；
+              极点 <span class="mono">−2</span> 在 ROC <b>左</b>边 ⟹ 该项是右边信号 <span class="mono">−e<sup>−2t</sup>u(t)</span>。</p>
+            <div class="eq center-eq">
+              x(t) = −e<sup>−t</sup>u(−t) − e<sup>−2t</sup>u(t),
+              　−2 &lt; Re{s} &lt; −1
+              <span class="lbl">(12-9)</span>
+            </div>
+            <p class="why">为什么必须"一边一个"：ROC 是交集，要凑出竖条带，只能让一项贡献左半平面、另一项贡献右半平面。
+              这就是双边信号的典型长相：<b>t&gt;0 有自己的形状，t&lt;0 也有自己的形状</b>。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">本例题的结论（务必记住这句话）</span>
+            <p style="margin-bottom:0">
+              <b>同一个 X(s) = 1/((s+1)(s+2))，配三种 ROC，就是三个完全不同的信号。</b>
+              所以"求反变换"这道题的完整答案永远是<b>两件东西</b>：代数表达式（这里三问相同）+ ROC 决定的分支。
+              只写代数式等于只答了一半。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box trap">
+        <span class="tag">两个跟着算一遍的小陷阱</span>
+        <p><b>陷阱 1：不是真分式就硬拆。</b>例如
+          <span class="mono">X(s) = (s<sup>2</sup> − 3)/(s + 2)</span>。
+          分子 2 次 ≥ 分母 1 次，先做多项式长除：</p>
+        <div class="eq">
+          <span class="frac"><span class="num">s<sup>2</sup> − 3</span><span class="den">s + 2</span></span>
+          = s − 2 + <span class="frac"><span class="num">1</span><span class="den">s + 2</span></span>
+          &nbsp;&nbsp;<span class="why" style="color:var(--accent);font-size:14px">验算：(s−2)(s+2)+1 = s²−4+1 = s²−3 ✓</span>
+        </div>
+        <p>于是 <span class="mono">x(t) = δ′(t) − 2δ(t) + e<sup>−2t</sup>u(t)</span>（用到 <span class="mono">s ⟷ δ′(t)</span>）。
+          如果直接对 (s²−3)/(s+2) 硬套"盖住法"，你会得到完全错误的结果。</p>
+        <p style="margin-bottom:0"><b>陷阱 2：重极点的项数。</b>
+          分母 <span class="mono">(s+1)<sup>2</sup>(s+3)</span> 时必须写成
+          <span class="mono">A<sub>11</sub>/(s+1) + A<sub>12</sub>/(s+1)<sup>2</sup> + A<sub>21</sub>/(s+3)</span>——
+          <b>两种幂次都要有</b>。少写 <span class="mono">A<sub>11</sub>/(s+1)</span> 这一项，通分回去就凑不出原式。</p>
+      </div>
+
+      <h2 id="s7">7. 动手：同一个 X(s)，三种 ROC，三个不同的信号</h2>
+      <p>
+        上面那个算例（12-7）(12-8) (12-9)，我们用实验台画出来。
+        <b>切换 ROC 下拉框</b>，你会看到时域波形完全变样——而 X(s) 的代数表达式一个字母都没改。
+      </p>
+
+      <div id="lab-roc"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p style="margin-bottom:0">
+          右边支（ROC 在最右极点右侧）在 t&gt;0 活蹦乱跳、t&lt;0 全是 0；
+          左边支正好反过来，而且在 <span class="mono">t→−∞</span> 时往上冲（图中很快冲出画框，
+          这不是画错了，是它真的发散）；竖条带这一支两边都有，且<b>两支都不含虚轴对应的收敛性</b>。
+          一句话：<b>ROC 不是"技术细节"，它是答案的一半</b>。
+        </p>
+      </div>
+
+      <h2 id="s8">8. 动手：把极点推向虚轴会怎样</h2>
+      <p>
+        这一节专门盯住最简单的信号 <span class="mono">x(t) = e<sup>−at</sup>u(t) ⟷ 1/(s+a)</span>，
+        唯一极点 <span class="mono">s = −a</span>。拖动 a，观察三件事同时发生：
+        极点位置移动、ROC 边界跟着移动、<span class="mono">|X(jω)|</span> 的形状变化。
+      </p>
+
+      <div id="lab-a"></div>
+
+      <div class="box warn">
+        <span class="tag">a → 0 的临界讨论（这里最容易出错）</span>
+        <p>
+          当 <b>a &gt; 0</b>：极点在左半平面，ROC 是 <span class="mono">Re{s}&gt;−a</span>，<b>包含虚轴</b>，
+          所以 <span class="mono">X(jω) = 1/(a+jω)</span> 存在，就是第 6 章那个单边指数的傅里叶变换。
+          a 越小，峰值 <span class="mono">1/a</span> 越高、峰越尖——极点正在朝虚轴逼近。
+        </p>
+        <p style="margin-bottom:0">
+          当 <b>a = 0</b>：信号变成 <span class="mono">u(t)</span>，X(s) = 1/s，ROC 是 <span class="mono">Re{s}&gt;0</span>，
+          <b>虚轴整条被排除在 ROC 之外</b>！于是不能在 <span class="mono">s=jω</span> 上直接取值，
+          <span class="mono">u(t)</span> 的傅里叶变换必须写成 <span class="mono">1/(jω) + πδ(ω)</span>（第 6 章）。
+          <b>极点"落在虚轴上"= 临界状态</b>：傅里叶变换要么不存在、要么多出一个 δ。
+          这也是"临界稳定"这个词的来历。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 几何法：用向量长度直接读出 |H(jω)|</h2>
+      <p>
+        有理 X(s) 可以写成极零点形式
+        <span class="mono">X(s) = K·∏(s − z<sub>i</sub>) / ∏(s − p<sub>j</sub>)</span>，
+        这种"只画极点零点、再涂上 ROC"的图叫
+        <span class="term" data-def="pole-zero plot，中文含义：零极点图。在 s 平面上用 × 标极点、○ 标零点，并用阴影表示 ROC 的图；它（连同比例因子与 ROC）完整描述一个有理变换。">零极点图</span>（pole-zero plot）。
+        把 <span class="mono">s = jω</span> 代进去，每一项 <span class="mono">(jω − p<sub>j</sub>)</span>
+        在几何上就是<b>从极点 <span class="mono">p<sub>j</sub></span> 指向虚轴上 jω 那个点的向量</b>。于是：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">几何读数法（不用算，看图就能定性）</span>
+        <div class="eq center-eq" style="margin:8px 0">
+          |X(jω)| = |K| ·
+          <span class="frac"><span class="num">所有零点向量长度之积</span><span class="den">所有极点向量长度之积</span></span>
+        </div>
+        <p style="margin-bottom:0">
+          辐角 = 零点向量夹角之和 − 极点向量夹角之和。
+          推论特别有用：<b>当 jω 走到某个极点正上方时，那条极点向量最短 ⟹ |H(jω)| 出现尖峰</b>；
+          走到零点正上方时出现凹陷（零点在虚轴上就是"零陷"）。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>为什么"极点向量最短 = 频响峰值最高"（含一阶系统的 3 dB 点推导）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>先看一阶系统</b> <span class="mono">H(s) = 1/(s + 1/τ)</span>，唯一极点在 <span class="mono">s = −1/τ</span>。</p>
+            <p>从极点 <span class="mono">(−1/τ, 0)</span> 指向虚轴上的点 <span class="mono">(0, ω)</span> 的向量，
+              其长度是 <span class="mono">√(1/τ<sup>2</sup> + ω<sup>2</sup>)</span>，所以</p>
+            <div class="eq center-eq">
+              |H(jω)| = <span class="frac"><span class="num">1</span><span class="den">√( (1/τ)<sup>2</sup> + ω<sup>2</sup> )</span></span>
+            </div>
+            <p class="why">为什么：分母里只有一个极点因子，取模就是这条向量的长度；
+              分子的常数 1 长度是 1。这就是"向量长度读数法"里最简的一例。</p>
+          </div>
+          <div class="step">
+            <p><b>找 3 dB 点。</b>令 <span class="mono">ω = 1/τ</span>（正好在极点正上方）：</p>
+            <div class="eq">
+              |H(j/τ)| = <span class="frac"><span class="num">1</span><span class="den">√( (1/τ)<sup>2</sup> + (1/τ)<sup>2</sup> )</span></span>
+              = <span class="frac"><span class="num">1</span><span class="den">√2</span></span> · <span class="frac"><span class="num">1</span><span class="den">1/τ</span></span>
+              = <span class="frac"><span class="num">|H(0)|</span><span class="den">√2</span></span>
+            </div>
+            <p class="why">为什么叫 3 dB 点：<span class="mono">20log<sub>10</sub>(1/√2) ≈ −3.01 dB</span>，
+              功率降到一半。极点离虚轴的距离 <span class="mono">1/τ</span> 就是这条低通滤波器的带宽，
+              而它同时又等于时域的时间常数倒数——<b>时域响应越快（τ 小），频带越宽</b>，这是同一件事的两面。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s10">10. 性质表（含初值/终值定理）</h2>
+      <p>性质表的作用不是背，而是"把陌生的 X(s) 换成已知变换对"。以下每条都标了 ROC 怎么变。</p>
+
+      <table class="tbl sm">
+        <thead><tr><th>性质</th><th class="c">x(t)</th><th class="c">X(s)</th><th>ROC 怎么变 / 一句话理解</th></tr></thead>
+        <tbody>
+          <tr><td>线性</td><td class="c ft">a x₁ + b x₂</td><td class="c ft">a X₁ + b X₂</td><td>至少是两个 ROC 的交集。</td></tr>
+          <tr><td>时移</td><td class="c ft">x(t − t₀)</td><td class="c ft">e<sup>−st₀</sup>X(s)</td><td>ROC 不变（可能多/少一个 s=∞ 的性态）。</td></tr>
+          <tr><td>s 域平移</td><td class="c ft">e<sup>s₀t</sup>x(t)</td><td class="c ft">X(s − s₀)</td><td>ROC 整体平移 s₀。正弦乘衰减全靠它。</td></tr>
+          <tr><td>尺度</td><td class="c ft">x(at), a&gt;0</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">a</span></span>X(s/a)</td><td>ROC 按 a 缩放：<span class="mono">Re{s}/a ∈ R</span>。</td></tr>
+          <tr><td>共轭</td><td class="c ft">x*(t)</td><td class="c ft">X*(s*)</td><td>实信号的极点零点共轭成对出现。</td></tr>
+          <tr><td><b>卷积</b></td><td class="c ft">x₁(t) ∗ x₂(t)</td><td class="c ft">X₁(s)X₂(s)</td><td>至少是交集。整个系统分析都靠它。</td></tr>
+          <tr><td>时域微分</td><td class="c ft">dx/dt</td><td class="c ft">sX(s)</td><td>ROC 至少不变（可能扩大）。<b>双边</b>成立；<b>单边</b>要减初值。</td></tr>
+          <tr><td>时域积分</td><td class="c ft">∫<sub>−∞</sub><sup>t</sup>x(τ)dτ</td><td class="c ft">X(s)/s</td><td>至少是 <span class="mono">R ∩ {Re{s}&gt;0}</span>：多了一个 s=0 的极点。</td></tr>
+          <tr><td>s 域微分</td><td class="c ft">−t·x(t)</td><td class="c ft">dX(s)/ds</td><td>ROC 不变。重极点的来源。</td></tr>
+          <tr><td>初值定理</td><td class="c ft">x(0⁺)</td><td class="c ft">lim<sub>s→∞</sub> sX(s)</td><td>只对 t&lt;0 时为零、且原点无冲激的信号成立。</td></tr>
+          <tr><td>终值定理</td><td class="c ft">lim<sub>t→∞</sub>x(t)</td><td class="c ft">lim<sub>s→0</sub> sX(s)</td><td>要求 <span class="mono">sX(s)</span> 的极点全在左半平面（除原点那个可去极点）。</td></tr>
+        </tbody>
+      </table>
+
+      <p>
+        表里两条最容易混的定理，值得单独说清：
+        <span class="term" data-def="initial-value theorem / final-value theorem，中文含义：初值定理与终值定理。不用做反变换，就能从 X(s) 直接读出时域的起点与终点：x(0⁺)=lim_{s→∞}sX(s)，lim_{t→∞}x(t)=lim_{s→0}sX(s)。">初值定理与终值定理</span>
+        是唯一两条"直接从 X(s) 读时域数值"的性质，在考试里几乎每张卷子都会出现。
+      </p>
+
+      <details class="deriv">
+        <summary>初值/终值定理的来历（为什么是 sX(s) 而不是 X(s)）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>用单边拉氏的微分性质起手</b>（单边拉氏见第 12 节，定义域从 <span class="mono">0<sup>−</sup></span> 开始）：</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0<sup>−</sup></span></span></span>
+              <span class="frac"><span class="num">dx(t)</span><span class="den">dt</span></span>e<sup>−st</sup>d<i>t</i>
+              = sX(s) − x(0<sup>−</sup>)
+            </div>
+            <p class="why">为什么：分部积分得到。这个式子是两条定理的唯一出发点。</p>
+          </div>
+          <div class="step">
+            <p><b>初值定理：让 s→∞。</b>此时左边被 <span class="mono">e<sup>−st</sup></span> 压得只剩原点附近一小段，
+              而导数在原点附近是一个冲激（跳变）；右边 <span class="mono">sX(s) − x(0<sup>−</sup>)</span> 取极限就得到
+              <span class="mono">x(0<sup>+</sup>) − x(0<sup>−</sup>)</span>，于是</p>
+            <div class="eq center-eq">
+              x(0<sup>+</sup>) = lim<sub>s→∞</sub> sX(s)
+              <span class="lbl">(12-10)</span>
+            </div>
+            <p class="why">为什么必须写 <span class="mono">sX(s)</span>：X(s) 本身在 <span class="mono">s→∞</span> 时通常趋于 0，
+              永远得不到有限值；乘一个 s 才能"把无穷大处的信息提出来"。</p>
+          </div>
+          <div class="step">
+            <p><b>终值定理：让 s→0。</b>s→0 时左边变成整个导数的积分 <span class="mono">x(∞) − x(0<sup>−</sup>)</span>，右边是
+              <span class="mono">lim<sub>s→0</sub>sX(s) − x(0<sup>−</sup>)</span>，两边消去 <span class="mono">x(0<sup>−</sup>)</span>：</p>
+            <div class="eq center-eq">
+              lim<sub>t→∞</sub> x(t) = lim<sub>s→0</sub> sX(s)
+              <span class="lbl">(12-11)</span>
+            </div>
+            <p class="why">为什么有前提"极点全在左半平面"：如果 x(t) 本身不收敛（例如 <span class="mono">e<sup>2t</sup>u(t)</span>），
+              左边压根不存在，右边却可能算出个数——那就成了假答案。所以用之前<b>先检查 sX(s) 的极点</b>。
+              例：<span class="mono">X(s)=1/(s−1)</span> 时 <span class="mono">lim<sub>s→0</sub>sX(s)=0</span>，但
+              <span class="mono">x(t)=e<sup>t</sup>u(t)</span> 发到无穷，终值定理<b>不适用</b>。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s11">11. 系统函数 H(s)：因果、稳定与方框图</h2>
+      <p>
+        这是拉氏变换在工程上最大的用处。设 LTI 系统冲激响应 <span class="mono">h(t)</span>，
+        输入 <span class="mono">x(t)</span>、输出 <span class="mono">y(t)</span>。由卷积性质：
+      </p>
+      <div class="eq center-eq">
+        Y(s) = H(s) · X(s), 　 H(s) = <span class="frac"><span class="num">Y(s)</span><span class="den">X(s)</span></span>
+      </div>
+      <p>
+        <span class="mono">H(s)</span> 叫<span class="term" data-def="system function / transfer function，中文含义：系统函数（也叫传递函数）。冲激响应 h(t) 的拉氏变换；它完整描述一个 LTI 系统在复频域的行为。">系统函数</span>
+        （system function，也叫传递函数 transfer function）。它是 <span class="mono">h(t)</span> 的拉氏变换，
+        所以<b>也带着自己的 ROC</b>——这正是判断因果与稳定的钥匙。
+      </p>
+
+      <div class="box ok">
+        <span class="tag">两条判据（考试必考）</span>
+        <p><b>① 因果性</b>：<span class="mono">h(t)=0（t&lt;0）</span> ⟹ ROC 是最右极点<b>右边</b>的右半平面。
+          反过来，对<b>有理</b> H(s)，"ROC 在最右极点右侧"也等价于因果。</p>
+        <p style="margin-bottom:0"><b>② 稳定性</b>：稳定 ⟺ <span class="mono">h(t)</span> 绝对可积 ⟺
+          <b>H(s) 的 ROC 包含整条虚轴</b>。把①②合起来：
+          <b>因果且稳定 ⟺ 全部极点都在左半平面（Re{p}&lt;0）</b>。
+          注意这句话对"因果"是必需的：一个非因果系统即使稳定，也可能有右半平面极点（靠一条夹在两极点之间的竖条带走虚轴）。</p>
+      </div>
+
+      <details class="deriv">
+        <summary>由微分方程直接写出 H(s)（不必先求 h(t)）+ 用 s 域解微分方程</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>设系统由线性常系数微分方程描述：</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              a<sub>k</sub> <span class="frac"><span class="num">d<sup>k</sup>y(t)</span><span class="den">dt<sup>k</sup></span></span>
+              = <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              b<sub>k</sub> <span class="frac"><span class="num">d<sup>k</sup>x(t)</span><span class="den">dt<sup>k</sup></span></span>
+            </div>
+          </div>
+          <div class="step">
+            <p><b>两边取双边拉氏变换，用微分性质 <span class="mono">d<sup>k</sup>/dt<sup>k</sup> ⟷ s<sup>k</sup></span>：</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span> a<sub>k</sub>s<sup>k</sup> Y(s)
+              = <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span> b<sub>k</sub>s<sup>k</sup> X(s)
+              &nbsp;&nbsp;⟹&nbsp;&nbsp;
+              H(s) = <span class="frac">
+                <span class="num"><span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span> b<sub>k</sub>s<sup>k</sup></span>
+                <span class="den"><span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span> a<sub>k</sub>s<sup>k</sup></span>
+              </span>
+            </div>
+            <p class="why">为什么能把 s<sup>k</sup> 直接代进去：双边变换下，微分就是"乘 s"，
+              而且这里的 s 对时间 t 来说是常数，可以提到求和号外。于是<b>把 s 往特征多项式里一代就得到系统函数</b>，
+              完全不用解微分方程——这就是频域/复频域分析的省事之处。</p>
+          </div>
+          <div class="step">
+            <p><b>例：</b><span class="mono">dy/dt + 3y = x</span> ⟹
+              <span class="mono">H(s) = 1/(s+3)</span>，极点 <span class="mono">s=−3</span> 在左半平面，
+              取 ROC <span class="mono">Re{s}&gt;−3</span>（因果）⟹ <b>因果且稳定</b>。
+              再取 <span class="mono">x(t)=u(t)</span>，则 <span class="mono">Y(s) = 1/(s(s+3))</span>，
+              部分分式 <span class="mono">= (1/3)/s − (1/3)/(s+3)</span>，
+              <span class="mono">y(t) = (1/3)(1 − e<sup>−3t</sup>)u(t)</span>。
+              终值 <span class="mono">lim<sub>s→0</sub>sY(s) = 1/3</span> ✓ 与 <span class="mono">t→∞</span> 的极限一致。</p>
+            <p class="why">为什么可以直接把 Y(s) 部分分式反变换：因为输入 <span class="mono">u(t)</span> 与系统都因果，
+              所以 <span class="mono">y(t)</span> 的每项 ROC 都取"最右极点右侧"，全部是右边信号。</p>
+          </div>
+        </div>
+      </details>
+
+      <h3>11.1 系统互联：方框图与系统函数代数</h3>
+      <p>
+        <span class="term" data-def="block diagram，中文含义：方框图。用方框（子系统）与带箭头的连线（信号）表示系统互联关系的图；每种连线方式对应一种系统函数的代数运算。">方框图</span>
+        把"系统怎么拼起来的"画成图，而 s 域里每种拼法都对应一个简单的代数式：
+      </p>
+      <table class="tbl sm">
+        <thead><tr><th>互联方式</th><th class="c">时域</th><th class="c">s 域</th><th>记忆法</th></tr></thead>
+        <tbody>
+          <tr><td>级联（串联）</td><td class="c ft">h₁ ∗ h₂</td><td class="c ft">H₁(s)·H₂(s)</td><td>乘起来</td></tr>
+          <tr><td>并联</td><td class="c ft">h₁ + h₂</td><td class="c ft">H₁(s) + H₂(s)</td><td>加起来</td></tr>
+          <tr><td>反馈</td><td class="c ft">复杂的卷积</td><td class="c ft">H₁/(1 + H₁H₂)</td><td>负反馈时分母变 1+H₁H₂</td></tr>
+        </tbody>
+      </table>
+      <p class="small muted">
+        反馈公式为什么长这样：设 <span class="mono">Y = H₁E</span>、<span class="mono">E = X − H₂Y</span>，
+        把第二个式子代进第一个得 <span class="mono">Y = H₁(X − H₂Y)</span>，移项
+        <span class="mono">Y(1 + H₁H₂) = H₁X</span>，除过去就是 <span class="mono">H₁/(1+H₁H₂)</span>。
+        分母上的 <span class="mono">1 + H₁H₂ = 0</span> 就是闭环极点方程——它决定反馈系统稳定不稳定，第 15 节之后你会反复见到它。
+      </p>
+      <p class="small muted">
+        顺带一提：把极点全都按同一个"最大平坦"的目标摆放，就得到了巴特沃斯（Butterworth）滤波器；
+        二阶系统的极点 <span class="mono">−ζω<sub>n</sub> ± jω<sub>n</sub>√(1−ζ²)</span> 与阻尼比 ζ 的关系，
+        在第 10 章已经讨论过，这里用极零点图能一眼看出来：<b>ζ 越小，极点离虚轴越近，谐振峰越尖</b>。
+      </p>
+
+      <h2 id="s12">12. 单边拉氏变换：带初始条件解微分方程</h2>
+      <p>
+        到这里为止我们都用积分下限 <span class="mono">−∞</span>，这叫双边拉氏变换。
+        工程上还有一种更常用的版本：<b>积分从 <span class="mono">0<sup>−</sup></span> 开始</b>，只看 <span class="mono">t ≥ 0</span> 的部分。
+      </p>
+      <div class="eq center-eq">
+        <span class="term" data-def="unilateral Laplace transform，中文含义：单边拉氏变换。积分下限取 0⁻ 的拉氏变换，只关心 t≥0 的信号；专门用来解带初始条件的微分方程。">单边拉氏变换</span>：　
+        𝒳(s) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0<sup>−</sup></span></span></span>
+        x(t) e<sup>−st</sup> d<i>t</i>
+      </div>
+      <p>
+        比双边多出来的唯一区别就是下限。由此产生三条使用须知：
+      </p>
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">① 只看 t ≥ 0</h4>
+          <p class="small" style="margin-bottom:0">
+            两个信号只要 <span class="mono">t≥0</span> 部分一样，单边变换就一样。
+            所以单边变换<b>无法还原 t&lt;0 的波形</b>——它天生只服务因果问题。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">② ROC 永远是右半平面</h4>
+          <p class="small" style="margin-bottom:0">
+            因为被积信号是右边信号，ROC 必然是最右极点右边的右半平面，
+            所以单边变换<b>不用特别讨论 ROC</b>（反变换时全部取右边信号）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">③ 微分会带出初值</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">dx/dt ⟷ s𝒳(s) − x(0<sup>−</sup>)</span>，
+            二阶则 <span class="mono">s²𝒳(s) − sx(0<sup>−</sup>) − x′(0<sup>−</sup>)</span>。
+            正是这些项让"初始条件"自动进入方程。
+          </p>
+        </div>
+      </div>
+
+      <details class="deriv">
+        <summary>单边微分性质 s𝒳(s) − x(0⁻) 的推导（分部积分）</summary>
+        <div class="body">
+          <div class="step">
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0<sup>−</sup></span></span></span>
+              <span class="frac"><span class="num">dx(t)</span><span class="den">dt</span></span>e<sup>−st</sup>d<i>t</i>
+              &nbsp;<span class="why" style="color:var(--accent);font-size:14px">取 u = e<sup>−st</sup>, dv = x′(t)dt，则 du = −s e<sup>−st</sup>dt, v = x(t)</span>
+            </div>
+            <div class="eq">
+              = <span style="font-size:22px">[</span>x(t)e<sup>−st</sup><span style="font-size:22px">]</span><sub>0<sup>−</sup></sub><sup>∞</sup>
+              + s<span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>0<sup>−</sup></span></span></span>x(t)e<sup>−st</sup>d<i>t</i>
+              = (0 − x(0<sup>−</sup>)) + s𝒳(s)
+            </div>
+            <p class="why">为什么下限写 <span class="mono">0<sup>−</sup></span>：这样才把 t=0 处的冲激也算进积分区间里
+              （如果 x 在原点有跳变，它的导数在原点有一个冲激，必须被包含）。
+              为什么上限代入为 0：积分收敛要求 <span class="mono">Re{s}</span> 足够大，
+              此时 <span class="mono">e<sup>−st</sup>→0</span>。</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box">
+        <span class="tag">单边拉氏的标准用法：全响应 = 零输入响应 + 零状态响应</span>
+        <p>
+          以 <span class="mono">y″ + 3y′ + 2y = x</span> 为例，输入 <span class="mono">x(t) = a·u(t)</span>，
+          初始条件 <span class="mono">y(0<sup>−</sup>) = β</span>、<span class="mono">y′(0<sup>−</sup>) = γ</span>。
+          两边取单边变换：
+        </p>
+        <div class="eq">
+          <span style="font-size:20px">[</span>s²𝒴 − sβ − γ<span style="font-size:20px">]</span> + 3<span style="font-size:20px">[</span>s𝒴 − β<span style="font-size:20px">]</span> + 2𝒴 = <span class="frac"><span class="num">a</span><span class="den">s</span></span>
+        </div>
+        <div class="eq">
+          𝒴(s) = <span class="frac"><span class="num">β(s + 3) + γ</span><span class="den">(s+1)(s+2)</span></span>
+          + <span class="frac"><span class="num">a</span><span class="den">s(s+1)(s+2)</span></span>
+        </div>
+        <p style="margin-bottom:0">
+          <b>第一项只含初值 β、γ（不含输入）→ 零输入响应</b>；
+          <b>第二项只含输入 a（不含初值）→ 零状态响应</b>。分别部分分式展开：
+          <span class="mono">y<sub>zi</sub>(t) = [(2β+γ)e<sup>−t</sup> − (β+γ)e<sup>−2t</sup>]u(t)</span>，
+          <span class="mono">y<sub>zs</sub>(t) = a[1/2 − e<sup>−t</sup> + (1/2)e<sup>−2t</sup>]u(t)</span>。
+          两者相加就是全响应。下面的实验台把这三条曲线同时画出来。
+        </p>
+      </div>
+
+      <p>拖动三个滑块：初值 β、初值斜率 γ、输入幅度 a，看三条曲线怎么互相"叠加"。</p>
+
+      <div id="lab-de"></div>
+
+      <h2 id="s13">13. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：求了 X(s) 却忘了写 ROC</h4>
+          <p class="small" style="margin-bottom:0">
+            同一个 X(s) 配不同 ROC 是完全不同的信号（第 6、7 节的两个实验台都在演示这件事）。
+            答题时把 ROC 写在 X(s) 后面，是基本礼貌也是采分点。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：以为 X(jω) 总能从 X(s) 代出来</h4>
+          <p class="small" style="margin-bottom:0">
+            <b>前提是虚轴落在 ROC 内。</b><span class="mono">u(t) ⟷ 1/s</span>（Re{s}&gt;0）就不能直接把
+            <span class="mono">s=jω</span> 代进去得到傅里叶变换——真实的 U(jω) 还要多一个
+            <span class="mono">πδ(ω)</span>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：非真分式直接部分分式</h4>
+          <p class="small" style="margin-bottom:0">
+            分子次数 ≥ 分母次数时，先做多项式长除，除出来的多项式对应 δ 及其各阶导数。
+            忘了这步，结果会整体错。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：重极点只写一项</h4>
+          <p class="small" style="margin-bottom:0">
+            分母有 <span class="mono">(s+a)<sup>2</sup></span> 时，必须写
+            <span class="mono">A/(s+a) + B/(s+a)<sup>2</sup></span> 两项；少一项就凑不出原式。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：稳定性判据张冠李戴</h4>
+          <p class="small" style="margin-bottom:0">
+            "极点全在左半平面 ⟹ 稳定"只对<b>因果</b>系统成立。
+            非因果系统可能带着右半平面极点却照样稳定（ROC 是夹在两极点之间的竖条带，照样包含虚轴）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：单边/双边混用初值</h4>
+          <p class="small" style="margin-bottom:0">
+            单边拉氏里 <span class="mono">dx/dt ⟷ s𝒳(s) − x(0<sup>−</sup>)</span>；
+            双边里就是 <span class="mono">sX(s)</span>，<b>没有初值项</b>。
+            用哪个变换决定公式长什么样。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：终值定理不看前提就套</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">lim<sub>s→0</sub>sX(s)</span> 只有在信号真的收敛时才是终值。
+            先检查 <span class="mono">sX(s)</span> 的极点是否都在左半平面，再动手算。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：把"极点靠近虚轴"和"极点落在虚轴上"混为一谈</h4>
+          <p class="small" style="margin-bottom:0">
+            靠近（Re{p}&lt;0）：傅里叶变换存在，只是峰值又高又尖。
+            落在虚轴上（Re{p}=0）：虚轴不在 ROC 内，傅里叶变换要么不存在、要么多一个 δ 项。第 8 节的实验台专门演示这条。
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s14">14. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz12"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 12 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ================= 实验 1：s 平面极零点 / ROC / 稳定性 ================= */
+  var pz = SSC.pzLab({
+    domain: 's',
+    canvas: '#pz-s',
+    respCanvas: '#pz-s-resp',
+    statsEl: '#pz-s-stats',
+    noteEl: '#pz-s-note',
+    poles: [[-1, 1], [-1, -1]],
+    zeros: [],
+    K: 1,
+    mode: 'causal',
+    wmax: 8,
+    respLabel: '|H(jω)|'
+  });
+
+  function bind(id, fn) {
+    var n = document.getElementById(id);
+    if (n && n.addEventListener) n.addEventListener('click', fn);
+  }
+  if (pz) {
+    bind('pz-s-causal', function () { pz.setMode('causal'); });
+    bind('pz-s-anticausal', function () { pz.setMode('anticausal'); });
+    bind('pz-s-strip', function () { pz.setMode('annulus'); });
+    bind('pz-s-reset', function () {
+      pz.set([[-1, 1], [-1, -1]], []);
+      pz.setMode('causal');
+    });
+  }
+
+  /* ================= 实验 2：e^{−at}u(t) 的 a 滑块 ================= */
+  SSC.lab({
+    mount: '#lab-a',
+    title: '实验 2 · 把极点推向虚轴：a 滑块',
+    hint: '拖动 a，同时盯住「极点位置」「|X(jω)| 峰值高度」和「3 dB 带宽」',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域 x(t) = e^{−at}u(t)', height: 210 },
+      { id: 'freq', label: '幅度谱 |X(jω)| = 1/√(a² + ω²)', height: 210 }
+    ],
+    controls: [
+      { id: 'a', label: '衰减率 a', min: 0.05, max: 4, step: 0.05, value: 1, unit: ' 1/s' },
+      { id: 'wmax', label: '频率轴范围 ω_max', min: 4, max: 40, step: 1, value: 12, unit: ' rad/s' }
+    ],
+    buttons: [{ label: '回到 a = 1', onClick: function (v, api) { api.set('a', 1); } }],
+    draw: function (cv, v, api) {
+      var a = v.a, tau = 1 / a;
+      var tauIn = tau <= 6;      /* τ 超出画框时就不画那根竖线，避免画到画布外面去 */
+      SSC.plot(cv.time, {
+        xmin: -0.5, xmax: 6, ymin: -0.08, ymax: 1.12,
+        xlabel: 't (s)', ylabel: 'x(t)',
+        curves: [
+          { f: function (t) { return t < 0 ? 0 : Math.exp(-a * t); }, color: '#4338ca', width: 2.4, label: 'x(t)=e^{−at}u(t)' },
+          { f: function (t) { return t < 0 ? 0 : Math.exp(-1); }, color: '#c3ccdd', width: 1.4, dash: [5, 4], label: '1/e 水平线' }
+        ],
+        vlines: tauIn ? [{ x: tau, color: '#dc2626', label: 'τ=1/a=' + SSC.fmt(tau, 2) }] : [],
+        points: tauIn ? [{ x: 0, y: 1, color: '#0e7490' }, { x: tau, y: Math.exp(-1), color: '#dc2626' }]
+          : [{ x: 0, y: 1, color: '#0e7490' }],
+        legend: true
+      });
+      SSC.plot(cv.freq, {
+        xmin: -v.wmax, xmax: v.wmax, ymin: 0,
+        xlabel: 'ω (rad/s)', ylabel: '|X(jω)|',
+        curves: [
+          { f: function (w) { return 1 / Math.sqrt(a * a + w * w); }, color: '#0e7490', width: 2.3, label: '|X(jω)|' },
+          { f: function (w) { return (Math.abs(w) <= a) ? 1 / (a * Math.SQRT2) : NaN; },
+            color: '#b45309', width: 1.6, dash: [5, 4], samples: 20, label: '−3 dB 高度（半功率）' }
+        ],
+        vlines: [{ x: a, color: '#dc2626', label: 'ω=a' }, { x: -a, color: '#dc2626' }],
+        hlines: [{ y: 1 / a, color: '#c3ccdd', dash: [5, 5], label: '峰值 1/a' }],
+        points: [{ x: 0, y: 1 / a, color: '#4338ca' }, { x: a, y: 1 / (a * Math.SQRT2), color: '#dc2626' }],
+        legend: true
+      });
+      api.readout(
+        '<div class="stat"><div class="k">极点 s = −a</div><div class="v">' + SSC.fmt(-a, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">ROC</div><div class="v" style="font-size:13px">Re{s} &gt; ' + SSC.fmt(-a, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">峰值 |X(0)| = 1/a</div><div class="v">' + SSC.fmt(1 / a, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">3 dB 带宽 = a</div><div class="v">' + SSC.fmt(a, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">时间常数 τ = 1/a</div><div class="v">' + SSC.fmt(tau, 2) + ' s</div></div>' +
+        '<div class="stat"><div class="k">τ × 带宽</div><div class="v">' + SSC.fmt(tau * a, 2) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var a = v.a;
+      var s = '极点固定在 <b>s = −a = ' + SSC.fmt(-a, 2) + '</b>，ROC 是它右边的半平面 <b>Re{s} &gt; ' + SSC.fmt(-a, 2) + '</b>。';
+      if (a > 0.35) {
+        s += '虚轴 <b>落在 ROC 内</b>，所以 |X(jω)| 有定义，系统是稳定的低通。<br>' +
+          '再看两个数的联动：<b>3 dB 带宽 = a</b>，<b>时间常数 τ = 1/a</b>——时域衰减越快（a 大），频带越宽（a 大），两者永远同向变化。';
+      } else {
+        s += '<b>危险区：a 已经很小，极点贴着虚轴。</b>峰值 1/a 冲到 ' + SSC.fmt(1 / a, 2) +
+          '，频响变成一个极尖的谐振峰。<br>请把它和 a = 0（即 u(t)，极点正好落在虚轴上）对比：' +
+          '那时 ROC 变成 Re{s} &gt; 0，<b>虚轴被排除在外</b>，傅里叶变换必须补一个 πδ(ω) 才成立。';
+      }
+      return s;
+    }
+  });
+
+  /* ================= 实验 3：同一 X(s) + 三种 ROC ================= */
+  SSC.lab({
+    mount: '#lab-roc',
+    title: '实验 3 · 同一个 X(s) = 1/((s+1)(s+2))，三种 ROC',
+    hint: '只切换 ROC 下拉框，看时域波形如何彻底改变',
+    columns: 1,
+    canvases: [{ id: 'time', label: '时域 x(t)（蓝色 = 当前 ROC 对应的信号）', height: 250 }],
+    controls: [
+      {
+        id: 'roc', label: 'ROC 选择', value: 'right',
+        options: [
+          { v: 'right', t: 'Re{s} > −1（右边 / 因果）' },
+          { v: 'left', t: 'Re{s} < −2（左边 / 反因果）' },
+          { v: 'strip', t: '−2 < Re{s} < −1（双边条带）' }
+        ]
+      }
+    ],
+    draw: function (cv, v, api) {
+      var mode = v.roc, win, lo, hi, label, formula;
+      if (mode === 'right') {
+        win = [-0.5, 3.5]; lo = -0.06; hi = 0.34;
+        label = '( e^{−t} − e^{−2t} ) u(t)';
+        formula = 'x(t) = ( e^{−t} − e^{−2t} )u(t)';
+      } else if (mode === 'left') {
+        win = [-1.05, 1.0]; lo = -1; hi = 5;
+        label = '( −e^{−t} + e^{−2t} ) u(−t)';
+        formula = 'x(t) = ( −e^{−t} + e^{−2t} )u(−t)';
+      } else {
+        win = [-1.4, 1.4]; lo = -3.4; hi = 1.4;
+        label = '−e^{−t}u(−t) − e^{−2t}u(t)';
+        formula = 'x(t) = −e^{−t}u(−t) − e^{−2t}u(t)';
+      }
+      var f = function (t) {
+        if (mode === 'right') return t < 0 ? 0 : Math.exp(-t) - Math.exp(-2 * t);
+        if (mode === 'left') return t > 0 ? 0 : (-Math.exp(-t) + Math.exp(-2 * t));
+        return (t < 0 ? -Math.exp(-t) : 0) + (t >= 0 ? -Math.exp(-2 * t) : 0);
+      };
+      SSC.plot(cv.time, {
+        xmin: win[0], xmax: win[1], ymin: lo, ymax: hi,
+        xlabel: 't (s)', ylabel: 'x(t)',
+        curves: [{ f: f, color: '#4338ca', width: 2.6, label: label }],
+        hlines: [{ y: 0, color: 'rgba(110,130,165,.55)', width: 1 }],
+        vlines: [{ x: 0, color: '#c3ccdd', dash: [4, 4], label: 't=0' }],
+        legend: true
+      });
+      /* 数值写在 readout 里，方便和公式对照 */
+      var probes = [-1, -0.5, 0.5, 1, 2];
+      var html = '<div class="stat" style="grid-column:1/-1"><div class="k">当前信号</div><div class="v" style="font-size:14px">' + formula + '</div></div>';
+      probes.forEach(function (t) {
+        var yv = f(t);
+        html += '<div class="stat"><div class="k">x(' + t + ')</div><div class="v">' +
+          (isFinite(yv) && Math.abs(yv) < 1e4 ? SSC.fmt(yv, 3) : '很大/发散') + '</div></div>';
+      });
+      api.readout(html);
+    },
+    note: function (v) {
+      if (v.roc === 'right') {
+        return 'ROC 在最右极点（s = −1）<b>右边</b>：两个极点都在 ROC 左边，两项都是<b>右边信号</b>。' +
+          'ROC 含虚轴 ⟹ 傅里叶变换存在 ⟹ 这个信号是<b>因果且稳定</b>的冲激响应候选。';
+      }
+      if (v.roc === 'left') {
+        return 'ROC 在最左极点（s = −2）<b>左边</b>：两个极点都在 ROC 右边，两项都取<b>左边信号</b>（每项前多一个负号）。' +
+          '注意它在 t→−∞ 时发散（很快冲出画框）——ROC 不含虚轴，<b>没有普通意义下的傅里叶变换</b>。';
+      }
+      return 'ROC 是竖条带 <b>−2 &lt; Re{s} &lt; −1</b>：极点 −1 在 ROC 右边（该项取左边信号），' +
+        '极点 −2 在 ROC 左边（该项取右边信号）。<b>一边一个</b>才凑得出条带，结果是双边信号。' +
+        '条带同样不含虚轴 ⟹ 傅里叶变换不存在。';
+    }
+  });
+
+  /* ================= 实验 4：单边拉氏解微分方程 ================= */
+  SSC.lab({
+    mount: '#lab-de',
+    title: '实验 4 · 单边拉氏解 y″ + 3y′ + 2y = a·u(t)（带初始条件）',
+    hint: '分别拖 β、γ、a，看零输入响应、零状态响应怎么相加成全响应',
+    columns: 1,
+    canvases: [{ id: 'out', label: '三条曲线：零输入（灰虚）／零状态（青虚）／全响应（蓝粗）', height: 250 }],
+    controls: [
+      { id: 'beta', label: '初值 y(0⁻) = β', min: -2, max: 2, step: 0.1, value: 1 },
+      { id: 'gamma', label: '初值斜率 y′(0⁻) = γ', min: -2, max: 2, step: 0.1, value: 0 },
+      { id: 'amp', label: '输入幅度 a', min: 0, max: 2, step: 0.1, value: 1 }
+    ],
+    buttons: [{ label: '只留零状态（β=γ=0）', onClick: function (v, api) { api.set('beta', 0); api.set('gamma', 0); } }],
+    draw: function (cv, v, api) {
+      var b = v.beta, g = v.gamma, a = v.amp;
+      var zi = function (t) { return t < 0 ? 0 : (2 * b + g) * Math.exp(-t) - (b + g) * Math.exp(-2 * t); };
+      var zs = function (t) { return t < 0 ? 0 : a * (0.5 - Math.exp(-t) + 0.5 * Math.exp(-2 * t)); };
+      var tot = function (t) { return zi(t) + zs(t); };
+      SSC.plot(cv.out, {
+        xmin: -0.3, xmax: 6, xlabel: 't (s)', ylabel: 'y(t)',
+        curves: [
+          { f: zi, color: '#c3ccdd', width: 1.8, dash: [6, 4], label: '零输入响应 y_zi（只由初值引起）' },
+          { f: zs, color: '#0e7490', width: 1.8, dash: [6, 4], label: '零状态响应 y_zs（只由输入引起）' },
+          { f: tot, color: '#4338ca', width: 2.6, label: '全响应 y = y_zi + y_zs' }
+        ],
+        hlines: [{ y: a / 2, color: '#15803d', dash: [5, 5], label: '终值 a/2 = ' + SSC.fmt(a / 2, 2) }],
+        legend: true
+      });
+      api.readout(
+        '<div class="stat"><div class="k">y(0⁺) = β</div><div class="v">' + SSC.fmt(b, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">y(∞) = a/2</div><div class="v">' + SSC.fmt(a / 2, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">y_zi(0)</div><div class="v">' + SSC.fmt(zi(0), 2) + '</div></div>' +
+        '<div class="stat"><div class="k">y_zs(0)</div><div class="v">' + SSC.fmt(zs(0), 2) + '</div></div>' +
+        '<div class="stat"><div class="k">y(1)</div><div class="v">' + SSC.fmt(tot(1), 3) + '</div></div>' +
+        '<div class="stat"><div class="k">y(3)</div><div class="v">' + SSC.fmt(tot(3), 3) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var b = v.beta, g = v.gamma, a = v.amp;
+      return 'Y(s) = <b>[β(s+3) + γ]/((s+1)(s+2))</b> + <b>a/(s(s+1)(s+2))</b>：前一项只含初值 ⟹ 零输入响应，' +
+        '后一项只含输入 ⟹ 零状态响应。<br>' +
+        '当前 y_zi(t) = ' + SSC.fmt(2 * b + g, 2) + 'e^{−t} − ' + SSC.fmt(b + g, 2) + 'e^{−2t}（t&gt;0），' +
+        'y_zs(t) = ' + SSC.fmt(a / 2, 2) + ' − ' + SSC.fmt(a, 2) + 'e^{−t} + ' + SSC.fmt(a / 2, 2) + 'e^{−2t}（t&gt;0）。<br>' +
+        '两条定理可以当场核对：<b>初值定理</b> lim<sub>s→∞</sub>sY(s) = β = ' + SSC.fmt(b, 2) +
+        '（等于 y(0⁺)，图上蓝线起点）；<b>终值定理</b> lim<sub>s→0</sub>sY(s) = a/2 = ' + SSC.fmt(a / 2, 2) +
+        '（绿虚线高度）。注意 a = 0 且初值全零时全响应恒为 0——这正说明"零状态"必须靠输入激励。';
+    }
+  });
+
+  /* ================= 自测 ================= */
+  SSC.quiz('#quiz12', [
+    {
+      q: '为什么 e^{2t}u(t) 没有傅里叶变换，却仍然有拉普拉斯变换？',
+      opts: ['因为乘上合适的衰减因子 e^{−σt}（σ>2）后它变得绝对可积，这个 σ 落在 ROC 里',
+        '因为拉普拉斯变换允许结果为无穷大',
+        '因为 e^{2t}u(t) 其实是周期信号',
+        '因为傅里叶变换只对实信号存在'],
+      a: 0,
+      why: '傅里叶变换相当于把旋钮固定在 σ=0；而 e^{2t}u(t) 在 σ=0 时发散。拉普拉斯允许 σ 自由取值，取 σ>2 就能压住它，于是 X(s)=1/(s−2) 在 Re{s}>2 上成立。虚轴（σ=0）不在 ROC 内，这正是傅里叶变换不存在的复平面解释。',
+      tag: '动机'
+    },
+    {
+      q: 'X(s) = 1/((s+1)(s+2))，ROC 为 Re{s} > −1。x(t) = ?',
+      opts: ['(e^{−t} − e^{−2t})u(t)', '(−e^{−t} + e^{−2t})u(−t)', '−e^{−t}u(−t) − e^{−2t}u(t)', 'e^{−t}u(t) + e^{−2t}u(t)'],
+      a: 0,
+      why: '部分分式 X(s) = 1/(s+1) − 1/(s+2)。ROC 在最右极点 −1 的右边，意味着两个极点都在 ROC 左侧，两项都取右边信号：1/(s+1)↔e^{−t}u(t)，−1/(s+2)↔−e^{−2t}u(t)。故选第一项。',
+      tag: '反变换'
+    },
+    {
+      q: '同一个 X(s) = 1/(s+1)，ROC 取 Re{s} < −1 时对应的时域信号是？',
+      opts: ['−e^{−t}u(−t)', 'e^{−t}u(t)', 'e^{−t}（对全体 t 有定义）', 'δ(t) + e^{−t}u(t)'],
+      a: 0,
+      why: '这一对是 −e^{−at}u(−t) ⟷ 1/(s+a)（Re{s}<−a）。ROC 在极点左边 ⟹ 对应的必是左边信号，且每项要带一个负号。这就是"X(s) 的代数式 + ROC 才等于一个信号"的最简例子。',
+      tag: 'ROC 的意义'
+    },
+    {
+      q: '一个因果 LTI 系统的系统函数 H(s) 是有理函数。它稳定的充要条件是？',
+      opts: ['全部极点都在左半平面（Re{p} < 0）', 'ROC 是某个竖条带',
+        '零点全在左半平面', '极点的个数不超过 2'],
+      a: 0,
+      why: '因果 ⟹ ROC 在最右极点右侧的右半平面；稳定 ⟹ ROC 必须包含整条虚轴。两者同时成立，就要求最右极点在虚轴左边，即全部极点 Re{p}<0。注意"极点全在左半平面⟹稳定"必须先假定因果，否则反例是那种 ROC 为竖条带的稳定非因果系统。',
+      tag: '系统函数'
+    },
+    {
+      q: '已知 x(t) 满足 t<0 时为零、且原点无冲激，X(s) = 1/(s+2)。用初值定理求 x(0⁺)，再用终值定理求 lim_{t→∞}x(t)。',
+      opts: ['x(0⁺)=1，终值 = 0', 'x(0⁺)=0，终值 = 1', 'x(0⁺)=1，终值 = 1/2', '两条定理都不适用'],
+      a: 0,
+      why: '初值：lim_{s→∞}sX(s) = lim s/(s+2) = 1；而 x(t) = e^{−2t}u(t)，t→0⁺ 时确实是 1。终值：lim_{s→0}sX(s) = 0；sX(s) 的唯一极点在 s=−2（左半平面），前提满足，所以终值确实是 0，与 e^{−2t}→0 一致。',
+      tag: '初值/终值定理'
+    },
+    {
+      q: 'u(t) 的拉普拉斯变换 1/s 的 ROC 是 Re{s} > 0。由此可以直接得出什么结论？',
+      opts: ['虚轴不在 ROC 内，所以 u(t) 的傅里叶变换不能简单写成 1/(jω)',
+        'u(t) 的傅里叶变换不存在',
+        'u(t) 是能量信号',
+        'u(t) 的傅里叶变换等于 1/(jω)'],
+      a: 0,
+      why: 'X(jω)=X(s)|_{s=jω} 的前提是虚轴在 ROC 内。这里 ROC 是 Re{s}>0，不含虚轴，所以不能直接代 s=jω。真实的 U(jω) = 1/(jω) + πδ(ω)（第 6 章的广义傅里叶变换），其中 δ(ω) 那一项负责描述 u(t) 的直流分量。',
+      tag: '常见坑'
+    }
+  ], '第 12 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

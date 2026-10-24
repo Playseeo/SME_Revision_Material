@@ -1,0 +1,1388 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 7 章　离散时间傅里叶变换（DTFT）｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch07">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第二段 · 傅里叶家族 · 第 7 章</div>
+        <h1>离散时间傅里叶变换（DTFT）</h1>
+        <p class="lede">
+          第 5 章告诉我们：离散周期信号只有 N 个独立谐波，谱线是离散的 N 根。
+          现在把 N 推向无穷，那 N 根谱线会挤成一条<b>连续的曲线</b>——
+          这就是离散时间傅里叶变换。它和连续时间的 CTFT 长得几乎一样，只有一个地方绝对不能忘：
+          <b>频谱以 2π 为周期</b>，画完一个 2π 区间就等于画完了全部。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch05-dtfs.html">第 5 章 离散时间傅里叶级数</a>（要会用 <span class="mono">c<sub>k</sub></span>，记住"只有 N 个独立谐波"）<br>
+          <a href="ch06-ctft.html">第 6 章 连续时间傅里叶变换</a>（要熟悉 <span class="mono">X(jω)</span> 与卷积性质）
+        </div>
+        <div class="cell mid"><b>这一站</b>DTFT 的定义、<span class="mono">2π</span> 周期性、性质表、常用对、差分方程</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch08-dft.html">第 8 章 DFT 与 FFT</a>（计算机只能算有限个频率点）<br>
+          <a href="ch09-sampling.html">第 9 章 采样定理</a>（"频谱以 2π 为周期"会在那里变成"频谱周期延拓"）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 这一章在回答什么问题</a>
+        <a href="#s2">2. 核心推导：N→∞，级数变成变换</a>
+        <a href="#s3">3. 定义对、符号表与收敛条件</a>
+        <a href="#s4">4. 灵魂：频谱以 2π 为周期</a>
+        <a href="#s5">5. 动手：亲眼看见 2π 周期的重复</a>
+        <a href="#s6">6. 常用变换对（含推导）</a>
+        <a href="#s7">7. 性质表（与 CTFT 对照）</a>
+        <a href="#s8">8. 六条关键性质的推导</a>
+        <a href="#s9">9. 动手：DTFS 系数就是 DTFT 的采样</a>
+        <a href="#s10">10. 动手：用 DTFT 分析 LTI 系统</a>
+        <a href="#s11">11. 差分方程直接写出 H(e^{jω})</a>
+        <a href="#s12">12. 它和其它变换的关系</a>
+        <a href="#s13">13. 常见坑</a>
+        <a href="#s14">14. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 这一章在回答什么问题</h2>
+
+      <p>
+        第 6 章我们把连续时间的周期 T 推向无穷，把 CTFS 变成了 CTFT。
+        本章用<b>同一招</b>处理离散时间：取一个有限长的序列 <span class="mono">x[n]</span>，
+        把它以 N 为周期反复复制得到 <span class="mono">x̃[n]</span>，然后让 <span class="mono">N→∞</span>。
+      </p>
+      <p>
+        回忆第 5 章的两个结论，它们决定了本章会出现什么：
+      </p>
+      <ul style="padding-left:22px">
+        <li>DTFS 系数满足 <span class="mono">c<sub>k</sub> = (1/N)·X(e<sup>jkω<sub>0</sub></sup>)</span>，
+          其中 <span class="mono">ω<sub>0</sub> = 2π/N</span>——<b>系数是某个连续函数的等间隔采样</b>；</li>
+        <li>采样间隔是 <span class="mono">2π/N</span>，<span class="mono">N→∞</span> 时间隔 → 0：<b>离散谱线挤成连续曲线</b>。</li>
+      </ul>
+      <p>
+        最后我们会得到一个很对称的变换对：正变换是一个<b>无穷级数</b>（对样本求和），
+        反变换是一个<b>有限区间上的积分</b>（区间长度恰好 <span class="mono">2π</span>）。
+        反变换积分区间有限这件事，是离散时间独有的福气——它带来一个和 CTFT 完全不同的结论：
+        <b>频谱必须、也只能以 2π 为周期</b>。
+      </p>
+
+      <h2 id="s2">2. 核心推导：N→∞，级数变成变换</h2>
+      <p class="small muted">这段是本页的骨架，每一步都交代了"凭什么可以这样写"。</p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：从 DTFS 到 DTFT</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：拿一个有限长序列，做周期延拓。</b></p>
+            <p>
+              设 <span class="mono">x[n]</span> 在 <span class="mono">−N<sub>1</sub> ≤ n ≤ N<sub>2</sub></span>
+              之外全为 0。把它每 N 个样本复制一次，得到周期为 N 的
+              <span class="term" data-def="periodic extension，中文含义：周期延拓。把一个有限长序列按周期 N 反复复制，得到周期序列。">周期延拓</span>
+              （periodic extension）<span class="mono">x̃[n]</span>，并且 N 取得足够大，让一个周期里完整地包含原序列。
+            </p>
+            <p class="why">为什么可以这样做：第 5 章的 DTFS 只适用于周期信号。延拓是"把非周期信号伪装成周期信号"的唯一手段；
+              而 N 越大，伪装得越像（在一个周期内 <span class="mono">x̃[n] = x[n]</span>）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：写出 <span class="mono">x̃[n]</span> 的 DTFS。</b></p>
+            <div class="eq">
+              x̃[n] =
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              c<sub>k</sub> e<sup>jkω<sub>0</sub>n</sup>, &nbsp;&nbsp;
+              c<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">n=&lt;N&gt;</span></span>
+              x̃[n] e<sup>−jkω<sub>0</sub>n</sup>, &nbsp;&nbsp; ω<sub>0</sub> = <span class="frac"><span class="num">2π</span><span class="den">N</span></span>
+            </div>
+            <p class="why">为什么：这是第 5 章式 (5-1)(5-2) 的照抄。别忘了这里 k 只有 N 个不同的值。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：把求和范围扩到整个时间轴（因为原序列有限长）。</b></p>
+            <p>在一个周期内 <span class="mono">x̃[n] = x[n]</span>，而周期外 <span class="mono">x[n] = 0</span>，所以</p>
+            <div class="eq">
+              c<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n] e<sup>−jkω<sub>0</sub>n</sup>
+              = <span class="frac"><span class="num">1</span><span class="den">N</span></span> X(e<sup>jkω<sub>0</sub></sup>)
+            </div>
+            <p>其中我们<b>定义</b>了一个新函数：</p>
+            <div class="eq center-eq">
+              X(e<sup>jω</sup>) ≜
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n] e<sup>−jωn</sup>
+              <span class="lbl">(7-1)</span>
+            </div>
+            <p class="why">为什么可以把有限区间换成无穷区间：区间外的 <span class="mono">x[n]</span> 全是 0，
+              加上去等于没加。<b>这一步的意义在于：X(e<sup>jω</sup>) 的定义里不再有 N</b>，
+              它是只跟 <span class="mono">x[n]</span> 有关的函数——这正是我们想要的"与 N 无关的频谱"。 </p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：把 <span class="mono">c<sub>k</sub> = X(e<sup>jkω<sub>0</sub></sup>)/N</span> 代回综合式，凑出"求和 → 积分"的形状。</b></p>
+            <div class="eq">
+              x̃[n] =
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              X(e<sup>jkω<sub>0</sub></sup>) e<sup>jkω<sub>0</sub>n</sup>
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              X(e<sup>jkω<sub>0</sub></sup>) e<sup>jkω<sub>0</sub>n</sup> · ω<sub>0</sub>
+            </div>
+            <p class="why">为什么：因为 <span class="mono">1/N = ω<sub>0</sub>/2π</span>（把 <span class="mono">N = 2π/ω<sub>0</sub></span> 代进去）。
+              把 <span class="mono">1/2π</span> 提到外面，就凭空多出一个 <span class="mono">ω<sub>0</sub></span>。
+              这个 <span class="mono">ω<sub>0</sub></span> 是故意留下的，下一步要用它当"矩形宽度"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 5 步：让 N→∞，把求和看成黎曼和。</b></p>
+            <p>
+              令 <span class="mono">ω<sub>k</sub> = kω<sub>0</sub></span>，相邻两点的间距就是
+              <span class="mono">Δω = ω<sub>0</sub> = 2π/N</span>。于是上式是"高 × 宽"的求和：
+            </p>
+            <div class="eq">
+              x[n] = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k=&lt;N&gt;</span></span>
+              X(e<sup>jω<sub>k</sub></sup>) e<sup>jω<sub>k</sub>n</sup> Δω
+              &nbsp;&nbsp;⟶<sub>N→∞</sub>&nbsp;&nbsp;
+              <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              X(e<sup>jω</sup>) e<sup>jωn</sup> dω
+              <span class="lbl">(7-2)</span>
+            </div>
+            <p class="why">为什么极限是积分：这就是<b>黎曼和的定义</b>——函数在等间距点上的取值乘以间距再求和，
+              间距趋于 0 时极限就是积分。这里"函数"是 <span class="mono">X(e<sup>jω</sup>)e<sup>jωn</sup></span>，
+              "间距"是 <span class="mono">Δω = 2π/N → 0</span>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 6 步：为什么积分区间只有 2π 长——这一步是本章的关键。</b></p>
+            <p>
+              <span class="mono">k</span> 从 0 走到 <span class="mono">N−1</span>，
+              <span class="mono">ω<sub>k</sub></span> 就走过 <span class="mono">N</span> 个小格，
+              总宽度是
+            </p>
+            <div class="eq center-eq">
+              N · Δω = N · <span class="frac"><span class="num">2π</span><span class="den">N</span></span> = 2π
+              &nbsp;&nbsp;（与 N 无关！）
+            </div>
+            <p class="why">为什么这条最重要：无论 N 取多大，<b>积分区间永远是 2π 长</b>。
+              连续时间里那个区间是 <span class="mono">(−∞, +∞)</span>（CTFT 的反变换要对所有频率积分），
+              离散时间里却只有 <span class="mono">2π</span> 宽，因为 N 个谐波频率只散布在 2π 的范围内。
+              区间有限还有一个附带好处：<b>反变换的积分不会有收敛问题</b>（有限区间上连续函数的积分必然收敛），
+              只有正变换那个无穷级数需要考虑收敛。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 7 步：写成标准的变换对。</b></p>
+            <div class="eq center-eq">
+              x[n] = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              X(e<sup>jω</sup>) e<sup>jωn</sup> dω
+              &nbsp;&nbsp;（综合式，区间是任意长度 2π 的区间）
+            </div>
+            <div class="eq center-eq">
+              X(e<sup>jω</sup>) =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n] e<sup>−jωn</sup>
+              &nbsp;&nbsp;（分析式）
+            </div>
+            <p class="why">为什么积分区间写"2π"而不是具体数字：因为被积函数
+              <span class="mono">X(e<sup>jω</sup>)e<sup>jωn</sup></span> 本身以 2π 为周期（下一步就证明），
+              所以取 <span class="mono">[0, 2π)</span> 还是 <span class="mono">[−π, π)</span> 结果都一样。
+              这一点在计算时非常方便。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">结论：DTFT 变换对</span>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>分析式（正变换）</b>&nbsp;&nbsp; X(e<sup>jω</sup>) =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n] e<sup>−jωn</sup>
+            </div>
+            <div class="eq center-eq" style="margin:8px 0">
+              <b>综合式（反变换）</b>&nbsp;&nbsp; x[n] = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              X(e<sup>jω</sup>) e<sup>jωn</sup> dω
+            </div>
+            <p style="margin-bottom:0" class="small">
+              记号：<span class="mono">x[n] <span class="op ft">⟷</span> X(e<sup>jω</sup>)</span>。
+              写成 <span class="mono">X(e<sup>jω</sup>)</span> 而不是 <span class="mono">X(ω)</span>，是为了提醒你：
+              它本质上是把 <span class="mono">z = e<sup>jω</sup></span>（单位圆上的点）代进 z 变换（第 13 章）。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s3">3. 定义对、符号表与收敛条件</h2>
+
+      <p>
+        <span class="mono">X(e<sup>jω</sup>)</span> 叫
+        <span class="term" data-def="discrete-time Fourier transform，中文含义：离散时间傅里叶变换。把序列 x[n] 展开成连续频率的复指数叠加，得到的复值函数 X(e^{jω})；它总是以 2π 为周期。">离散时间傅里叶变换</span>
+        （discrete-time Fourier transform），也常被叫作序列的
+        <span class="term" data-def="spectrum，中文含义：频谱。X(e^{jω}) 是复值函数：模长=该频率成分的强度，辐角=该频率成分的相位。">频谱</span>
+        （spectrum）。
+      </p>
+
+      <table class="tbl sm">
+        <thead><tr><th>符号</th><th>中文名 / 含义</th><th>直观理解</th></tr></thead>
+        <tbody>
+          <tr><td class="ft">n</td><td>离散时间序号</td><td>整数，第几个样本。</td></tr>
+          <tr><td class="ft">ω</td><td><span class="term" data-def="discrete angular frequency，中文含义：离散角频率。单位 rad/样本，ω=2πf/fs；ω 与 ω+2π 是同一个频率，只有模 2π 的意义。">离散角频率</span>（rad/样本）</td><td>每个样本相位前进的角度。</td></tr>
+          <tr><td class="ft">e<sup>−jωn</sup></td><td>分析用的"探针"</td><td>用它乘序列再求和，等于问"序列里 ω 这个频率有多强"。</td></tr>
+          <tr><td class="ft">X(e<sup>jω</sup>)</td><td>频谱（复值函数）</td><td>每个频率放一个复数：模=强度，角=相位。</td></tr>
+          <tr><td class="ft">|X(e<sup>jω</sup>)|</td><td><span class="term" data-def="magnitude spectrum，中文含义：幅度谱。各频率成分强度的分布曲线，是偶函数（对实序列）。">幅度谱</span></td><td>哪个频率强、哪个弱。</td></tr>
+          <tr><td class="ft">∠X(e<sup>jω</sup>)</td><td><span class="term" data-def="phase spectrum，中文含义：相位谱。各频率成分的相位，对实序列是奇函数。">相位谱</span></td><td>每个频率成分被推迟了多少。</td></tr>
+          <tr><td class="ft">∫<sub>2π</sub></td><td>任意长度 2π 的区间上的积分</td><td>可以取 [0,2π) 或 [−π,π)，结果相同。</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">正变换什么时候收敛</span>
+        <p>
+          <b>条件一：绝对可和</b>&nbsp;&nbsp;
+          <span class="mono">Σ<sub>n=−∞</sub><sup>∞</sup>|x[n]| &lt; ∞</span>。
+          因为 <span class="mono">|x[n]e<sup>−jωn</sup>| = |x[n]|</span>（复指数的模恒为 1），
+          所以只要"绝对值之和"有限，级数就绝对收敛。<b>这是最常用的判断标准。</b>
+        </p>
+        <p>
+          <b>条件二：有限能量</b>&nbsp;&nbsp;
+          <span class="mono">Σ<sub>n=−∞</sub><sup>∞</sup>|x[n]|² &lt; ∞</span>。
+          这时级数可能不是绝对收敛，但<b>均方收敛</b>（误差的能量趋于 0），
+          例如理想低通的冲激响应 <span class="mono">sin(ω<sub>c</sub>n)/(πn)</span> 就属于这一类。
+        </p>
+        <p style="margin-bottom:0">
+          <b>反变换没有这个问题</b>：积分区间是有限的 <span class="mono">2π</span>，
+          只要 <span class="mono">X(e<sup>jω</sup>)</span> 在一个周期上可积就行。
+          （对照第 6 章：CTFT 的反变换是无穷区间积分，收敛是必须操心的事。）
+        </p>
+      </div>
+
+      <h2 id="s4">4. 灵魂：频谱以 2π 为周期</h2>
+      <p>
+        这是本章最重要的一条，也是 DTFT 和 CTFT 之间<b>最本质</b>的差别。它不需要复杂的证明，
+        只需要把 <span class="mono">ω+2π</span> 代进定义式，然后数一数 <span class="mono">e<sup>−j2πn</sup></span> 等于几。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：X(e^{jω}) 的 2π 周期性，以及它的三个推论</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：把 ω 换成 ω+2π。</b></p>
+            <div class="eq">
+              X(e<sup>j(ω+2π)</sup>) =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n] e<sup>−j(ω+2π)n</sup>
+              =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n] e<sup>−jωn</sup> · e<sup>−j2πn</sup>
+            </div>
+            <p class="why">为什么：指数相加可以拆成相乘（<span class="mono">e<sup>A+B</sup>=e<sup>A</sup>e<sup>B</sup></span>）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：认出 <span class="mono">e<sup>−j2πn</sup> = 1</span>。</b></p>
+            <div class="eq center-eq">
+              e<sup>−j2πn</sup> = cos(2πn) − j sin(2πn) = 1 − 0 = 1 &nbsp;&nbsp;(n 是整数)
+            </div>
+            <div class="eq center-eq">
+              ⟹ &nbsp;&nbsp; X(e<sup>j(ω+2π)</sup>) = X(e<sup>jω</sup>) &nbsp;&nbsp;<b>（对所有 ω、所有序列成立）</b>
+            </div>
+            <p class="why">为什么这条"对任何序列都成立"：推导中<b>没有用到 x[n] 的任何性质</b>——
+              不需要周期、不需要实、也不需要收敛。只要 <span class="mono">n</span> 是整数，
+              <span class="mono">e<sup>−j2πn</sup></span> 就必然是 1。<b>这是离散时间与生俱来的性质。</b></p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：推论一——只需要画 2π 宽的一段。</b></p>
+            <p>
+              <span class="mono">ω ∈ [0, 2π)</span> 或 <span class="mono">[−π, π)</span> 这一段里
+              已经包含了频谱的全部信息，其余部分都是复制品。
+              工程习惯用 <span class="mono">[−π, π)</span>，因为"正频率"和"负频率"看起来对称。
+            </p>
+            <p class="why">为什么方便：画图和存储都省一半以上的力气，
+              这也解释了为什么第 8 章的 DFT 只需要算出 N 个频率点。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：推论二——频率是一根"绕起来的圆"。</b></p>
+            <p>
+              把 <span class="mono">z = e<sup>jω</sup></span> 看成复平面单位圆上的点：
+              <span class="mono">ω</span> 就是"从正实轴出发转过的角度"。
+              转一整圈是 <span class="mono">2π</span>，回到原点——所以 <span class="mono">ω</span> 和
+              <span class="mono">ω+2π</span> 是同一个位置，<b>同一个频率</b>。
+            </p>
+            <p class="why">为什么低频和高频的"位置"要重新认识：在单位圆上，
+              <span class="mono">ω = 0</span> 附近（以及 <span class="mono">±2π, ±4π, …</span>）是<b>低频</b>，
+              信号变化最慢；<span class="mono">ω = π</span> 附近（以及 <span class="mono">±3π, …</span>）是<b>最高频</b>，
+              因为 <span class="mono">cos(πn) = (−1)<sup>n</sup></span> 每个样本都换符号，是离散时间能"抖"得最快的节奏。
+              再高频就绕回来了：<span class="mono">ω = 1.9π</span> 与 <span class="mono">ω = −0.1π</span> 是同一个频率，
+              它其实很"慢"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 5 步：推论三——实序列的频谱共轭对称。</b></p>
+            <div class="eq center-eq">
+              X(e<sup>−jω</sup>) = X*(e<sup>jω</sup>) &nbsp;&nbsp;（x[n] 为实序列）
+            </div>
+            <p class="why">为什么：把定义式里的 ω 换成 −ω，再对每一项取共轭即可看出。
+              于是 <span class="mono">|X(e<sup>jω</sup>)|</span> 是偶函数、
+              <span class="mono">∠X(e<sup>jω</sup>)</span> 是奇函数；
+              再结合 2π 周期性可知：<b>画实序列的频谱时，只画 <span class="mono">ω ∈ [0, π]</span> 就足够了</b>
+              （负频段是镜像，而 π 以上的部分是这段的重复）。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">一句话记住</span>
+            <p style="margin-bottom:0">
+              <b>离散时间的频谱是"周期的"；连续时间的频谱一般"不是周期的"。</b>
+              这不是数学技巧，而是物理事实：离散信号的最高频率是有限的（<span class="mono">ω=π</span>），
+              再往上没有"新频率"可用，于是频率轴只能循环。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s5">5. 动手：亲眼看见 2π 周期的重复</h2>
+      <p>
+        看一个最常见的序列：<span class="mono">x[n] = a<sup>n</sup>u[n]</span>（<span class="mono">|a|&lt;1</span>）。
+        它的频谱有闭式
+        <span class="mono">X(e<sup>jω</sup>) = 1/(1 − ae<sup>−jω</sup>)</span>。
+        下面同时画三条曲线：
+      </p>
+      <ul style="padding-left:22px">
+        <li><b>蓝实线</b>：<span class="mono">|X(e<sup>jω</sup>)|</span>，横轴取 <span class="mono">[−2π, 2π]</span>（也就是两个周期）；</li>
+        <li><b>红虚线</b>：<span class="mono">|X(e<sup>j(ω+2π)</sup>)|</span>——独立算一遍、不做任何"周期假设"的结果。它会和蓝线<b>严丝合缝地重合</b>，这就是周期性的可视证据；</li>
+        <li><b>灰点线</b>：把无穷级数只取前 N 项（截断）的结果。N 越大越贴近闭式，这就是收敛条件 <span class="mono">|a|&lt;1</span> 的实际含义。</li>
+      </ul>
+
+      <div id="lab-dtft"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          <b>① 曲线以 2π 为周期</b>：在 <span class="mono">ω=0</span> 处有一个峰，在
+          <span class="mono">ω=±2π</span> 处有<b>一模一样的峰</b>；<span class="mono">[0,π]</span> 的形状在
+          <span class="mono">[2π,3π]</span> 上原样重演。读数栏里"2π 周期性的最大偏差"在 1e−14 以内（纯浮点误差），
+          说明这不是"看起来像"，而是<b>恒等</b>。
+        </p>
+        <p>
+          <b>② <span class="mono">a</span> 的符号决定能量在哪里</b>：<span class="mono">a &gt; 0</span>（如 0.8）时峰在
+          <span class="mono">ω = 0, ±2π</span>——序列是缓慢衰减的正值，属于<b>低频</b>；
+          把 <span class="mono">a</span> 拖成负数（如 −0.8），序列变成正负交替、快速振荡，
+          峰立刻跑到 <span class="mono">ω = ±π</span>——那正是离散时间的最高频。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ 截断与收敛</b>：把 N 拉到很小（比如 4），灰线在 <span class="mono">ω=0</span> 附近明显低于闭式；
+          N 拉大，灰线贴上去。读数栏还顺手验证了帕塞瓦尔：
+          <span class="mono">Σ|x[n]|²</span> 与 <span class="mono">(1/2π)∫<sub>2π</sub>|X(e<sup>jω</sup>)|²dω</span> 相等。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 常用变换对（含推导）</h2>
+      <p class="small muted">把这几个当成"单词"。复杂序列先拆成它们，再套性质表。</p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">① 单位冲激 ⟷ 常数 1</h4>
+          <div class="eq" style="font-size:17px">δ[n] <span class="op ft">⟷</span> 1</div>
+          <details class="deriv">
+            <summary>推导</summary>
+            <div class="body">
+              <p class="tiny">用 <span class="mono">δ[n]</span> 只在 <span class="mono">n=0</span> 非零：</p>
+              <div class="eq">X(e<sup>jω</sup>) =
+                <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+                δ[n]e<sup>−jωn</sup> = e<sup>−jω·0</sup> = 1</div>
+              <p class="tiny">直觉：冲激在时间上最"集中"，频谱就最"平坦"——所有频率等强度，而且这个常函数当然以 2π 为周期。</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">② 单边指数 ⟷ 复有理函数（本节主角）</h4>
+          <div class="eq" style="font-size:17px">
+            a<sup>n</sup>u[n] <span class="op ft">⟷</span>
+            <span class="frac"><span class="num">1</span><span class="den">1 − ae<sup>−jω</sup></span></span>
+            &nbsp;(|a| &lt; 1)
+          </div>
+          <details class="deriv">
+            <summary>推导（几何级数）</summary>
+            <div class="body">
+              <div class="eq">
+                X(e<sup>jω</sup>) =
+                <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+                a<sup>n</sup>e<sup>−jωn</sup>
+                =
+                <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+                (ae<sup>−jω</sup>)<sup>n</sup>
+                = <span class="frac"><span class="num">1</span><span class="den">1 − ae<sup>−jω</sup></span></span>
+              </div>
+              <p class="tiny">为什么：这是公比为 <span class="mono">q = ae<sup>−jω</sup></span> 的等比级数，
+                和为 <span class="mono">1/(1−q)</span>，条件是 <span class="mono">|q| &lt; 1</span>。
+                而 <span class="mono">|q| = |a|·|e<sup>−jω</sup>| = |a|</span>，所以要求
+                <span class="mono">|a| &lt; 1</span>——这就是本序列的绝对可和条件
+                （<span class="mono">Σ|a|<sup>n</sup> = 1/(1−|a|)</span>）。</p>
+              <p class="tiny">模长：<span class="mono">|1 − ae<sup>−jω</sup>|² = 1 − 2a cos ω + a²</span>，所以</p>
+              <div class="eq">|X(e<sup>jω</sup>)| = <span class="frac"><span class="num">1</span><span class="den">√(1 − 2a cos ω + a²)</span></span></div>
+              <p class="tiny">它的分母里只有 <span class="mono">cos ω</span>，而 <span class="mono">cos</span> 以 2π 为周期——
+                于是模长自动以 2π 为周期。<b>这就是实验 1 里那条曲线的来历。</b></p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">③ 矩形脉冲 ⟷ Dirichlet 核</h4>
+          <div class="eq" style="font-size:16px">
+            x[n] = 1 (|n| ≤ N<sub>1</sub>) <span class="op ft">⟷</span>
+            <span class="frac"><span class="num">sin[ω(N<sub>1</sub>+½)]</span><span class="den">sin(ω/2)</span></span>
+          </div>
+          <details class="deriv">
+            <summary>推导（等比求和 + 半角公式）</summary>
+            <div class="body">
+              <div class="eq">
+                X(e<sup>jω</sup>) =
+                <span class="sum"><span class="top">N<sub>1</sub></span><span class="sym">Σ</span><span class="bot">n=−N<sub>1</sub></span></span>
+                e<sup>−jωn</sup>
+              </div>
+              <p class="tiny">把求和起点挪到 0（把 <span class="mono">e<sup>jωN<sub>1</sub></sup></span> 提取出来），
+                得到首项 1、公比 <span class="mono">e<sup>−jω</sup></span>、共 <span class="mono">2N<sub>1</sub>+1</span> 项的等比数列：</p>
+              <div class="eq">
+                = e<sup>jωN<sub>1</sub></sup> ·
+                <span class="frac"><span class="num">1 − e<sup>−jω(2N<sub>1</sub>+1)</sup></span><span class="den">1 − e<sup>−jω</sup></span></span>
+              </div>
+              <p class="tiny">分子分母同乘 <span class="mono">e<sup>jω(2N<sub>1</sub>+1)/2</sup></span> 与
+                <span class="mono">e<sup>jω/2</sup></span>，用
+                <span class="mono">e<sup>jA</sup> − e<sup>−jA</sup> = 2j sin A</span>：</p>
+              <div class="eq">
+                = e<sup>jωN<sub>1</sub></sup> ·
+                <span class="frac"><span class="num">sin[ω(N<sub>1</sub>+½)]</span><span class="den">sin(ω/2)</span></span>
+              </div>
+              <p class="tiny">为什么这叫
+                <span class="term" data-def="Dirichlet kernel，中文含义：狄里赫利核。离散时间矩形脉冲的频谱 sin[ω(N1+1/2)]/sin(ω/2)，是连续时间 sinc 的离散对应物；它以 2π 为周期，且周期内有许多旁瓣。">Dirichlet 核</span>
+                （Dirichlet kernel）：它是连续时间 sinc 函数的离散表亲。区别在于
+                <b>sinc 不周期、Dirichlet 核以 2π 为周期</b>。第 9 节会用它把 DTFS 和 DTFT 焊在一起。</p>
+            </div>
+          </details>
+        </div>
+
+        <div class="card">
+          <h4 style="margin-top:0">④ 更一般的"双边"与"反因果"</h4>
+          <div class="eq" style="font-size:16px">
+            −a<sup>n</sup>u[−n−1] <span class="op ft">⟷</span>
+            <span class="frac"><span class="num">1</span><span class="den">1 − ae<sup>−jω</sup></span></span>
+            &nbsp;(|a| &gt; 1 时才收敛)
+          </div>
+          <p class="tiny muted" style="margin-top:-4px">
+            同一个闭式 <span class="mono">1/(1−ae<sup>−jω</sup>)</span>，收敛条件不同就对应不同的序列——
+            第 13 章 z 变换会用 <b>ROC（收敛域）</b>把这件事讲得更清楚。
+          </p>
+          <div class="eq" style="font-size:16px">
+            (−1)<sup>n</sup> x[n] <span class="op ft">⟷</span> X(e<sup>j(ω−π)</sup>)
+          </div>
+          <p class="tiny muted" style="margin-top:-4px">
+            频移性质的直接应用：乘 <span class="mono">(−1)<sup>n</sup> = e<sup>jπn</sup></span>
+            就把频谱搬半圈，把低通变高通（第 10 章会用这条设计滤波器）。
+          </p>
+        </div>
+      </div>
+
+      <h3>常用变换对速查</h3>
+      <table class="tbl sm">
+        <thead><tr><th class="c">x[n]</th><th class="c">X(e<sup>jω</sup>)</th><th>备注</th></tr></thead>
+        <tbody>
+          <tr><td class="ft c">δ[n]</td><td class="ft c">1</td><td>全频段等强度</td></tr>
+          <tr><td class="ft c">1（常数）</td><td class="ft c">2π Σ<sub>l</sub> δ(ω−2πl)</td><td>只有直流，且要在每个频率周期上各放一根冲激</td></tr>
+          <tr><td class="ft c">a<sup>n</sup>u[n], |a|&lt;1</td><td class="ft c">1/(1−ae<sup>−jω</sup>)</td><td>单边指数，本节主角</td></tr>
+          <tr><td class="ft c">u[n]</td><td class="ft c">1/(1−e<sup>−jω</sup>) + π Σ<sub>l</sub> δ(ω−2πl)</td><td>含直流项，和 CTFT 里的 πδ(ω) 是同一个道理</td></tr>
+          <tr><td class="ft c">1（|n|≤N<sub>1</sub>），否则 0</td><td class="ft c">sin[ω(N<sub>1</sub>+½)]/sin(ω/2)</td><td>Dirichlet 核</td></tr>
+          <tr><td class="ft c">sin(ω<sub>c</sub>n)/(πn)</td><td class="ft c">1（|ω|&lt;ω<sub>c</sub>），周期 2π</td><td>理想低通的冲激响应，<b>非因果</b></td></tr>
+          <tr><td class="ft c">e<sup>jω<sub>0</sub>n</sup></td><td class="ft c">2π Σ<sub>l</sub> δ(ω−ω<sub>0</sub>−2πl)</td><td>冲激串：注意"每个周期各一根"</td></tr>
+          <tr><td class="ft c">cos(ω<sub>0</sub>n)</td><td class="ft c">π Σ<sub>l</sub>[δ(ω−ω<sub>0</sub>−2πl) + δ(ω+ω<sub>0</sub>−2πl)]</td><td>成对出现，且无限重复</td></tr>
+          <tr><td class="ft c">a<sup>|n|</sup>, |a|&lt;1</td><td class="ft c">(1−a²)/(1−2a cos ω + a²)</td><td>实、偶 ⟹ 频谱是实、偶</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box trap">
+        <span class="tag">周期信号的 DTFT 为什么是"冲激串"</span>
+        <p style="margin-bottom:0">
+          因为频谱必须以 2π 为周期，所以一个周期信号的每根谱线都必须在
+          <span class="mono">ω<sub>0</sub> + 2πl</span>（<span class="mono">l = 0, ±1, ±2, …</span>）上各出现一次——
+          <b>同一个频率在每个周期里都要冒出来一根</b>，于是就成了一串等间距的冲激。
+          这一点和第 6 章很不一样：CTFT 里 <span class="mono">cos(ω<sub>0</sub>t)</span> 只有两根冲激，DTFT 里是无穷多根（每 2π 重复一次）。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 性质表（与 CTFT 对照）</h2>
+      <p>
+        下表左边是本章的性质，最后一列写出 CTFT 的对应形式，方便你一眼看出"哪里一样、哪里不一样"。
+        设 <span class="mono">x[n] <span class="op ft">⟷</span> X(e<sup>jω</sup>)</span>，
+        <span class="mono">y[n] <span class="op ft">⟷</span> Y(e<sup>jω</sup>)</span>。
+      </p>
+
+      <table class="tbl sm">
+        <thead><tr><th>性质</th><th class="c">x[n]（离散）</th><th class="c">X(e<sup>jω</sup>)</th><th>与 CTFT 的差别</th></tr></thead>
+        <tbody>
+          <tr><td>线性</td><td class="c ft">ax[n]+by[n]</td><td class="c ft">aX+bY</td><td>一样</td></tr>
+          <tr><td>时移</td><td class="c ft">x[n−n<sub>0</sub>]</td><td class="c ft">e<sup>−jωn<sub>0</sub></sup>X(e<sup>jω</sup>)</td><td>一样（幅度不变，相位加线性斜坡）</td></tr>
+          <tr><td>频移</td><td class="c ft">e<sup>jω<sub>0</sub>n</sup>x[n]</td><td class="c ft">X(e<sup>j(ω−ω<sub>0</sub>)</sup>)</td><td>一样的形式，但因为 2π 周期，平移是<b>循环</b>的</td></tr>
+          <tr><td>共轭</td><td class="c ft">x*[n]</td><td class="c ft">X*(e<sup>−jω</sup>)</td><td>一样</td></tr>
+          <tr><td>时间反转</td><td class="c ft">x[−n]</td><td class="c ft">X(e<sup>−jω</sup>)</td><td>一样</td></tr>
+          <tr><td>时域扩展（插零）</td><td class="c ft">x<sub>(k)</sub>[n]（每 k 个样本插 k−1 个 0）</td><td class="c ft">X(e<sup>jkω</sup>)</td><td><b>离散特有</b>：时域拉长 k 倍 ⟹ 频谱压缩，周期变成 2π/k</td></tr>
+          <tr><td><b>卷积</b></td><td class="c ft">x[n] ∗ y[n]</td><td class="c ft">X(e<sup>jω</sup>)Y(e<sup>jω</sup>)</td><td>一样。<b>整门课最有用的性质</b></td></tr>
+          <tr><td>相乘</td><td class="c ft">x[n]y[n]</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">2π</span></span>∫<sub>2π</sub>X(e<sup>jθ</sup>)Y(e<sup>j(ω−θ)</sup>)dθ</td><td>一样，但积分是<b>周期卷积</b>（只积 2π）</td></tr>
+          <tr><td>时域差分</td><td class="c ft">x[n]−x[n−1]</td><td class="c ft">(1−e<sup>−jω</sup>)X(e<sup>jω</sup>)</td><td>对应 CTFT 的"微分乘 jω"</td></tr>
+          <tr><td>累加</td><td class="c ft">Σ<sub>m=−∞</sub><sup>n</sup>x[m]</td><td class="c ft"><span class="frac"><span class="num">X(e<sup>jω</sup>)</span><span class="den">1−e<sup>−jω</sup></span></span> + πX(e<sup>j0</sup>)Σ<sub>l</sub>δ(ω−2πl)</td><td>对应"积分除以 jω"，额外项表示直流</td></tr>
+          <tr><td>频域微分</td><td class="c ft">n x[n]</td><td class="c ft">j <span class="frac"><span class="num">dX(e<sup>jω</sup>)</span><span class="den">dω</span></span></td><td>一样</td></tr>
+          <tr><td>实信号对称</td><td class="c ft">x[n] 实</td><td class="c ft">X(e<sup>−jω</sup>) = X*(e<sup>jω</sup>)</td><td>一样</td></tr>
+          <tr><td>帕塞瓦尔</td><td class="c ft">Σ<sub>n</sub>|x[n]|²（能量）</td><td class="c ft"><span class="frac"><span class="num">1</span><span class="den">2π</span></span>∫<sub>2π</sub>|X(e<sup>jω</sup>)|²dω</td><td>一样（这里是<b>能量</b>，离散周期信号才谈功率）</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s8">8. 六条关键性质的推导</h2>
+      <p>性质表不用死背，但下面这六条必须会推——考试的推导题基本都从它们里出。</p>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：时移 / 频移 / 时间反转 / 卷积 / 相乘 / 帕塞瓦尔</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>(a) 时移：x[n−n<sub>0</sub>] ⟷ e<sup>−jωn<sub>0</sub></sup>X(e<sup>jω</sup>)</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n−n<sub>0</sub>]e<sup>−jωn</sup>
+              &nbsp;<span style="color:var(--accent);font-size:14px">令 m = n − n<sub>0</sub>，则 n = m + n<sub>0</sub></span>&nbsp;
+              =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              x[m]e<sup>−jω(m+n<sub>0</sub>)</sup>
+              = e<sup>−jωn<sub>0</sub></sup>X(e<sup>jω</sup>)
+            </div>
+            <p class="why">为什么：换元只改求和变量名，指数里的 <span class="mono">n<sub>0</sub></span> 是常数，可以提出求和号。
+              幅度 <span class="mono">|e<sup>−jωn<sub>0</sub></sup>| = 1</span>，所以<b>纯延时只改相位、不改幅度谱</b>。
+              另外 <span class="mono">e<sup>−jωn<sub>0</sub></sup></span> 是 ω 的线性相位（相位随频率线性下降），
+              这正是"延时"在频域里的指纹（第 10 章的线性相位=不失真）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(b) 频移：e<sup>jω<sub>0</sub>n</sup>x[n] ⟷ X(e<sup>j(ω−ω<sub>0</sub>)</sup>)</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              e<sup>jω<sub>0</sub>n</sup>x[n]e<sup>−jωn</sup>
+              =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]e<sup>−j(ω−ω<sub>0</sub>)n</sup>
+              = X(e<sup>j(ω−ω<sub>0</sub>)</sup>)
+            </div>
+            <p class="why">为什么：两个指数合并，剩下的就是"把频谱的自变量整体换成 ω−ω<sub>0</sub>"，
+              即整条曲线向右平移 <span class="mono">ω<sub>0</sub></span>。
+              <b>离散时间的特殊之处</b>：因为原曲线以 2π 为周期，搬出右端的部分会从左端"绕回来"，
+              所以平移永远是循环的。</p>
+            <p class="small muted">推论（很实用）：取 <span class="mono">ω<sub>0</sub> = π</span>，即
+              <span class="mono">e<sup>jπn</sup> = (−1)<sup>n</sup></span>，频谱就左右搬半圈：
+              理想低通 <span class="mono">H<sub>lp</sub>(e<sup>jω</sup>)</span> 变成
+              <span class="mono">H<sub>lp</sub>(e<sup>j(ω−π)</sup>)</span>，也就是一个截止频率为
+              <span class="mono">π−ω<sub>c</sub></span> 的<b>理想高通</b>，对应冲激响应
+              <span class="mono">h<sub>hp</sub>[n] = (−1)<sup>n</sup>h<sub>lp</sub>[n]</span>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(c) 时间反转：x[−n] ⟷ X(e<sup>−jω</sup>)</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[−n]e<sup>−jωn</sup>
+              &nbsp;<span style="color:var(--accent);font-size:14px">令 m = −n</span>&nbsp;
+              =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">m=−∞</span></span>
+              x[m]e<sup>−j(−ω)m</sup> = X(e<sup>−jω</sup>)
+            </div>
+            <p class="why">为什么求和限没变：<span class="mono">m</span> 从 <span class="mono">−∞</span>
+              走到 <span class="mono">+∞</span> 与 <span class="mono">n</span> 的走向正好相反，但把这个"反向"吸收进
+              <span class="mono">m = −n</span> 之后，求和范围仍是全体整数。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(d) 卷积：x[n] ∗ y[n] ⟷ X(e<sup>jω</sup>)Y(e<sup>jω</sup>)</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k]y[n−k]
+              <span style="font-size:20px">]</span> e<sup>−jωn</sup>
+              =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k]
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              y[n−k]e<sup>−jωn</sup>
+              <span style="font-size:20px">]</span>
+            </div>
+            <p class="why">为什么能交换次序：两个级数在绝对可和的前提下都绝对收敛，可以逐项相乘后重排。
+              （极限情况下（均方收敛）这一步要用更细的论证，结论不变。）</p>
+            <div class="eq">
+              = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              x[k] · e<sup>−jωk</sup>Y(e<sup>jω</sup>)
+              = X(e<sup>jω</sup>)Y(e<sup>jω</sup>)
+            </div>
+            <p class="why">为什么方括号等于 <span class="mono">e<sup>−jωk</sup>Y(e<sup>jω</sup>)</span>：
+              这正是刚证的<b>时移性质</b>（把 <span class="mono">n<sub>0</sub></span> 换成 <span class="mono">k</span>）。</p>
+            <p class="small muted">这就是
+              <span class="term" data-def="frequency response，中文含义：频率响应（频响）。系统冲激响应 h[n] 的 DTFT，H(e^{jω})；模长告诉你在 ω 处放大了几倍，辐角告诉你相移多少。">频率响应</span>
+              的理论基础：LTI 系统输出 <span class="mono">y = x ∗ h</span>，所以
+              <span class="mono">Y(e<sup>jω</sup>) = H(e<sup>jω</sup>)X(e<sup>jω</sup>)</span>——
+              <b>时域卷积在频域变成一次乘法</b>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(e) 相乘：x[n]y[n] ⟷ (1/2π)∫<sub>2π</sub>X(e<sup>jθ</sup>)Y(e<sup>j(ω−θ)</sup>)dθ</b></p>
+            <p>把 <span class="mono">y[n]</span> 用反变换写开（积分变量用 θ），再交换求和与积分：</p>
+            <div class="eq">
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]y[n]e<sup>−jωn</sup>
+              =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]
+              <span style="font-size:20px">[</span>
+              <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              Y(e<sup>jθ</sup>)e<sup>jθn</sup>dθ
+              <span style="font-size:20px">]</span> e<sup>−jωn</sup>
+            </div>
+            <div class="eq">
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              Y(e<sup>jθ</sup>)
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]e<sup>−j(ω−θ)n</sup>
+              <span style="font-size:20px">]</span> dθ
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              X(e<sup>j(ω−θ)</sup>)Y(e<sup>jθ</sup>)dθ
+            </div>
+            <p class="why">为什么方括号里是 <span class="mono">X(e<sup>j(ω−θ)</sup>)</span>：它就是 DTFT 的定义，只是把 ω 换成了 ω−θ。
+              整个结果就是"两个周期函数在 2π 上的
+              <span class="term" data-def="periodic convolution，中文含义：周期卷积。两个以 2π 为周期的频谱函数做的卷积，积分只在一个 2π 周期上进行；它是 DTFT 相乘性质里出现的运算。">周期卷积</span>"。
+              注意与卷积性质的<b>方向相反</b>：时域相乘 ⟷ 频域（周期）卷积。</p>
+          </div>
+
+          <div class="step">
+            <p><b>(f) 帕塞瓦尔：Σ|x[n]|² = (1/2π)∫<sub>2π</sub>|X(e<sup>jω</sup>)|²dω</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              |x[n]|²
+              =
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]
+              <span style="font-size:20px">[</span>
+              <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              X*(e<sup>jω</sup>)e<sup>−jωn</sup>dω
+              <span style="font-size:20px">]</span>
+            </div>
+            <p class="why">为什么：<span class="mono">|x[n]|² = x[n]x*[n]</span>，
+              而 <span class="mono">x*[n]</span> 就是反变换两边取共轭（指数符号翻转、频谱取共轭）。</p>
+            <div class="eq">
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              X*(e<sup>jω</sup>)
+              <span style="font-size:20px">[</span>
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]e<sup>−jωn</sup>
+              <span style="font-size:20px">]</span> dω
+              = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span></span></span></span><sub>2π</sub>
+              |X(e<sup>jω</sup>)|²dω
+            </div>
+            <p class="why">为什么有意义：方括号里正是 <span class="mono">X(e<sup>jω</sup>)</span>。
+              左边是序列的总能量，右边是按 <span class="mono">|X|²</span> 积出来的频域能量——
+              <b>能量守恒</b>，所以
+              <span class="term" data-def="energy density spectrum，中文含义：能量谱密度。|X(e^{jω})|²，描述每个频率单位上携带多少能量。">能量谱密度</span>
+              （energy density spectrum）就是 <span class="mono">|X(e<sup>jω</sup>)|²</span>（还差 1/2π 这个单位换算）。
+              实验 1 的读数栏会当场把这两个数算给你看。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s9">9. 动手：DTFS 系数就是 DTFT 的采样</h2>
+      <p>
+        这一节把第 5 章和第 7 章焊在一起，也正是本章第 2 节推导的图形版。
+        取一个宽度为 <span class="mono">2N<sub>1</sub>+1</span> 的矩形脉冲，
+        <b>灰蓝曲线</b>是它的 DTFT（Dirichlet 核，连续曲线）；
+        把它以 <b>N</b> 为周期复制后，<b>红点</b>就是 DTFS 系数放大 N 倍后的位置。
+      </p>
+      <p class="small muted">
+        为什么红点的纵坐标画的是 <span class="mono">N|c<sub>k</sub>|</span>？因为
+        <span class="mono">c<sub>k</sub> = (1/N)X(e<sup>jk2π/N</sup>)</span>，
+        乘上 N 才能和连续曲线落在同一把尺子上。<b>它们必然落在曲线上</b>——这正是推导第 3 步的结论。
+      </p>
+
+      <div id="lab-sampling"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          <b>① 红点永远不会跑出曲线</b>：不管怎么改 N 和 N₁，DTFS 系数永远落在 DTFT 曲线上。
+          这就是"级数系数 = 变换的采样"。
+        </p>
+        <p>
+          <b>② 采样间隔是 2π/N</b>：一个 2π 周期里正好有 <b>N</b> 个点。
+          把 N 从 8 拉到 24，点变密、间距变小；N→∞ 时这些点就"挤成"了连续曲线——
+          这就是第 2 节那个推导的逆向阅读：<b>DTFS 是 DTFT 的采样，DTFT 是 DTFS 的极限</b>。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ 频率轴的位置也印证了周期</b>：在 <span class="mono">[−2π, 2π]</span> 上你能看到同样的点阵重复了两遍，
+          因为 <span class="mono">X(e<sup>jω</sup>)</span> 本身就是 2π 周期的。
+        </p>
+      </div>
+
+      <h2 id="s10">10. 动手：用 DTFT 分析 LTI 系统</h2>
+      <p>
+        频域分析最实用的地方：输入是两个余弦的叠加，系统是一阶低通
+        <span class="mono">h[n] = a<sup>n</sup>u[n]</span>（即 <span class="mono">H(e<sup>jω</sup>) = 1/(1−ae<sup>−jω</sup>)</span>）。
+        因为复指数是 LTI 系统的<b>特征函数</b>（第 3 章），输出可以直接写出来：
+      </p>
+      <div class="eq center-eq">
+        x[n] = cos(ω<sub>1</sub>n) + 0.6cos(ω<sub>2</sub>n)
+        &nbsp;&nbsp;⟹&nbsp;&nbsp;
+        y[n] = |H(ω<sub>1</sub>)|cos(ω<sub>1</sub>n + ∠H(ω<sub>1</sub>)) + 0.6|H(ω<sub>2</sub>)|cos(ω<sub>2</sub>n + ∠H(ω<sub>2</sub>))
+      </div>
+      <p class="small muted">
+        （为了书写方便，把 <span class="mono">H(e<sup>jω</sup>)</span> 简写成 <span class="mono">H(ω)</span>。）
+      </p>
+
+      <div id="lab-lti"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          <b>① 每个频率各乘各的</b>：输入里 <span class="mono">ω<sub>1</sub></span> 的成分被放大
+          <span class="mono">|H(ω<sub>1</sub>)|</span> 倍，<span class="mono">ω<sub>2</sub></span> 的成分被放大
+          <span class="mono">|H(ω<sub>2</sub>)|</span> 倍，互不干扰。这就是
+          <span class="mono">Y = H·X</span> 的物理含义。
+        </p>
+        <p>
+          <b>② 低通把高频"削"掉</b>：把 <span class="mono">a</span> 往 1 推，通带变窄，
+          <span class="mono">|H(ω<sub>2</sub>)|</span> 迅速变小，输出里就只剩慢的那一路——
+          波形变得平滑。<b>注意 <span class="mono">a</span> 只能取正、系统才稳定</b>
+          （|a|&lt;1 才是绝对可和）。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ 读数栏里做了双重验证</b>：直接用特征函数公式算的 <span class="mono">y[n]</span>，
+          与用差分方程 <span class="mono">y[n] = x[n] + ay[n−1]</span> 逐点仿真出来的结果，
+          最大偏差通常在 1e−15 ~ 1e−9 之间（残差是仿真起点留下的瞬态，与 a 的大小有关）。
+          公式和时域仿真给出同一个答案，这说明频域那套推导没有耍花招。
+        </p>
+      </div>
+
+      <h2 id="s11">11. 差分方程直接写出 H(e<sup>jω</sup>)</h2>
+      <p>
+        实际系统常常是用差分方程给出的。<b>好消息是：不需要先求 h[n] 再变换，直接把 e<sup>jω</sup> 代进去就行。</b>
+      </p>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：由差分方程直接读出 H(e^{jω})</summary>
+        <div class="body">
+          <p>设系统由线性常系数差分方程描述：</p>
+          <div class="eq">
+            <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+            a<sub>k</sub> y[n−k]
+            =
+            <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+            b<sub>k</sub> x[n−k]
+          </div>
+
+          <div class="step">
+            <p><b>第 1 步：让输入是复指数 <span class="mono">x[n] = e<sup>jωn</sup></span>。</b></p>
+            <p>由特征函数性质（第 3 章），输出必定是同一频率的复指数乘以一个<b>复数常数</b>：</p>
+            <div class="eq center-eq">
+              y[n] = H(e<sup>jω</sup>) · e<sup>jωn</sup>
+            </div>
+            <p class="why">为什么：<span class="mono">e<sup>jωn</sup></span> 经过 LTI 系统只会被"乘一个复数"——
+              模长被放大、相位被推迟，波形形状（频率）不变。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：把两边的时移都用 <span class="mono">e<sup>−jkω</sup></span> 表示。</b></p>
+            <div class="eq">
+              y[n−k] = H(e<sup>jω</sup>)e<sup>jω(n−k)</sup> = e<sup>−jkω</sup> · H(e<sup>jω</sup>)e<sup>jωn</sup>, &nbsp;&nbsp;
+              x[n−k] = e<sup>−jkω</sup>e<sup>jωn</sup>
+            </div>
+            <p class="why">为什么：延时 k 个样本 ⟹ 乘以 <span class="mono">z<sup>−k</sup></span> 其中
+              <span class="mono">z = e<sup>jω</sup></span>。这是"时移性质"在特征函数上的直接体现。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：代入方程，两边约掉公因子 <span class="mono">e<sup>jωn</sup></span>。</b></p>
+            <div class="eq">
+              <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              a<sub>k</sub>e<sup>−jkω</sup> · H(e<sup>jω</sup>)e<sup>jωn</sup>
+              =
+              <span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              b<sub>k</sub>e<sup>−jkω</sup>e<sup>jωn</sup>
+            </div>
+            <p class="why">为什么能约掉：<span class="mono">e<sup>jωn</sup></span> 与 k 无关、对每一项都一样，
+              而且永远不为 0（模恒为 1）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：移项得到频率响应。</b></p>
+            <div class="eq center-eq">
+              H(e<sup>jω</sup>) =
+              <span class="frac">
+                <span class="num"><span class="sum"><span class="top">M</span><span class="sym">Σ</span><span class="bot">k=0</span></span> b<sub>k</sub>e<sup>−jkω</sup></span>
+                <span class="den"><span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">k=0</span></span> a<sub>k</sub>e<sup>−jkω</sup></span>
+              </span>
+            </div>
+            <p class="why">为什么好：<b>把方程里"x 的系数放分子、y 的系数放分母"，再把每个延时
+              <span class="mono">k</span> 换成 <span class="mono">e<sup>−jkω</sup></span></b>，H 就写出来了。
+              分子分母都是 <span class="mono">e<sup>−jω</sup></span> 的多项式。</p>
+          </div>
+
+          <p class="small muted">
+            例：<span class="mono">y[n] − ay[n−1] = x[n]</span>
+            ⟹ <span class="mono">H(e<sup>jω</sup>) = 1/(1 − ae<sup>−jω</sup>)</span>，
+            与上面第 6 节的变换对 ② 完全一致，所以冲激响应就是
+            <span class="mono">h[n] = a<sup>n</sup>u[n]</span>（要求 <span class="mono">|a| &lt; 1</span>）。
+            这就是本页实验 1 和实验 3 里那个系统的来历。
+          </p>
+        </div>
+      </details>
+
+      <h2 id="s12">12. 它和其它变换的关系</h2>
+
+      <div class="box ok">
+        <span class="tag">三条关系，背下来</span>
+        <p>
+          <b>① DTFS → DTFT（本章）</b>：把 DTFS 的 N 推向无穷，离散谱线挤成连续曲线。
+          反过来：<span class="mono">c<sub>k</sub> = (1/N)·X(e<sup>jk2π/N</sup>)</span>——
+          <b>DTFS 系数是 DTFT 的等间隔采样</b>（实验 2 就是这个等式）。
+        </p>
+        <p>
+          <b>② DTFT → DFT（第 8 章）</b>：计算机算不了连续曲线，只能算有限个频率点。
+          在 <span class="mono">ω = 2πk/N</span> 上采样得到 <span class="mono">X[k]</span>，
+          就是 DFT。代价是"时域被当成周期的"（隐含周期延拓），于是有了循环卷积。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ DTFT → z 变换（第 13 章）</b>：DTFT 只在单位圆 <span class="mono">z = e<sup>jω</sup></span> 上看频谱；
+          允许 <span class="mono">z</span> 跑遍整个复平面，就得到 z 变换
+          <span class="mono">X(z) = Σx[n]z<sup>−n</sup></span>。
+          前提是单位圆落在 ROC（收敛域）里，才有
+          <span class="mono">X(e<sup>jω</sup>) = X(z)|<sub>z=e<sup>jω</sup></sub></span>。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">顺带说一句对偶性</span>
+        <p style="margin-bottom:0">
+          连续时间有一个漂亮的对称：时域的矩形 ⟷ 频域的 sinc。
+          离散时间里这份对称被"周期化"改写了：
+          DTFT 与 <b>CTFS（连续时间傅里叶级数）</b>之间存在对偶关系——
+          "时域离散 ⟷ 频域周期"、"时域周期 ⟷ 频域离散"。
+          记住这条口号，第 14 章的总对照表就会变得很好记：
+          <b>一个域里的离散，对应另一个域里的周期</b>。
+        </p>
+      </div>
+
+      <h2 id="s13">13. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：忘记频谱以 2π 为周期</h4>
+          <p class="small">这是本章第一大坑。<span class="mono">X(e<sup>jω</sup>)</span> 是周期函数，
+            <span class="mono">ω</span> 只能算到 <span class="mono">±π</span>（或 <span class="mono">0…2π</span>）。
+            把 <span class="mono">ω=3π</span> 处的值当成"新信息"就错了。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：以为 <span class="mono">ω=2π</span> 是"更高的频率"</h4>
+          <p class="small"><span class="mono">ω=2π</span> 就是直流（和 <span class="mono">ω=0</span> 一样）。
+            离散时间的最高频率是 <span class="mono">ω=π</span>；再往上"频率"反而在下降
+            （<span class="mono">1.9π</span> 与 <span class="mono">−0.1π</span> 是同一个频率）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：漏掉反变换的 1/2π</h4>
+          <p class="small">正变换没有系数，<b>反变换才有 1/2π</b>。
+            这和 CTFT 的约定一致；但要注意反变换的积分区间是 <b>2π</b>，不是 <span class="mono">(−∞,∞)</span>。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：绝对可和条件写错</h4>
+          <p class="small">是 <span class="mono">Σ|x[n]| &lt; ∞</span>（绝对值之和），
+            不是 <span class="mono">Σx[n] &lt; ∞</span>。对 <span class="mono">a<sup>n</sup>u[n]</span>
+            来说，条件就是 <span class="mono">|a| &lt; 1</span>，闭式
+            <span class="mono">1/(1−ae<sup>−jω</sup>)</span> 也正是在这个前提下推出来的。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：周期信号的 DTFT 只画一根冲激</h4>
+          <p class="small">因为频谱必须 2π 周期，周期信号的谱是<b>冲激串</b>：
+            <span class="mono">Σ<sub>l</sub>δ(ω−ω<sub>0</sub>−2πl)</span>。
+            每个周期里都要有一根，漏掉重复项是常见错误。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：把时域相乘也当成"频域相乘"</h4>
+          <p class="small">卷积性质是"<b>时域卷积 ⟷ 频域相乘</b>"。
+            反过来"时域相乘 ⟷ 频域<b>周期卷积</b>（带 1/2π）"，两者不能互相替代。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：以为"有限长 ⟹ 频谱平坦"</h4>
+          <p class="small">频谱平坦（等于常数 1）的是 <b>δ[n]</b>，不是"任何有限长序列"。
+            比如矩形脉冲的频谱是 Dirichlet 核，有一堆旁瓣（实验 2 里看得很清楚）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：忘了 H(e<sup>jω</sup>) 是 h[n] 的 DTFT</h4>
+          <p class="small">频率响应不是别的什么函数，它就是冲激响应的 DTFT：
+            <span class="mono">H(e<sup>jω</sup>) = Σh[n]e<sup>−jωn</sup></span>。
+            所以 <span class="mono">H</span> 也以 2π 为周期，也要满足实序列的共轭对称。</p>
+        </div>
+      </div>
+
+      <h2 id="s14">14. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz7"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 7 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ============ 本页内联工具（共享内核没有的，自己实现） ============ */
+
+  /* π 的倍数刻度标签 */
+  function piTick(v) {
+    var r = v / Math.PI;
+    var known = [[-2, '−2π'], [-1.5, '−3π/2'], [-1, '−π'], [-0.5, '−π/2'], [0, '0'],
+      [0.5, 'π/2'], [1, 'π'], [1.5, '3π/2'], [2, '2π'], [3, '3π']];
+    for (var i = 0; i < known.length; i++) if (Math.abs(r - known[i][0]) < 1e-6) return known[i][1];
+    return v === 0 ? '0' : SSC.fmt(v, 2);
+  }
+  function niceTick(v) { return Math.abs(v - Math.round(v)) < 1e-9 ? SSC.fmt(v, 0) : SSC.fmt(v, 2); }
+
+  /* a^n u[n] 的 DTFT：闭式（无穷长）的模长与相位 */
+  function magInf(w, a) { return 1 / Math.sqrt(1 - 2 * a * Math.cos(w) + a * a); }
+  function phInf(w, a) { return -Math.atan2(a * Math.sin(w), 1 - a * Math.cos(w)); }
+
+  /* 截断到前 N 项的 DTFT（直接按定义求和） */
+  function dtftTrunc(w, a, N) {
+    var re = 0, im = 0, n, p;
+    for (n = 0; n < N; n++) {
+      p = Math.pow(a, n);
+      re += p * Math.cos(w * n);
+      im -= p * Math.sin(w * n);
+    }
+    return { re: re, im: im, mag: Math.hypot(re, im) };
+  }
+
+  /* Dirichlet 核：|sin(ω(N1+½))/sin(ω/2)|，ω=0（及 2π 的整数倍）处取极限 2N1+1 */
+  function dirichlet(w, N1) {
+    var s = Math.sin(w / 2);
+    if (Math.abs(s) < 1e-12) return 2 * N1 + 1;
+    return Math.abs(Math.sin(w * (N1 + 0.5)) / s);
+  }
+
+  function modN(v, N) { return ((v % N) + N) % N; }
+
+  /* 控件值安全化：先取整再限幅。滑块可能被设成小数（例如 min 与 max 的中点），
+     整数控件、数组长度一律要过这一关，避免 NaN/Infinity 或 undefined 下标。 */
+  function intOf(v, lo, hi, def) {
+    var x = Math.round(+v);
+    if (!isFinite(x)) x = def;
+    return SSC.clamp(x, lo, hi);
+  }
+  /* 参数 a 必须严格落在 (−1, 1) 内，否则 1/(1−ae^{−jω}) 会在某些频率上爆成 Infinity */
+  function aOf(v, def, lo, hi) {
+    var x = +v;
+    if (!isFinite(x)) x = def;
+    return SSC.clamp(x, lo == null ? -0.98 : lo, hi == null ? 0.98 : hi);
+  }
+  function numOf(v, def) { var x = +v; return isFinite(x) ? x : def; }
+
+  /* 复数版 DTFS（输入可为实数或 {re,im}），返回 c_k = X[k]/N */
+  function dtfsC(y) {
+    var N = y.length, out = [], k, n, re, im, ang, vr, vi, e;
+    for (k = 0; k < N; k++) {
+      re = 0; im = 0;
+      for (n = 0; n < N; n++) {
+        e = y[n];
+        vr = typeof e === 'number' ? e : e.re;
+        vi = typeof e === 'number' ? 0 : e.im;
+        ang = -2 * Math.PI * k * n / N;
+        re += vr * Math.cos(ang) - vi * Math.sin(ang);
+        im += vr * Math.sin(ang) + vi * Math.cos(ang);
+      }
+      out.push({ re: re / N, im: im / N });
+    }
+    return out;
+  }
+
+  /* 周期延拓：矩形脉冲（|n| 的环形距离 ≤ N1） */
+  function periodicPulse(N, N1) {
+    var x = [], n, d;
+    for (n = 0; n < N; n++) {
+      d = Math.min(n, N - n);
+      x.push(d <= N1 ? 1 : 0);
+    }
+    return x;
+  }
+
+  /* ---------- 实验 1（核心）：2π 周期的可视证据 ---------- */
+  SSC.lab({
+    mount: '#lab-dtft',
+    title: '实验 1 · 频谱以 2π 为周期，且周期无限重复',
+    hint: '盯住 −2π、0、2π 处的三个峰：它们一模一样；红虚线永远压着蓝实线',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域 x[n] = aⁿu[n]（蓝=前 N 项，灰=被截掉的部分）', height: 205 },
+      { id: 'mag', label: '|X(e^{jω})|：ω ∈ [−2π, 2π]（正好两个周期）', height: 205 }
+    ],
+    controls: [
+      { id: 'a', label: '参数 a（要 |a| < 1）', min: -0.95, max: 0.95, step: 0.05, value: 0.8 },
+      { id: 'N', label: '截断长度 N', min: 3, max: 40, step: 1, value: 12 }
+    ],
+    draw: function (cv, v, api) {
+      var a = aOf(v.a, 0.8);
+      var N = intOf(v.N, 1, 200, 12);
+      var nmax = Math.min(N + 4, 26), n, w;
+
+      var gx = [], gy = [], bx = [], by = [];
+      for (n = -2; n <= nmax; n++) {
+        gx.push(n);
+        gy.push(n >= 0 ? Math.pow(a, n) : 0);
+      }
+      for (n = -2; n <= N - 1; n++) {
+        bx.push(n);
+        by.push(n >= 0 ? Math.pow(a, n) : 0);
+      }
+      SSC.plot(cv.time, {
+        xmin: -2.8, xmax: nmax + 0.8, ymin: -1.15, ymax: 1.15,
+        xticks: [0, 5, 10, 15, 20, 25].filter(function (t) { return t <= nmax; }), tickFmt: niceTick,
+        xlabel: 'n', ylabel: 'x[n]',
+        stems: [
+          { xs: gx, ys: gy, color: '#c3ccdd', width: 1.4, r: 3.2, label: '完整的 aⁿu[n]' },
+          { xs: bx, ys: by, color: '#4338ca', width: 1.6, r: 2.2, label: '只取前 N 项（截断）' }
+        ],
+        legend: true
+      });
+
+      var ymax = 1 / (1 - Math.abs(a)) * 1.12;
+      SSC.plot(cv.mag, {
+        xmin: -2 * Math.PI, xmax: 2 * Math.PI, ymin: 0, ymax: ymax,
+        xticks: [-2 * Math.PI, -Math.PI, 0, Math.PI, 2 * Math.PI], tickFmt: piTick,
+        xlabel: 'ω (rad/样本)', ylabel: '|X(e^{jω})|',
+        bands: [{ x1: -Math.PI, x2: Math.PI, color: 'rgba(21,128,61,.09)' }],
+        curves: [
+          { f: function (ww) { return dtftTrunc(ww, a, N).mag; }, color: '#c3ccdd', width: 1.6, dash: [4, 4], samples: 900, label: 'N 项截断（灰色点线）' },
+          { f: function (ww) { return magInf(ww, a); }, color: '#0e7490', width: 2.2, samples: 900, label: '|X(e^{jω})| 闭式' },
+          { f: function (ww) { return magInf(ww + 2 * Math.PI, a); }, color: '#dc2626', width: 1.8, dash: [7, 5], samples: 900, label: '|X(e^{j(ω+2π)})| 独立算一遍' }
+        ],
+        vlines: [
+          { x: -2 * Math.PI, color: '#b45309', label: '−2π' },
+          { x: -Math.PI, color: '#c3ccdd', label: '−π' },
+          { x: Math.PI, color: '#c3ccdd', label: 'π' },
+          { x: 2 * Math.PI, color: '#b45309', label: '2π' }
+        ],
+        legend: true
+      });
+
+      /* 数值验证：2π 周期性偏差、帕塞瓦尔 */
+      var perr = 0, i;
+      for (i = 0; i <= 400; i++) {
+        w = -2 * Math.PI + 4 * Math.PI * i / 400;
+        var dd = Math.abs(magInf(w, a) - magInf(w + 2 * Math.PI, a));
+        if (dd > perr) perr = dd;
+      }
+      var eTime = 0;
+      for (n = 0; n < N; n++) eTime += Math.pow(a, 2 * n);
+      var M = 4000, s = 0;
+      for (i = 0; i < M; i++) {
+        w = -Math.PI + 2 * Math.PI * (i + 0.5) / M;
+        var mg = dtftTrunc(w, a, N).mag;
+        s += mg * mg;
+      }
+      var eFreq = s * (2 * Math.PI / M) / (2 * Math.PI);
+
+      api.readout(
+        '<div class="stat"><div class="k">|X(e^{j0})|（直流）</div><div class="v">' + SSC.fmt(magInf(0, a), 3) + '</div></div>' +
+        '<div class="stat"><div class="k">|X(e^{jπ})|（最高频）</div><div class="v">' + SSC.fmt(magInf(Math.PI, a), 3) + '</div></div>' +
+        '<div class="stat"><div class="k">2π 周期性最大偏差</div><div class="v" style="font-size:13px">' + perr.toExponential(1) + '</div></div>' +
+        '<div class="stat"><div class="k">能量：Σ|x[n]|²</div><div class="v" style="font-size:13px">' + SSC.fmt(eTime, 4) + '</div></div>' +
+        '<div class="stat"><div class="k">能量：(1/2π)∫|X|²dω</div><div class="v" style="font-size:13px">' + SSC.fmt(eFreq, 4) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var a = aOf(v.a, 0.8);
+      var N = intOf(v.N, 1, 200, 12);
+      var txt = '当前 <b>a = ' + SSC.fmt(a, 2) + '</b>，<b>N = ' + N + '</b>。';
+      txt += a >= 0
+        ? '因为 a ≥ 0，序列是缓慢衰减的正值，能量集中在 <b>ω = 0, ±2π</b> 这些"低频"位置（|X(0)| = ' + SSC.fmt(magInf(0, a), 3) + '）。'
+        : '因为 a < 0，序列正负交替、振荡最快，能量集中在 <b>ω = ±π</b> 这些"最高频"位置（|X(π)| = ' + SSC.fmt(magInf(Math.PI, a), 3) + '）。';
+      txt += '<br><b>红线（X(ω+2π)）与蓝线（X(ω)）完全重合</b>，读数栏里"2π 周期性最大偏差"在 1e−14 以内——' +
+        '这就是"频谱以 2π 为周期"的数值证据，不是画图技巧。';
+      var diff = 0, i, ww;
+      for (i = 0; i <= 120; i++) {
+        ww = -Math.PI + 2 * Math.PI * i / 120;
+        var dv = Math.abs(dtftTrunc(ww, a, N).mag - magInf(ww, a));
+        if (dv > diff) diff = dv;
+      }
+      txt += '<br>灰点线是只取前 ' + N + ' 项的截断结果，它与闭式的最大差是 <b>' + SSC.fmt(diff, 3) + '</b>（峰值 ' +
+        SSC.fmt(1 / (1 - Math.abs(a)), 2) + '）：' +
+        (diff > 0.05 / (1 - Math.abs(a))
+          ? 'N 还不够大，它在峰附近明显矮于闭式；把 N 拉大就会贴上去——这就是 |a| &lt; 1 保证的收敛。'
+          : '已经和闭式基本重合（收敛得快，因为 |a| = ' + SSC.fmt(Math.abs(a), 2) + '；把 N 调小可以看出差别）。');
+      txt += '<br>读数栏最后两项是帕塞瓦尔：时域能量与频域积分相等。';
+      return txt;
+    }
+  });
+
+  /* ---------- 实验 2：DTFS 系数 = DTFT 的采样 ---------- */
+  SSC.lab({
+    mount: '#lab-sampling',
+    title: '实验 2 · DTFS 系数正好落在 DTFT 曲线上（间距 2π/N）',
+    hint: '拉大 N：红点变密，N→∞ 就挤成那条曲线',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：矩形脉冲的周期延拓（周期 N，画 3 个周期）', height: 205 },
+      { id: 'freq', label: '频域：DTFT 曲线 + DTFS 系数 N|c_k|（红点）', height: 205 }
+    ],
+    controls: [
+      { id: 'N1', label: '脉冲半宽 N₁', min: 1, max: 4, step: 1, value: 2 },
+      { id: 'N', label: '延拓周期 N', min: 8, max: 24, step: 1, value: 12 }
+    ],
+    draw: function (cv, v, api) {
+      var N1 = intOf(v.N1, 1, 8, 2);
+      var N = Math.max(intOf(v.N, 4, 200, 12), 2 * N1 + 2);   /* 保证一个周期装得下整个脉冲 */
+      var x = periodicPulse(N, N1), c = dtfsC(x);
+      var n, k;
+
+      var tx = [], ty = [], bands = [
+        { x1: -N - 0.5, x2: -0.5, color: 'rgba(120,140,180,.10)' },
+        { x1: -0.5, x2: N - 0.5, color: 'rgba(67,56,202,.11)' },
+        { x1: N - 0.5, x2: 2 * N - 0.5, color: 'rgba(120,140,180,.10)' }
+      ];
+      for (n = -N; n <= 2 * N - 1; n++) { tx.push(n); ty.push(x[modN(n, N)]); }
+      SSC.plot(cv.time, {
+        xmin: -N - 0.9, xmax: 2 * N - 0.1, ymin: -0.3, ymax: 1.35,
+        xticks: [-N, 0, N], tickFmt: niceTick,
+        xlabel: 'n', ylabel: 'x̃[n]',
+        bands: bands,
+        stems: [{ xs: tx, ys: ty, color: '#4338ca', label: '周期延拓（深色带 = 一个周期）' }],
+        legend: true
+      });
+
+      var sx = [], sy = [];
+      for (k = -N; k <= N; k++) {
+        sx.push(k * 2 * Math.PI / N);
+        sy.push(N * Math.hypot(c[modN(k, N)].re, c[modN(k, N)].im));
+      }
+      SSC.plot(cv.freq, {
+        xmin: -2 * Math.PI, xmax: 2 * Math.PI, ymin: 0, ymax: (2 * N1 + 1) * 1.18,
+        xticks: [-2 * Math.PI, -Math.PI, 0, Math.PI, 2 * Math.PI], tickFmt: piTick,
+        xlabel: 'ω (rad/样本)', ylabel: '幅度',
+        bands: [{ x1: -Math.PI, x2: Math.PI, color: 'rgba(21,128,61,.09)' }],
+        curves: [{ f: function (w) { return dirichlet(w, N1); }, color: '#0e7490', width: 2.2, samples: 1200, label: 'X(e^{jω})（DTFT，连续曲线）' }],
+        stems: [{ xs: sx, ys: sy, color: '#dc2626', width: 1.1, r: 2.4, label: 'N|c_k|（DTFS 系数，红点）' }],
+        vlines: [
+          { x: -2 * Math.PI, color: '#b45309', label: '−2π' },
+          { x: -Math.PI, color: '#c3ccdd', label: '−π' },
+          { x: Math.PI, color: '#c3ccdd', label: 'π' },
+          { x: 2 * Math.PI, color: '#b45309', label: '2π' }
+        ],
+        legend: true
+      });
+
+      var err = 0;
+      for (k = -N; k <= N; k++) {
+        var w = k * 2 * Math.PI / N;
+        var d = Math.abs(N * Math.hypot(c[modN(k, N)].re, c[modN(k, N)].im) - dirichlet(w, N1));
+        if (d > err) err = d;
+      }
+      api.readout(
+        '<div class="stat"><div class="k">延拓周期 N</div><div class="v">' + N + '</div></div>' +
+        '<div class="stat"><div class="k">采样间隔 2π/N</div><div class="v" style="font-size:13px">' + SSC.fmt(2 * Math.PI / N, 3) + ' rad</div></div>' +
+        '<div class="stat"><div class="k">一个 2π 周期内的点数</div><div class="v">' + N + '</div></div>' +
+        '<div class="stat"><div class="k">红点偏离曲线的最大值</div><div class="v" style="font-size:13px">' + err.toExponential(1) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var N1 = intOf(v.N1, 1, 8, 2);
+      var N = Math.max(intOf(v.N, 4, 200, 12), 2 * N1 + 2);
+      var txt = '矩形脉冲（宽度 2N₁+1 = ' + (2 * N1 + 1) + '）以 <b>N = ' + N + '</b> 为周期延拓后，' +
+        '它的 DTFS 系数满足 <b>c<sub>k</sub> = (1/N)·X(e<sup>jk2π/N</sup>)</b>，' +
+        '所以画成 <b>N|c<sub>k</sub>|</b> 就正好落在连续的 DTFT 曲线上（读数栏里偏差是 1e−14 量级）。';
+      txt += '<br>一个 2π 周期里有 <b>N</b> 个采样点，间隔 <b>2π/N = ' + SSC.fmt(2 * Math.PI / N, 3) +
+        '</b> rad。把 N 从 8 拉到 24：点越来越密，逐渐"挤成"那条曲线。' +
+        '这就是第 2 节 N→∞ 推导的图形版——<b>DTFS 是 DTFT 的采样，DTFT 是 DTFS 的极限</b>。';
+      if (N > intOf(v.N, 4, 200, 12)) {
+        txt += '<br><span class="muted">（为了不产生时域重叠，N 已被自动抬到 2N₁+2 = ' + (2 * N1 + 2) + '，否则脉冲会自己盖住自己，采样关系就不成立了。）</span>';
+      }
+      return txt;
+    }
+  });
+
+  /* ---------- 实验 3：用 DTFT 分析 LTI 系统 ---------- */
+  SSC.lab({
+    mount: '#lab-lti',
+    title: '实验 3 · 多音输入通过一阶低通：每个频率各乘各的增益',
+    hint: '把 a 推向 1（通带变窄），看高频那一路怎么被削掉',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：输入 x[n]（灰）与输出 y[n]（蓝）', height: 205 },
+      { id: 'resp', label: '频率响应 |H(e^{jω})| 与输入的两个频率', height: 205 }
+    ],
+    controls: [
+      { id: 'a', label: '系统参数 a（|a| < 1）', min: 0.1, max: 0.95, step: 0.05, value: 0.7 },
+      { id: 'w1', label: '低频分量 ω₁', min: 0.05, max: 3.1, step: 0.05, value: 0.4 },
+      { id: 'w2', label: '高频分量 ω₂', min: 0.05, max: 3.1, step: 0.05, value: 2.2 }
+    ],
+    draw: function (cv, v, api) {
+      var a = aOf(v.a, 0.7, 0, 0.98);
+      var w1 = numOf(v.w1, 0.4), w2 = numOf(v.w2, 2.2);
+      var A1 = magInf(w1, a), P1 = phInf(w1, a);
+      var A2 = magInf(w2, a), P2 = phInf(w2, a);
+      var n, N0 = 40;
+
+      var ix = [], iy = [], ox = [], oy = [];
+      for (n = 0; n <= N0; n++) {
+        ix.push(n); iy.push(Math.cos(w1 * n) + 0.6 * Math.cos(w2 * n));
+        ox.push(n); oy.push(A1 * Math.cos(w1 * n + P1) + 0.6 * A2 * Math.cos(w2 * n + P2));
+      }
+      var amp = Math.max(1.6, A1 + 0.6 * A2);
+      SSC.plot(cv.time, {
+        xmin: -0.8, xmax: N0 + 0.8, ymin: -amp * 1.15, ymax: amp * 1.15,
+        xticks: [0, 10, 20, 30, 40], tickFmt: niceTick,
+        xlabel: 'n', ylabel: '幅度',
+        stems: [
+          { xs: ix, ys: iy, color: '#c3ccdd', width: 2.6, r: 3.4, label: '输入 x[n]' },
+          { xs: ox, ys: oy, color: '#4338ca', width: 1.5, r: 2.3, label: '输出 y[n]' }
+        ],
+        legend: true
+      });
+
+      SSC.plot(cv.resp, {
+        xmin: -Math.PI, xmax: Math.PI, ymin: 0, ymax: magInf(0, a) * 1.12,
+        xticks: [-Math.PI, -Math.PI / 2, 0, Math.PI / 2, Math.PI], tickFmt: piTick,
+        xlabel: 'ω (rad/样本)', ylabel: '|H(e^{jω})|',
+        curves: [{ f: function (w) { return magInf(w, a); }, color: '#0e7490', width: 2.3, samples: 900, label: '|H(e^{jω})| = 1/|1−ae^{−jω}|' }],
+        vlines: [
+          { x: w1, color: '#15803d', label: 'ω₁=' + SSC.fmt(w1, 2) },
+          { x: w2, color: '#dc2626', label: 'ω₂=' + SSC.fmt(w2, 2) }
+        ],
+        points: [
+          { x: w1, y: A1, color: '#15803d', r: 4.4 },
+          { x: w2, y: A2, color: '#dc2626', r: 4.4 }
+        ],
+        legend: true
+      });
+
+      /* 用差分方程 y[n] = x[n] + a y[n−1] 仿真，验证特征函数公式 */
+      var PRE = 200, xin = [], k;
+      for (k = -PRE; k <= N0; k++) xin.push(Math.cos(w1 * k) + 0.6 * Math.cos(w2 * k));
+      var yout = SSC.diffEq([1], [1, -a], xin);
+      var emax = 0;
+      for (n = 0; n <= N0; n++) {
+        var ref = A1 * Math.cos(w1 * n + P1) + 0.6 * A2 * Math.cos(w2 * n + P2);
+        var d = Math.abs(yout[n + PRE] - ref);
+        if (d > emax) emax = d;
+      }
+
+      api.readout(
+        '<div class="stat"><div class="k">|H(ω₁)| 放大倍数</div><div class="v">' + SSC.fmt(A1, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">|H(ω₂)| 放大倍数</div><div class="v">' + SSC.fmt(A2, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">两路增益之比</div><div class="v" style="font-size:13px">' + SSC.fmt(A1 / A2, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">公式 vs 仿真（含瞬态残留）</div><div class="v" style="font-size:13px">' + emax.toExponential(1) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var a = aOf(v.a, 0.7, 0, 0.98);
+      var w1 = numOf(v.w1, 0.4), w2 = numOf(v.w2, 2.2);
+      var A1 = magInf(w1, a), A2 = magInf(w2, a);
+      return '系统 <span class="mono">h[n] = a<sup>n</sup>u[n]</span>，<span class="mono">H(e<sup>jω</sup>) = 1/(1−ae<sup>−jω</sup>)</span>，' +
+        '在 <b>ω<sub>1</sub> = ' + SSC.fmt(w1, 2) + '</b> 处增益 <b>' + SSC.fmt(A1, 3) + '</b>，' +
+        '在 <b>ω<sub>2</sub> = ' + SSC.fmt(w2, 2) + '</b> 处增益 <b>' + SSC.fmt(A2, 3) + '</b>。' +
+        '输入里两路各走各的：ω₁ 那一路被放大 ' + SSC.fmt(A1, 2) + ' 倍，ω₂ 那一路被放大 ' + SSC.fmt(A2, 2) +
+        ' 倍，这就是 <span class="mono">Y(e<sup>jω</sup>) = H(e<sup>jω</sup>)X(e<sup>jω</sup>)</span> 的含义。' +
+        '<br>把 a 往 1 推（例如 0.95）：通带变窄，|H(ω₂)| 迅速变小，输出几乎只剩慢的那一路，波形明显变平滑。' +
+        '<br>读数栏最后一个数字是<b>用差分方程逐点仿真</b>得到的 y[n] 与特征函数公式之差。' +
+        '它不是公式错了，而是仿真起点留下的<b>瞬态残留</b>（约 <span class="mono">a<sup>200</sup></span>）：' +
+        'a 小时它小到 1e−15（纯浮点噪声），a 推到 0.95 时瞬态衰减慢，会升到 1e−4 量级。' +
+        '两种方法在 a 不太接近 1 时高度一致——这就是频域推导的实测验证。';
+    }
+  });
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz7', [
+    {
+      q: '关于 DTFT 的周期 X(e^{jω})，下列说法正确的是：',
+      opts: ['它对任何序列都以 2π 为周期',
+        '只有周期序列的频谱才以 2π 为周期',
+        '只有实序列的频谱才以 2π 为周期',
+        '它和 CTFT 一样，一般不是周期函数'],
+      a: 0,
+      why: '把 ω 换成 ω+2π：X(e^{j(ω+2π)}) = Σx[n]e^{−jωn}e^{−j2πn}，而 n 是整数时 e^{−j2πn} = 1，所以恒有 X(e^{j(ω+2π)}) = X(e^{jω})。推导中没用到 x[n] 的任何性质，所以对任何序列都成立——这是"时间是离散的"这一事实的直接后果。',
+      tag: '灵魂概念'
+    },
+    {
+      q: '已知 X(e^{j0.5}) = 3。那么 X(e^{j(0.5+4π)}) 等于多少？',
+      opts: ['3', '3e^{−j4π·0.5}', '无法确定，要看 x[n]', '0'],
+      a: 0,
+      why: '频谱以 2π 为周期，4π 正好是两个周期，所以 X(e^{j(0.5+4π)}) = X(e^{j0.5}) = 3。注意这里不会有任何额外的相位因子：周期性是"严格相等"，不是"差一个相位"。',
+      tag: '周期性'
+    },
+    {
+      q: '在离散时间里，哪个频率是"最高频"？',
+      opts: ['ω = π（以及 ±3π, ±5π, …）', 'ω = 2π', 'ω = ∞', 'ω = 0'],
+      a: 0,
+      why: 'cos(πn) = (−1)ⁿ 每个样本都变号，这是离散时间能达到的最快振荡。ω=2π 与 ω=0 是同一个频率（都是直流）；超过 π 之后"频率"其实在回落（1.9π 与 −0.1π 等价），所以离散频率只在一个 2π 周期内是"单调"的。',
+      tag: '频率轴'
+    },
+    {
+      q: 'x[n] = aⁿu[n]，|a| &lt; 1。当 a 是负数（例如 a = −0.8）时，|X(e^{jω})| 的最大值出现在哪里？',
+      opts: ['ω = ±π（最高频）附近', 'ω = 0（直流）附近', '处处相等', 'ω = ±π/2 附近'],
+      a: 0,
+      why: '|X| = 1/√(1−2a cos ω + a²)：分母在 cos ω 取最小值（ω=±π）时最小，所以 |X| 最大。物理上：a<0 时序列正负交替、振荡最快，能量自然集中在最高频。a>0 时正好相反，峰在 ω=0。这正是实验 1 里拖动 a 能看到的峰位移动。',
+      tag: '计算/直觉'
+    },
+    {
+      q: 'DTFT 反变换的积分区间是：',
+      opts: ['任意长度 2π 的区间（如 [0,2π) 或 [−π,π)）',
+        '(−∞, +∞)',
+        '长度 N 的区间，N 是序列长度',
+        '只在 ω=0 附近的一个小区间'],
+      a: 0,
+      why: '因为 X(e^{jω})e^{jωn} 以 2π 为周期，在任意一个长度为 2π 的区间上积分结果都相同。这也解释了为什么离散频谱只需要画 2π 宽的一段。对照 CTFT：那里的反变换必须对 (−∞,∞) 积分。',
+      tag: '定义'
+    },
+    {
+      q: '一个有限长序列被以 N 为周期延拓。它的 DTFS 系数 c_k 与原来有限长序列的 DTFT X(e^{jω}) 有什么关系？',
+      opts: ['c_k = (1/N)·X(e^{jk2π/N})，即在等间隔频率点上采样并除以 N',
+        'c_k 等于 X(e^{jω}) 的积分',
+        'c_k = X(e^{jk2π/N})，没有额外系数',
+        '两者没有关系'],
+      a: 0,
+      why: '这正是本页第 2 节推导的第 3 步：把周期延拓的 DTFS 分析式里的 x̃[n] 换成 x[n]，并把求和扩到全体整数（周期外为 0），就得到 c_k = (1/N)X(e^{jkω₀})，ω₀=2π/N。实验 2 里画 N|c_k| 就是为了让红点正好落在曲线上。',
+      tag: '与 DTFS 的关系'
+    }
+  ], '第 7 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

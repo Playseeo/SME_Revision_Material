@@ -1,0 +1,1193 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 8 章　DFT 与 FFT：计算机怎么算傅里叶｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch08">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第二段 · 傅里叶家族 · 第 8 章</div>
+        <h1>DFT 与 FFT：计算机怎么算傅里叶</h1>
+        <p class="lede">
+          前七章我们算了一堆傅里叶变换，但全是"手算"：积分要么查表，要么靠技巧。
+          可是真实的机器——手机、示波器、心电图机——每秒钟要算几十万次频谱。
+          这一章回答一个非常具体的问题：<b>只能存有限个数、只能做加法和乘法的计算机，怎么算傅里叶？</b>
+          答案是<b><span class="term" data-def="DFT, discrete Fourier transform，中文含义：离散傅里叶变换。把有限长 N 点序列 x[n] 变成 N 个复数 X[k] 的运算，定义 X[k]=Σ x[n]e^{−j2πkn/N}；它是计算机唯一算得动的傅里叶变换。">离散傅里叶变换（DFT）</span></b>；而让它在 1965 年之后变得"随处可见"的，是<b>快速傅里叶变换（FFT）</b>这个算法。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch07-dtft.html">第 7 章 离散时间傅里叶变换 DTFT</a>（要知道 <span class="mono">X(e<sup>jω</sup>)</span> 以 2π 为周期）<br>
+          <a href="ch05-dtfs.html">第 5 章 离散时间傅里叶级数 DTFS</a>（DFT 的公式和它长得一模一样）
+        </div>
+        <div class="cell mid"><b>这一站</b>DFT 的定义、"DFT 是 DTFT 的采样"、循环卷积、泄漏与栅栏效应、FFT 算法</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch09-sampling.html">第 9 章 采样定理与信号重建</a>（连续信号怎么变成这一章要算的 x[n]）<br>
+          <a href="ch14-atlas.html">第 14 章 总对照</a>（想先看四大变换的关系图）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 计算机到底卡在哪</a>
+        <a href="#s2">2. DFT 的定义与第一次说明</a>
+        <a href="#s3">3. DTFS / DTFT / DFT 三者对照表</a>
+        <a href="#s4">4. 核心推导：DFT 就是 DTFT 的等间隔采样</a>
+        <a href="#s5">5. 动手：把 N 从 4 拉到 16，看 DFT 点"落"在 DTFT 曲线上</a>
+        <a href="#s6">6. 循环卷积：DFT 世界里"卷积"变成了什么</a>
+        <a href="#s7">7. 动手：线性卷积 vs 循环卷积</a>
+        <a href="#s8">8. 泄漏与栅栏效应：截断和采样带来的两个假象</a>
+        <a href="#s9">9. 动手：时域周期延拓 ↔ 频域采样</a>
+        <a href="#s10">10. FFT：一个算法，不是一种新变换</a>
+        <a href="#s11">11. 常见坑</a>
+        <a href="#s12">12. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 计算机到底卡在哪</h2>
+
+      <p>
+        先把第 7 章的结论摆出来。一个离散序列的<span class="term" data-def="DTFT, discrete-time Fourier transform，中文含义：离散时间傅里叶变换。把序列 x[n] 拆成无穷多个 e^{jωn} 的叠加，X(e^{jω})=Σ x[n]e^{−jωn}。">DTFT</span>（discrete-time Fourier transform，离散时间傅里叶变换）是
+      </p>
+      <div class="eq center-eq">
+        X(e<sup>jω</sup>) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+        x[n] e<sup>−jωn</sup>
+        <span class="lbl">(8-1)</span>
+      </div>
+      <p>
+        它有两个让计算机绝望的地方，我们把它们拆开看清楚。
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">问题 ①：无穷多项，存不下</h4>
+          <p class="small">
+            求和从 <span class="mono">n=−∞</span> 到 <span class="mono">+∞</span>。计算机的内存是有限的，它没法对无穷多个数求和。
+            哪怕信号只有 10 秒，采样后也有几百万个数——"有限但很长"是可以接受的，"无穷"不行。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">问题 ②：ω 是连续变量，画不完</h4>
+          <p class="small">
+            <span class="mono">X(e<sup>jω</sup>)</span> 是一个连续变量的函数。要把它"完整"算出来，得在无穷多个连续的 ω 上各算一次求和。
+            计算机能吐出来的只有<b>有限个点</b>。
+          </p>
+        </div>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">解题思路：两个"无穷"分别用两招对付</span>
+        <p>
+          <b>对付无穷多项</b>：只取有限的一段，比如 <span class="mono">n = 0, 1, …, N−1</span>。
+          这不是妥协，而是把"我要分析的那一段信号"当成全部。取多长，由你决定。
+        </p>
+        <p style="margin-bottom:0">
+          <b>对付连续 ω</b>：在 <span class="mono">[0, 2π)</span> 里<b>等间隔地取 N 个点</b>，只算这 N 个频率上的值。
+          因为 DTFT 以 2π 为周期（第 7 章），整个频率轴的信息全都压缩在一个长度为 2π 的周期里，
+          在这个周期内均匀地取 N 个点，就是"采样"。
+        </p>
+      </div>
+
+      <p>
+        这两招合起来，就得到这一章的主角：
+      </p>
+      <div class="eq center-eq">
+        X[k] ≜ X(e<sup>jω</sup>) <span style="font-size:20px">|</span><sub>ω = 2πk/N</sub> ,
+        &nbsp;&nbsp; k = 0, 1, …, N−1
+        <span class="lbl">(8-2)</span>
+      </div>
+      <p>
+        但要小心："只取有限的一段"这件事，本身会偷偷改变信号的含义——下一节讲清楚。
+      </p>
+
+      <div class="box trap">
+        <span class="tag">第一个大坑就在眼前</span>
+        <p style="margin-bottom:0">
+          取 <span class="mono">n = 0…N−1</span> 这一段，和"假设信号以 N 为周期无限重复"，在 DFT 的世界里<b>是完全同一件事</b>。
+          DFT 看不见"这段以外的世界"，它默认你把这一段首尾相接，无限循环下去了。
+          记不住这一点，后面的<span class="term" data-def="circular convolution，中文含义：循环卷积。下标按模 N 回绕的卷积：y[n]=Σ_m x[m]h[(n−m) mod N]，滑出右端的那部分会从左端绕回来。">循环卷积</span>、
+          <span class="term" data-def="leakage，中文含义：泄漏。截断（乘矩形窗）使原本集中的频率成分能量"漏"到邻近频点上的现象；根源是窗的频谱（Dirichlet 核）有旁瓣。">泄漏</span>、
+          <span class="term" data-def="picket-fence effect，中文含义：栅栏效应。DFT 只在 N 个离散频点上取值，看不到频点之间的真实峰值，幅度会被低估、位置会被错读，像透过栅栏看风景。">栅栏效应</span>全都会变成玄学。
+        </p>
+      </div>
+
+      <h2 id="s2">2. DFT 的定义与第一次说明</h2>
+
+      <p>
+        把上一节的两招写成公式，就得到本页最重要的两个式子。
+      </p>
+
+      <div class="box ok">
+        <span class="tag">结论：离散傅里叶变换对（本站统一约定）</span>
+        <div class="eq center-eq" style="margin:8px 0">
+          <b>正变换（分析式）</b>　
+          X[k] = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+          x[n] e<sup>−j2πkn/N</sup>,
+          &nbsp; k = 0, 1, …, N−1
+          <span class="lbl">(8-3)</span>
+        </div>
+        <div class="eq center-eq" style="margin:8px 0">
+          <b>反变换（综合式）</b>　
+          x[n] = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+          <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+          X[k] e<sup>+j2πkn/N</sup>,
+          &nbsp; n = 0, 1, …, N−1
+          <span class="lbl">(8-4)</span>
+        </div>
+        <p class="small" style="margin-bottom:0">
+          记号：<span class="mono">x[n] <span class="op ft">⟷</span> X[k]</span>，
+          <span class="mono">N</span> 叫<span class="term" data-def="transform length，中文含义：变换长度。DFT 一次处理多少个 x[n]、输出多少个 X[k]，两边个数都是 N。">变换长度</span>（transform length）。
+          注意反变换前面的 <span class="mono">1/N</span>：<b>正变换没有系数，反变换才有</b>，这和 CTFT 里"反变换带 1/2π"是同一套约定。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>关于 1/N 放在哪一边：两种教材约定的对照（很多人算错就错在这里）</summary>
+        <div class="body">
+          <div class="step">
+            <p>
+              Oppenheim 教材（本站内容依据）把 <span class="mono">1/N</span> 放在<b>正变换</b>：
+              <span class="mono">X[k] = (1/N)Σ x[n]e<sup>−j2πkn/N</sup></span>，
+              反变换不带系数。这样定义的 <span class="mono">X[k]</span> 正好等于 DTFS（第 5 章）的系数 <span class="mono">c<sub>k</sub></span>。
+            </p>
+            <p class="why">为什么：因为 DTFS 的系数天然带 1/N（是"一个周期内的平均值"），而 DFT 最早就是从"把有限长序列看成周期序列的一个周期"推出来的，所以继承了这个 1/N。</p>
+          </div>
+          <div class="step">
+            <p>
+              本站与绝大多数工程实现（MATLAB、NumPy、本页内核的 <span class="mono">SSC.dft</span> / <span class="mono">SSC.fft</span>）把 <span class="mono">1/N</span> 放在<b>反变换</b>，
+              即上面 (8-3)、(8-4) 的写法。
+            </p>
+            <p class="why">为什么：这样正变换是纯粹的"内积/投影"，没有任何缩放，写代码时最省事；代价是反变换要除以 N。</p>
+          </div>
+          <div class="step">
+            <p>
+              两套约定怎么互相换算？记一个关系就够了：
+            </p>
+            <div class="eq">
+              X<sub>本站</sub>[k] = N · X<sub>Oppenheim</sub>[k] = N · c<sub>k</sub>
+            </div>
+            <p class="why">为什么：同一组 <span class="mono">x[n]</span> 对应同一个物理频谱，两套定义只差一个 N 倍。只要一次变换和一次反变换用的是同一套约定，结果就永远正确——<b>混用两套约定</b>才会出 N 倍的错。</p>
+          </div>
+          <div class="box warn" style="margin-top:14px">
+            <span class="tag">还有一个常见记号：W<sub>N</sub></span>
+            <p style="margin-bottom:0">
+              很多书把 <span class="mono">e<sup>−j2π/N</sup></span> 记作 <span class="mono">W<sub>N</sub></span>，
+              于是 <span class="mono">e<sup>−j2πkn/N</sup> = W<sub>N</sub><sup>kn</sup></span>，
+              正变换写成 <span class="mono">X[k] = Σ<sub>n</sub> x[n]W<sub>N</sub><sup>kn</sup></span>。
+              记号叫<span class="term" data-def="twiddle factor，中文含义：旋转因子。W_N = e^{−j2π/N} 是单位圆上把圆周 N 等分的那一步旋转；W_N^{kn} 是"转 kn 步"。FFT 蝶形图的连线权重就是它。">旋转因子</span>（twiddle factor），
+              它就是把单位圆 N 等分、每次转一点点的那把"尺子"。看到 <span class="mono">W<sub>N</sub></span> 不要慌，把它读回 <span class="mono">e<sup>−j2π/N</sup></span> 就行。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h3>把定义式读成人话</h3>
+      <table class="tbl">
+        <thead><tr><th>符号</th><th>中文名 / 含义</th><th>直观理解</th></tr></thead>
+        <tbody>
+          <tr><td class="ft">N</td><td>变换长度（点数为 N 的 DFT，即 N 点 DFT）</td><td>我一次喂进去 N 个数，拿回 N 个数。</td></tr>
+          <tr><td class="ft">n</td><td>离散时间序号</td><td>第几个样本，<span class="mono">n = 0, 1, …, N−1</span>。</td></tr>
+          <tr><td class="ft">k</td><td>离散频率序号（第 k 号频点）</td><td>第几根谱线，对应频率 <span class="mono">ω<sub>k</sub> = 2πk/N</span>。</td></tr>
+          <tr><td class="ft">ω<sub>k</sub> = 2πk/N</td><td>第 k 个频点的角频率（rad/样本）</td><td>把整个 2π 圆周均分成 N 份，第 k 份的位置。</td></tr>
+          <tr><td class="ft">X[k]</td><td><span class="term" data-def="DFT coefficients，中文含义：DFT 系数。N 个复数，|X[k]| 是该频点的强度，∠X[k] 是该频点的相位。">DFT 系数</span>（复数）</td><td>第 k 号频点上信号分量的"复数强度"。</td></tr>
+          <tr><td class="ft">e<sup>−j2πkn/N</sup></td><td>探针（逐点旋转的复指数）</td><td>作用与 CTFT 里的 <span class="mono">e<sup>−jωt</sup></span> 完全一样：量一量"信号里 2πk/N 这个频率有多大"。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s3">3. DTFS / DTFT / DFT 三者对照表</h2>
+      <p>
+        这三个名字长得很像，初学最容易糊。一张表分清楚：<b>DTFS 是给周期序列用的级数，DTFT 是给任意序列用的变换，DFT 是把 DTFT 在频率上采样得到的 N 个数</b>。
+      </p>
+
+      <table class="tbl sm">
+        <thead>
+          <tr><th>名称</th><th class="c">时域对象</th><th class="c">频域对象</th><th class="c">正变换</th><th class="c">计算机能算吗</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><b>DTFS</b><br><span class="tiny muted">离散时间傅里叶级数</span></td>
+            <td class="c">周期序列<br><span class="mono">x̃[n]</span>，周期 N</td>
+            <td class="c">离散、周期<br><span class="mono">c<sub>k</sub></span>，周期 N</td>
+            <td class="c ft">c<sub>k</sub> = <span class="frac"><span class="num">1</span><span class="den">N</span></span>Σ<sub>&lt;N&gt;</sub> x̃[n]e<sup>−jk2πn/N</sup></td>
+            <td class="c">✔ 可以（但对象必须真的周期）</td>
+          </tr>
+          <tr>
+            <td><b>DTFT</b><br><span class="tiny muted">离散时间傅里叶变换</span></td>
+            <td class="c">任意序列<br><span class="mono">x[n]</span></td>
+            <td class="c">连续、周期 2π<br><span class="mono">X(e<sup>jω</sup>)</span></td>
+            <td class="c ft">X(e<sup>jω</sup>) = Σ<sub>n=−∞</sub><sup>∞</sup> x[n]e<sup>−jωn</sup></td>
+            <td class="c">✘ 无穷和 + 连续 ω</td>
+          </tr>
+          <tr>
+            <td><b>DFT</b><br><span class="tiny muted">离散傅里叶变换</span></td>
+            <td class="c">有限长 N 点<br><span class="mono">x[n]</span>（隐含周期 N）</td>
+            <td class="c">离散、周期 N<br><span class="mono">X[k]</span></td>
+            <td class="c ft">X[k] = Σ<sub>n=0</sub><sup>N−1</sup> x[n]e<sup>−j2πkn/N</sup></td>
+            <td class="c">✔ <b>这才是计算机算的那个</b></td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <span class="tag">一句话记住三者关系</span>
+        <p style="margin-bottom:0">
+          <b>DFT = DTFT 的等间隔采样</b>；而一旦你把 DFT 的 N 个系数按周期重复，得到的就是 DTFS 的系数（差一个 N 倍）。
+          所以：DTFS 是"周期世界的级数"，DTFT 是"离散世界的连续谱"，DFT 是"计算机够得着的那 N 个采样点"。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 核心推导：DFT 就是 DTFT 的等间隔采样</h2>
+      <p class="small muted">
+        这是本章的骨架。这个结论不只是"看起来像"，它是可以严格证出来的。逐字看，不要跳。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导一：X[k] = X(e<sup>j2πk/N</sup>)（DFT 系数 = DTFT 在 ω=2πk/N 处的值）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：写出 DTFT，并指出它只用得到有限个 x[n]。</b></p>
+            <p>
+              设 <span class="mono">x[n]</span> 只在 <span class="mono">0 ≤ n ≤ N−1</span> 内可能非零，其他位置全是 0。则
+            </p>
+            <div class="eq">
+              X(e<sup>jω</sup>) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x[n]e<sup>−jωn</sup>
+              = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+              x[n]e<sup>−jωn</sup>
+            </div>
+            <p class="why">为什么：<span class="mono">n &lt; 0</span> 和 <span class="mono">n &gt; N−1</span> 的项都是 <span class="mono">0·e<sup>−jωn</sup> = 0</span>，加 0 不改变结果，所以无穷求和可以就地砍成有限求和。这一步说明：<b>有限长序列的 DTFT 是"有限项的和，但 ω 仍然连续"</b>——只剩问题 ②。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：把 ω 取成 N 个等间隔的点。</b></p>
+            <p>令 <span class="mono">ω = 2πk/N</span>（<span class="mono">k = 0, 1, …, N−1</span>），代入上式：</p>
+            <div class="eq">
+              X(e<sup>j2πk/N</sup>) =
+              <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+              x[n] e<sup>−j(2πk/N)n</sup>
+              = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+              x[n] e<sup>−j2πkn/N</sup>
+              = X[k]
+            </div>
+            <p class="why">为什么：把 <span class="mono">ω=2πk/N</span> 直接代进 e 的指数，指数上就是 <span class="mono">−(2πk/N)n = −2πkn/N</span>。右边正好是 DFT 的定义式 (8-3)。<b>于是结论成立：DFT 的每一个 X[k]，就是 DTFT 在频率 ω<sub>k</sub>=2πk/N 上的取值。</b></p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：这 N 个频率点在单位圆上长什么样。</b></p>
+            <p>
+              在 z 平面（第 13 章会专门讲）上，<span class="mono">e<sup>jω</sup></span> 是单位圆上的点。
+              <span class="mono">ω<sub>k</sub> = 2πk/N</span> 意味着把单位圆<b>均分成 N 份</b>，取第 k 个分点，从 <span class="mono">ω=0</span>（即 z=1）出发逆时针走。
+              <span class="mono">k = 0…N−1</span> 走满一圈回到起点。
+            </p>
+            <div class="eq">
+              ω<sub>0</sub> = 0, &nbsp; ω<sub>1</sub> = <span class="frac"><span class="num">2π</span><span class="den">N</span></span>, &nbsp;
+              ω<sub>2</sub> = <span class="frac"><span class="num">4π</span><span class="den">N</span></span>, &nbsp; … , &nbsp;
+              ω<sub>N−1</sub> = <span class="frac"><span class="num">2π(N−1)</span><span class="den">N</span></span>
+            </div>
+            <p class="why">为什么只取一圈：DTFT 以 2π 为周期（第 7 章），<span class="mono">X(e<sup>j(ω+2π)</sup>)=X(e<sup>jω</sup>)</span>，所以 <span class="mono">[0,2π)</span> 之外的频率没有任何新信息。取 <span class="mono">k = 0…N−1</span> 恰好覆盖一个完整周期，一个不多一个不少。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">这就是"频域采样"</span>
+            <p style="margin-bottom:0">
+              时域上我们采了 N 个样，频域上我们也采了 N 个样。
+              <b>时域 N 个样本 ↔ 频域 N 个样本</b>，这是本章后面一切"坑"的根源：两边的自由度必须一样多，
+              多出来的信息没有地方放，只能挤在"周期性"里。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <details class="deriv">
+        <summary>推导二：反变换公式 (8-4) 为什么成立（正交性 + N 个方程的联立）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：准备一个"选择器"公式。</b></p>
+            <p>对整数 <span class="mono">m</span>，考虑</p>
+            <div class="eq">
+              <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              e<sup>j2πkm/N</sup> =
+              <span style="display:inline-block;vertical-align:middle">
+                <span style="display:block">N, &nbsp; 当 m 是 N 的整数倍（即 e<sup>j2πkm/N</sup>=1）</span>
+                <span style="display:block">0, &nbsp; 其它情况</span>
+              </span>
+            </div>
+            <p class="why">为什么：当 m 是 N 的倍数时，每一项都是 1，N 项相加得 N。否则这是一个等比数列：<span class="mono">Σ<sub>k=0</sub><sup>N−1</sup> r<sup>k</sup> = (1−r<sup>N</sup>)/(1−r)</span>，其中 <span class="mono">r = e<sup>j2πm/N</sup></span> 且 <span class="mono">r ≠ 1</span>；而 <span class="mono">r<sup>N</sup> = e<sup>j2πm</sup> = 1</span>，分子为 0，故和为 0。这个"选择器"就是离散世界的正交性：<b>N 个复指数在 N 点上两两正交</b>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：把 (8-4) 的右边代进 (8-3)，验证得到 X[k]。</b></p>
+            <p>设 <span class="mono">y[n] = (1/N)Σ<sub>k=0</sub><sup>N−1</sup> X[k]e<sup>j2πkn/N</sup></span>，把 <span class="mono">X[k] = Σ<sub>m</sub> x[m]e<sup>−j2πkm/N</sup></span> 代入：</p>
+            <div class="eq">
+              y[n] = <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">m=0</span></span>
+              x[m] e<sup>−j2πkm/N</sup> e<sup>j2πkn/N</sup>
+              = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">m=0</span></span>
+              x[m] · <span class="frac"><span class="num">1</span><span class="den">N</span></span>
+              <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              e<sup>j2πk(n−m)/N</sup>
+            </div>
+            <p class="why">为什么能交换求和次序：两个都是有限和（各 N 项，总共 N² 项，都是有限个数），有限个数的加法可以任意交换顺序，结果不变。这一步不需要任何收敛条件——这正是 DFT 比 DTFT"乖"的地方。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：用第 1 步的选择器，内层求和只剩 m = n 那一项。</b></p>
+            <div class="eq">
+              y[n] = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">m=0</span></span>
+              x[m] · [ m ≡ n (mod N) ? 1 : 0 ] = x[n]
+            </div>
+            <p class="why">为什么：内层求和里 <span class="mono">m</span> 是固定的，它作为"选择器变量"就是 <span class="mono">m−n</span>。只有当 <span class="mono">m−n</span> 是 N 的倍数时内层和才等于 <span class="mono">N·(1/N) = 1</span>，否则等于 0。在 <span class="mono">0 ≤ m, n ≤ N−1</span> 范围内，<span class="mono">m−n</span> 是 N 的倍数只有 <span class="mono">m = n</span> 一种情况，所以只剩这一项，正好等于 <span class="mono">x[n]</span>。</p>
+          </div>
+
+          <div class="box trap" style="margin-top:16px">
+            <span class="tag">注意第 3 步括号里那句话</span>
+            <p style="margin-bottom:0">
+              "<span class="mono">m−n</span> 是 N 的倍数"——如果 <span class="mono">m</span> 可以超出 <span class="mono">0…N−1</span>，
+              那么 <span class="mono">m = n + N</span> 也会被选中，我们会得到 <span class="mono">x[n] + x[n+N] + x[n+2N] + …</span>。
+              换句话说，<b>反变换给出的永远是"把 x 以 N 为周期重复后"的那个序列</b>。
+              在 <span class="mono">0…N−1</span> 内它和原序列一样，所以平时看不出问题——但一旦发生了循环卷积或补零，
+              这个隐含的周期性就会跳出来咬你一口。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s5">5. 动手：把 N 从 4 拉到 16，看 DFT 点"落"在 DTFT 曲线上</h2>
+      <p>
+        下面是本页第一个实验台。它要让你亲眼确认那个结论：<b>DFT 的茎叶图（stem）永远长在 DTFT 这条连续曲线上</b>，
+        改 N 只是改变采样的疏密。
+      </p>
+
+      <div id="lab-dft"></div>
+
+      <div class="box intuition">
+        <span class="tag">盯住这三件事</span>
+        <p>
+          <b>① 茎叶图的高度永远等于曲线在该频率的高度。</b>不管 N 取 4、8 还是 16，把 stem 的顶点和曲线比一比——一个不差。这就是 <span class="mono">X[k] = X(e<sup>j2πk/N</sup>)</span>。
+        </p>
+        <p>
+          <b>② N 变大，采样点变密，但曲线本身纹丝不动。</b>曲线由 <span class="mono">x[n]</span> 决定，与 N 无关（只要 x 的那些非零值没被截掉）。N 只是"在这条曲线上取几个点"。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③ 把 N 拉大到超过序列长度，就是在补零。</b>补零后曲线不变、点变密——这是第 8 节要专门讲的"栅栏效应"的解药。
+          但请注意：<b>点变密不等于分辨率提高</b>，这件事下一节末尾会说清楚。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 循环卷积：DFT 世界里"卷积"变成了什么</h2>
+
+      <p>
+        第 2 章我们花了很大力气学卷积，第 6、7 章又学到"时域卷积 = 频域相乘"。到了 DFT，
+        这个性质当然还在，但<b>形式变了</b>：
+      </p>
+      <div class="eq center-eq">
+        x[n] <span style="font-size:19px">⊛</span> h[n] <span class="op ft">⟷</span> X[k] · H[k]
+        <span class="lbl">(8-5)</span>
+      </div>
+      <p>
+        这里的 <span class="mono">⊛</span> 读作<span class="term" data-def="circular convolution，中文含义：循环卷积。把序列当成一个首尾相接的环来做卷积，下标按模 N 回绕：y[n]=Σ_m x[m]h[(n−m) mod N]。DFT 的"时域相乘=频域卷积"性质里出现的正是它。">循环卷积</span>（circular convolution），定义是
+      </p>
+      <div class="eq center-eq">
+        y[n] = x[n] <span style="font-size:19px">⊛</span> h[n] ≜
+        <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">m=0</span></span>
+        x[m] h[(n−m) mod N]
+        <span class="lbl">(8-6)</span>
+      </div>
+      <p>
+        其中 <span class="mono">(n−m) mod N</span> 表示"除以 N 取余数"，规定结果落在 <span class="mono">0…N−1</span>。
+        这个术语必须解释清楚：
+      </p>
+
+      <div class="box warn">
+        <span class="tag">什么是<span class="term" data-def="circular convolution，中文含义：循环卷积。卷积时下标按模 N 回绕：h[(n−m) mod N]，第 N−1 个样本的"后面"接的是第 0 个样本，像时钟走过 12 点回到 1 点。">循环卷积</span>（circular convolution）</span>
+        <p>
+          对比一下就会有感觉。线性卷积（第 2 章）要算 <span class="mono">h[n−m]</span>：
+        </p>
+        <p>
+          <b>线性卷积</b>：把 h 翻转、右移 n 格。<span class="mono">n−m</span> 一旦小于 0，<span class="mono">h</span> 就取 0（因为序列在 0 左边是空的）——<b>滑出去的部分就没了</b>。
+        </p>
+        <p style="margin-bottom:0">
+          <b>循环卷积</b>：把 h 写成一个长度为 N 的<b>环</b>（n=0 和 n=N−1 首尾相接）。
+          翻转、右移 n 格时，滑出右端的那部分会从<b>左端绕回来</b>，所以 <span class="mono">(n−m)</span> 为负数时不是取 0，而是回绕到 <span class="mono">n−m+N</span>。
+          这就是"循环"两个字的全部含义：<b>把线性平移换成了钟表上的圆周平移</b>。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>为什么 DFT 里天然是循环卷积（而不是线性卷积）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>起点：DFT 的隐含假设是"x 和 h 都以 N 为周期"。</b></p>
+            <p>
+              由第 4 节推导二的括号说明：当序列以 N 为周期时，<span class="mono">x[n]</span> 与 <span class="mono">x[n+N]</span> 是同一个数，
+              下标只要按 <span class="mono">mod N</span> 理解就永远合法。
+            </p>
+            <p class="why">为什么：DFT 只认识 <span class="mono">0…N−1</span> 这 N 个数。要让"<span class="mono">x[n−5]</span> 在 n=2 时"这句话有意义，唯一不引入额外假设的办法，就是认为 <span class="mono">x[−3] = x[N−3]</span>。</p>
+          </div>
+          <div class="step">
+            <p><b>把两个周期序列做卷积，求和必然回绕。</b></p>
+            <div class="eq">
+              y[n] = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">m=0</span></span>
+              x[m] h[n−m]
+            </div>
+            <p>其中 <span class="mono">h[n−m]</span> 要按周期性理解：若 <span class="mono">n−m &lt; 0</span>，就用 <span class="mono">h[n−m+N]</span>，这正是 <span class="mono">h[(n−m) mod N]</span>。</p>
+            <p class="why">为什么这就等于式 (8-6)：因为周期性把"平移出界"和"回绕"变成了同一件事——<span class="mono">h</span> 在环上走，走到哪里都还在环上，没有"界外"。</p>
+          </div>
+          <div class="step">
+            <p><b>结论与"两者何时相等"。</b></p>
+            <p>
+              设 <span class="mono">x</span> 长为 <span class="mono">N<sub>1</sub></span>、<span class="mono">h</span> 长为 <span class="mono">N<sub>2</sub></span>，
+              则线性卷积长度为 <span class="mono">L = N<sub>1</sub> + N<sub>2</sub> − 1</span>。只要
+            </p>
+            <div class="eq center-eq">
+              N ≥ N<sub>1</sub> + N<sub>2</sub> − 1
+              <span class="lbl">(8-7)</span>
+            </div>
+            <p style="margin-bottom:0">
+              回绕的那一段就只会落在"本来该是 0 的尾巴"上，于是 <b>循环卷积 = 线性卷积</b>。
+              做法是<b>给两个序列都补零到 N 点</b>再做 N 点循环卷积（或 N 点 DFT → 相乘 → N 点 IDFT）。
+            </p>
+            <p class="why">为什么：如果 N 比 L 还小，第 <span class="mono">L</span> 个位置上的值（它是"尾巴"的一部分）会被绕回来加到第 <span class="mono">0</span> 个位置上，这个"加"就是<span class="term" data-def="time-domain aliasing，中文含义：时域混叠。循环卷积长度不够时，线性卷积的尾部被回绕叠加到头部，使结果既不是线性卷积也不是任何真实信号。">时域混叠</span>（time-domain aliasing）。它洗掉了本来能分开的两段信息，所以结果错了。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s7">7. 动手：线性卷积 vs 循环卷积</h2>
+      <p>
+        这个实验台做一件事：<b>同一个 x、同一个 h，只改 N，看循环卷积的结果怎么从"等于线性卷积"变成"绕回来出错"</b>。
+      </p>
+
+      <div id="lab-circ"></div>
+
+      <div class="box ok">
+        <span class="tag">实验读数怎么看</span>
+        <p style="margin-bottom:0">
+          读出台会告诉你线性卷积的长度 <span class="mono">L = N<sub>1</sub>+N<sub>2</sub>−1</span>，
+          以及当前 N 是否满足 <span class="mono">N ≥ L</span>。
+          <b>不满足时</b>，红色那段就是"绕回来的尾巴"：把它和蓝色头部相加，正好得到红色的循环卷积。
+          只要把 N 调到 ≥ L，红色曲线的前 L 点会和蓝色曲线完全重合。
+        </p>
+      </div>
+
+      <h2 id="s8">8. 泄漏与栅栏效应：截断和采样带来的两个假象</h2>
+
+      <p>
+        前面所有的推导都是"精确"的，但有两个现象会让第一次看频谱的人以为程序坏了。它们都是 DFT 的隐含假设造成的，
+        必须一次讲透。
+      </p>
+
+      <h3>8.1 泄漏（leakage）：明明是单一频率，谱上却到处都是</h3>
+
+      <details class="deriv" open>
+        <summary>泄漏的完整解释：矩形窗 × 无限长信号 = 频域卷积出一个 sinc</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：认清 DFT 真正在处理什么信号。</b></p>
+            <p>
+              假设真实信号是纯粹的 <span class="mono">x[n] = cos(ω<sub>0</sub>n)</span>，它<b>无限长</b>。
+              但 DFT 只能吃 N 个数，所以你实际喂进去的是
+            </p>
+            <div class="eq">
+              x<sub>w</sub>[n] = x[n] · w[n], &nbsp;&nbsp;
+              w[n] = 1 (0 ≤ n ≤ N−1), 其余为 0
+            </div>
+            <p class="why">为什么可以这么写：把"只取一段"看成"乘上一个只在 0…N−1 为 1 的函数"，物理上完全等价。这个 <span class="mono">w[n]</span> 叫<span class="term" data-def="rectangular window，中文含义：矩形窗。0≤n≤N−1 上为 1、其余为 0 的窗函数；它就是"截断"这个动作的数学名字。">矩形窗</span>（rectangular window），"加窗"这个词就是这么来的。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：时域相乘 = 频域（周期）卷积。</b></p>
+            <p>第 7 章的相乘性质说：时域相乘，频域做周期卷积。而矩形窗的 DTFT 是离散版的 Dirichlet 核，形状是"一个高的主瓣 + 无穷多个旁瓣"。</p>
+            <div class="eq">
+              X<sub>w</sub>(e<sup>jω</sup>) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral" style="font-size:22px"><span class="sym">∫</span><span class="lim"><span>2π</span></span></span>
+              X(e<sup>jθ</sup>) W(e<sup>j(ω−θ)</sup>) dθ
+            </div>
+            <p class="why">为什么这会导致泄漏：<span class="mono">X(e<sup>jω</sup>)</span> 本来是两根冲激（在 <span class="mono">±ω<sub>0</sub></span>）；
+              与窗的谱一卷积，每根冲激就被"换成了"一个完整的主瓣加旁瓣的形状——<b>能量从一根线摊到了一整片</b>。
+              这就是泄漏：原始信号的频率成分从它本来的频点上"漏"到了别的频点上。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：什么时候"不漏"——整数周期截断。</b></p>
+            <p>
+              如果截取长度恰好包含<b>整数个</b>信号周期，即 <span class="mono">ω<sub>0</sub>N/(2π)</span> 是整数，
+              那么 <span class="mono">ω<sub>0</sub></span> 恰好落在某个 DFT 频点 <span class="mono">2πk/N</span> 上，
+              Dirichlet 核的<b>所有零点</b>正好压在其它频点上，于是谱变成干干净净的两根线。
+            </p>
+            <p style="margin-bottom:0" class="why">为什么：Dirichlet 核 <span class="mono">sin(Nω/2)/sin(ω/2)</span> 在 <span class="mono">ω = 2πm/N</span>（m 为非零整数）处正好为 0。频点与零点重合，其它频点就都读到 0。所以工程上做频谱分析时，习惯让采样长度与信号周期对齐（"整周期采样"），就是为了消掉泄漏。</p>
+          </div>
+
+          <div class="box warn" style="margin-top:14px">
+            <span class="tag">抑制泄漏的正规做法：换窗</span>
+            <p style="margin-bottom:0">
+              现实里信号周期往往未知，对齐做不到。那就换一个两端平滑地降到 0 的窗，比如汉宁窗（Hanning window）、汉明窗（Hamming window）、布莱克曼窗。
+              旁瓣大幅降低（泄漏变小），代价是主瓣变宽（频率分辨变差）。<b>窗的选择永远是"旁瓣高度 ↔ 主瓣宽度"的折中</b>，没有免费的午餐。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h3>8.2 栅栏效应（picket-fence effect）与补零的真相</h3>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">栅栏效应</h4>
+          <p class="small">
+            你看到的频谱只是 DTFT 这条连续曲线上的 <b>N 个采样点</b>。
+            这就像透过一道栅栏看风景：栅栏的缝隙之间有什么，你看不见。
+            如果信号的频率恰好落在两个缝隙中间，你读到的最大值会比真实幅度低（最坏情况低到 <span class="mono">2/π ≈ 63.7%</span>），
+            而峰值位置也读不准。
+          </p>
+          <p class="small" style="margin-bottom:0">
+            术语就是前面提到的栅栏效应（picket-fence effect）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">补零：能加密，不能提分辨</h4>
+          <p class="small">
+            <b>补零</b>（zero padding）就是在序列尾部加 0，让 N 变大。
+            因为 0 不影响 DTFT，曲线不变；变的只是"在这条曲线上取多少个点"——点更密了，栅栏缝隙更细了，
+            <b>峰值幅度可以读得更准</b>。
+          </p>
+          <p class="small" style="margin-bottom:0">
+            但<b>它不能提高真实分辨率</b>。分辨两个靠得很近的频率，靠的是"观测了多长时间"：
+            <span class="mono">Δf = 1/T</span>（T 是实际观测时长），
+            与你在后面补了多少个 0 毫无关系。补零只是把同一条曲线画得更光滑，<b>两个本来就分不开的峰，补再多零也还在一个鼓包里</b>。
+          </p>
+        </div>
+      </div>
+
+      <div class="box ok">
+        <span class="tag">一条必须记住的等式</span>
+        <div class="eq center-eq" style="margin:8px 0">
+          Δf = <span class="frac"><span class="num">f<sub>s</sub></span><span class="den">N</span></span>
+          = <span class="frac"><span class="num">1</span><span class="den">N T<sub>s</sub></span></span>
+          = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+        </div>
+        <p style="margin-bottom:0" class="small">
+          <span class="mono">Δf</span> 是相邻两个 DFT 频点之间的间隔，<span class="mono">T<sub>s</sub></span> 是采样间隔，<span class="mono">T = N·T<sub>s</sub></span> 是总观测时长。
+          "<span class="mono">N</span> 越大分辨越好"这句话里的 N，指的是<b>真实采集到的点数</b>，不包括补的零。
+          而且注意：DFT 输出只有 N 个数，却要描述 <span class="mono">[0, f<sub>s</sub>)</span> 这段频率——这就是 8.1 式里 N 个样本只能给出 N 个频点的由来。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 动手：时域周期延拓 ↔ 频域采样</h2>
+      <p>
+        这一节把"对偶关系"摊在桌面上让你看。对偶说的是同一件事的两种说法：
+      </p>
+      <div class="eq center-eq">
+        <b>时域采样</b>（只取 N 个数）&nbsp;<span class="op ft">⟷</span>&nbsp;<b>频域周期延拓</b>（谱以 2π 为周期重复）
+      </div>
+      <div class="eq center-eq">
+        <b>频域采样</b>（只取 N 个频点）&nbsp;<span class="op ft">⟷</span>&nbsp;<b>时域周期延拓</b>（x[n] 以 N 为周期重复）
+      </div>
+      <p>
+        下面这个实验台让你亲手验证第二条：<b>补零让频域采样点变密，而被"截断"这件事本身，等价于在频域把 x 的周期延拓给采了样</b>。
+        你翻动 N，看左侧的周期延拓波形和右侧的谱线。
+      </p>
+
+      <div id="lab-dual"></div>
+
+      <h2 id="s10">10. FFT：一个算法，不是一种新变换</h2>
+
+      <p>
+        到这里你可能觉得：DFT 挺好，可是式 (8-3) 要算 <span class="mono">N</span> 个 <span class="mono">k</span>，
+        每个 <span class="mono">k</span> 又要加 <span class="mono">N</span> 项，一共 <span class="mono">N²</span> 次复数乘法。
+        <span class="mono">N = 1024</span> 时是约 <b>一百万</b>次；<span class="mono">N = 10<sup>6</sup></span> 时是 <b>一万亿</b>次。这没法用。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">关键定义：FFT 到底是什么</span>
+        <p style="margin-bottom:0">
+          <span class="term" data-def="FFT, fast Fourier transform，中文含义：快速傅里叶变换。它不是一种新的变换，而是计算 DFT 的一类快速算法（1965 年 Cooley–Tukey 论文使其广为人知）；输出与 DFT 逐位相同，只是运算次数少得多。">FFT</span>（fast Fourier transform，快速傅里叶变换）
+          <b>不是新的变换</b>。它算出来的 <span class="mono">X[k]</span> 和 DFT 一模一样，一个 bit 都不差。
+          它只是把 DFT 的计算排了个聪明的顺序，让复数乘法从 <span class="mono">N²</span> 次降到约 <span class="mono">(N/2)log<sub>2</sub>N</span> 次。
+          写论文、写代码时要说准确：<b>FFT 是 DFT 的算法</b>。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>FFT 的核心思想：把 N 点 DFT 拆成两个 N/2 点 DFT（时分基 2）</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：把 n 分成偶数、奇数两组。</b></p>
+            <p>记 <span class="mono">W<sub>N</sub> = e<sup>−j2π/N</sup></span>，则 <span class="mono">X[k] = Σ<sub>n=0</sub><sup>N−1</sup> x[n]W<sub>N</sub><sup>kn</sup></span>。设 N 为偶数，令</p>
+            <div class="eq">
+              f[m] = x[2m], &nbsp;&nbsp; g[m] = x[2m+1], &nbsp;&nbsp; m = 0, 1, …, <span class="frac"><span class="num">N</span><span class="den">2</span></span> − 1
+            </div>
+            <p class="why">为什么这么拆：偶数和奇数下标合起来正好是全部 n。拆开之后，两组各自的长度只有 N/2，为"递归"创造了条件——这就是分治（divide and conquer）。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：分成两个求和。</b></p>
+            <div class="eq">
+              X[k] = <span class="sum"><span class="top">N/2−1</span><span class="sym">Σ</span><span class="bot">m=0</span></span>
+              f[m] W<sub>N</sub><sup>2km</sup>
+              + W<sub>N</sub><sup>k</sup>
+              <span class="sum"><span class="top">N/2−1</span><span class="sym">Σ</span><span class="bot">m=0</span></span>
+              g[m] W<sub>N</sub><sup>2km</sup>
+              = F[k] + W<sub>N</sub><sup>k</sup> G[k]
+            </div>
+            <p class="why">为什么：把 <span class="mono">n = 2m</span> 的项归为第一个和、<span class="mono">n = 2m+1</span> 的项归为第二个和；第二个和里的 <span class="mono">W<sub>N</sub><sup>k(2m+1)</sup> = W<sub>N</sub><sup>k</sup>·W<sub>N</sub><sup>2km</sup></span>，把与 m 无关的 <span class="mono">W<sub>N</sub><sup>k</sup></span> 提到求和号外面。而 <span class="mono">W<sub>N</sub><sup>2km</sup> = e<sup>−j2π·2km/N</sup> = e<sup>−j2πkm/(N/2)</sup> = W<sub>N/2</sub><sup>km</sup></span>——<b>两个和分别就是 f、g 的 N/2 点 DFT，记作 F[k]、G[k]</b>。这一步的"为什么"就是旋转因子的指数运算规则。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：利用周期性，把后一半也算出来，几乎不要钱。</b></p>
+            <p>因为 <span class="mono">F[k]</span>、<span class="mono">G[k]</span> 是 N/2 点 DFT，它们以 N/2 为周期：<span class="mono">F[k+N/2] = F[k]</span>。又因为 <span class="mono">W<sub>N</sub><sup>k+N/2</sup> = −W<sub>N</sub><sup>k</sup></span>，所以</p>
+            <div class="eq">
+              X[k] = F[k] + W<sub>N</sub><sup>k</sup> G[k]
+              &nbsp;&nbsp;&nbsp;
+              X[k + <span class="frac"><span class="num">N</span><span class="den">2</span></span>] = F[k] − W<sub>N</sub><sup>k</sup> G[k]
+            </div>
+            <p class="why">为什么 <span class="mono">W<sub>N</sub><sup>k+N/2</sup>=−W<sub>N</sub><sup>k</sup></span>：<span class="mono">W<sub>N</sub><sup>N/2</sup> = e<sup>−jπ</sup> = −1</span>，转半圈正好是反向。<b>这一对式子就是蝶形运算（butterfly）</b>：一次乘法 + 两次加减，同时产出两个输出，代价只有"一个乘法"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：递归下去，数一数省了多少。</b></p>
+            <p>
+              对 F、G 再各拆一次……只要 N 是 2 的幂，就能一直拆到 2 点 DFT 为止，共折 <span class="mono">log<sub>2</sub>N</span> 层，
+              每层总运算量 <span class="mono">∝ N</span>。所以总复数乘法约为
+            </p>
+            <div class="eq center-eq">
+              (N/2)·log<sub>2</sub>N &nbsp;&nbsp;vs&nbsp;&nbsp; N²（直接算法）
+            </div>
+            <p style="margin-bottom:0" class="why">为什么这是革命性的：N 翻一倍，<span class="mono">N²</span> 变 4 倍，而 <span class="mono">N log N</span> 只变约 2.1 倍。规模越大优势越恐怖——这就是为什么 1965 年 Cooley 与 Tukey 把算法写成论文之后，数字信号处理才真正遍地开花。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:14px">
+            <span class="tag">数量级对照（自己乘一下就能验证）</span>
+            <p style="margin-bottom:0" class="small">
+              N = 64：<span class="mono">N² = 4096</span>，<span class="mono">(N/2)log₂N = 192</span>，快约 21 倍。<br>
+              N = 1024：<span class="mono">N² ≈ 1.05×10<sup>6</sup></span>，<span class="mono">(N/2)log₂N = 5120</span>，快约 205 倍。<br>
+              N = 4096：<span class="mono">N² ≈ 1.68×10<sup>7</sup></span>，<span class="mono">(N/2)log₂N = 24576</span>，快约 683 倍。<br>
+              顺带说一句：本站内核 <span class="mono">SSC.fft</span> 就实现了这个基 2 迭代算法，和 <span class="mono">SSC.dft</span> 的暴力算法结果逐位一致（误差只在 10<sup>−14</sup> 量级的浮点噪声上，等价于完全相同）。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box intuition">
+        <span class="tag">实序列的一个免费技巧：一次 FFT 算两个实序列</span>
+        <p>
+          实际信号大多是实数。如果手上有两个实序列 <span class="mono">x<sub>1</sub>[n]</span>、<span class="mono">x<sub>2</sub>[n]</span> 要算 DFT，
+          不必算两次。构造复序列 <span class="mono">x[n] = x<sub>1</sub>[n] + j x<sub>2</sub>[n]</span>，做一次 N 点 FFT，然后利用共轭对称性拆分：
+        </p>
+        <div class="eq">
+          X<sub>1</sub>[k] = <span class="frac"><span class="num">X[k] + X*[(−k) mod N]</span><span class="den">2</span></span>,
+          &nbsp;&nbsp;
+          X<sub>2</sub>[k] = <span class="frac"><span class="num">X[k] − X*[(−k) mod N]</span><span class="den">2j</span></span>
+        </div>
+        <p style="margin-bottom:0" class="why">
+          为什么成立：实序列的 DFT 满足 <span class="mono">X<sub>1</sub>*[k] = X<sub>1</sub>[(−k) mod N]</span>（共轭对称）。
+          于是两个实序列的谱可以写成"和的一半"与"差的一半除以 j"，两者刚好把复序列的 N 个复数用得一个不剩。
+          <b>一次 N 点 FFT 的运算量 ≈ 两次一半规模的 FFT</b>，这个技巧常用在实信号的批量处理里。
+        </p>
+      </div>
+
+      <h3>FFT 相关的其它实用事实（不推导，只记住怎么用）</h3>
+      <table class="tbl sm">
+        <thead><tr><th>事情</th><th>结论</th><th>什么时候用</th></tr></thead>
+        <tbody>
+          <tr><td>N 不是 2 的幂怎么办</td><td>基 2 算法要求 N 是 2 的幂</td><td>补零到最近的 2 的幂（代价：泄漏与谱线位置略变，注意补零≠提分辨）</td></tr>
+          <tr><td>用 FFT 做长序列卷积</td><td>补零到 <span class="mono">N ≥ N<sub>1</sub>+N<sub>2</sub>−1</span> → FFT → 相乘 → IFFT</td><td>滤波器系数很长时（如 1024 点 FIR），比直接卷积快得多</td></tr>
+          <tr><td>为什么要"重叠相加/重叠保留"</td><td>信号远长于内存时，分段做循环卷积再把结果拼起来</td><td>实时音频、长数据流的滤波</td></tr>
+          <tr><td>只想要幅度谱</td><td>仍要算完整的复 FFT（幅度与相位是一体的）</td><td>除非明确知道信号是实偶序列</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s11">11. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：以为 FFT 是另一种变换</h4>
+          <p class="small">FFT 就是快速算 DFT 的算法，输出完全一样。说"用 FFT 变换"没错，说"FFT 变换和 DFT 变换结果不同"就错了。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：忘了 DFT 隐含周期延拓</h4>
+          <p class="small">把一段非周期的信号直接做 DFT，等于把它首尾相接无限重复。如果这段的首尾不连续，会在接缝处引入一个"假跳变"，频谱上多出能量——这是泄漏的另一种说法。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：循环卷积长度不够</h4>
+          <p class="small">想用 FFT 做线性卷积，必须补零到 <span class="mono">N ≥ N<sub>1</sub>+N<sub>2</sub>−1</span>。少了就会时域混叠，尾巴绕到头上。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：用补零来"提高分辨率"</h4>
+          <p class="small">不行。补零只是把同一条曲线画得更密。分辨率取决于真实观测时长 <span class="mono">T</span>：<span class="mono">Δf = 1/T</span>。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：把 |X[k]| 当成 0…f<sub>s</sub>/2 的物理幅度</h4>
+          <p class="small">要点：<span class="mono">k &gt; N/2</span> 的那一半其实是<b>负频率</b>（<span class="mono">ω<sub>k</sub>−2π</span>），对实信号它与前半共轭对称，不是新的正频率。画单边谱时要记得乘 2（直流与 <span class="mono">k=N/2</span> 除外）。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：1/N 放错边</h4>
+          <p class="small">本站约定"反变换带 1/N"。用别的库（如 NumPy）时先看清它的约定，否则会差一个 N 倍。数字对不对，用"单位冲激的 DFT 全为 1"这类极端例子一试就知道。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：以为 X[k] 就是 DTFT</h4>
+          <p class="small"><span class="mono">X[k]</span> 只是 DTFT 上的 N 个采样点。两点之间的真实形状（可能有峰）你看不到——这就是栅栏效应。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：拿频谱峰值位置当信号频率</h4>
+          <p class="small">峰值只落在最近的 DFT 频点上，真实频率可能在两个频点之间，误差最大可达 <span class="mono">±Δf/2 = ±1/(2T)</span>。要更准，就得看更长时间，或者用插值/相位差分等专门方法。</p>
+        </div>
+      </div>
+
+      <h2 id="s12">12. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz8"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 8 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ================= 页面内自备工具（内核没有的直接写在这里） =================
+     dtftMag：按定义直接在给定 ω 上算 DTFT 的模（不做 FFT 补零那种近似）
+     circConv：N 点循环卷积（下标 mod N）
+     seq 构造：保证序列长度恰好是 N（长了截断、短了补零）            */
+  function dtftMagAt(x, w) {
+    var re = 0, im = 0, n;
+    for (n = 0; n < x.length; n++) { re += x[n] * Math.cos(w * n); im -= x[n] * Math.sin(w * n); }
+    return Math.hypot(re, im);
+  }
+  function circConv(x, h, N) {
+    var y = new Array(N).fill(0), n, m;
+    for (n = 0; n < N; n++) {
+      var s = 0;
+      for (m = 0; m < N; m++) {
+        var idx = ((n - m) % N + N) % N;
+        s += (x[m] || 0) * (h[idx] || 0);
+      }
+      y[n] = s;
+    }
+    return y;
+  }
+  /* 把任意序列规整成恰好 N 点 */
+  function fitN(seq, N) {
+    var out = [], i;
+    for (i = 0; i < N; i++) out.push(i < seq.length ? seq[i] : 0);
+    return out;
+  }
+  /* 生成"基本序列"：前 L 个点按 gen 取，其余补零 */
+  function makeSeq(N) {
+    var x = [], n;
+    for (n = 0; n < N; n++) {
+      /* 一段双频信号：0.4π 与 0.9π 的混合，再乘一个下降包络，保证不是单一正弦 */
+      var v = Math.cos(0.4 * Math.PI * n) + 0.55 * Math.cos(0.9 * Math.PI * n);
+      v *= Math.exp(-0.12 * n);
+      x.push(v);
+    }
+    return x;
+  }
+
+  /* ================= 实验 1：DFT 是 DTFT 的等间隔采样 ================= */
+  SSC.lab({
+    mount: '#lab-dft',
+    title: '实验 1 · N 点 DFT = DTFT 曲线上的 N 个等间隔采样点',
+    hint: '拖动 N 看茎叶变密/变稀；拖动"序列有效长度 L"看两条曲线的关系',
+    columns: 1,
+    canvases: [
+      { id: 'time', label: '时域 x[n]：N 点序列（L 之后的点是补的零）', height: 190 },
+      { id: 'spec', label: '频域：连续曲线 = |X(e^{jω})|（DTFT，与 N 无关）；茎叶 = |X[k]|（N 点 DFT）', height: 240 }
+    ],
+    controls: [
+      { id: 'N', label: '变换长度 N', min: 4, max: 64, step: 1, value: 8 },
+      { id: 'L', label: '序列有效长度 L（超过 L 的都是补零）', min: 2, max: 32, step: 1, value: 8 },
+      { id: 'showNeg', label: '是否画出负频率半边', options: [{ v: 1, t: '画 −π…π（含负频率）' }, { v: 0, t: '只画 0…π（单边）' }], value: 1 }
+    ],
+    buttons: [{
+      label: '重置（N=8, L=8）',
+      onClick: function (vals, api) { api.set('N', 8); api.set('L', 8); }
+    }],
+    draw: function (cv, v, api) {
+      function maxIdx(X) {
+        var b = -1, bi = 0;
+        for (var i = 0; i < X.length; i++) { var m = SSC.cabs(X[i]); if (m > b) { b = m; bi = i; } }
+        return bi;
+      }
+      var N = Math.round(v.N), L = Math.round(v.L);
+      if (L > N) L = N;                     /* 有效长度不可能超过变换长度 */
+      var xfull = makeSeq(L);               /* 真正的信号：前 L 点非零 */
+      var x = fitN(xfull, N);               /* 喂给 DFT 的：补零到 N 点 */
+      var X = SSC.dft(x);
+
+      /* --- 时域 --- */
+      var xs = [], ys = [];
+      for (var n = 0; n < N; n++) { xs.push(n); ys.push(x[n]); }
+      SSC.plot(cv.time, {
+        xmin: -0.6, xmax: N - 0.4, ymin: -2.2, ymax: 2.2,
+        xlabel: 'n', ylabel: 'x[n]',
+        stems: [
+          { xs: xs.slice(0, L), ys: ys.slice(0, L), color: '#4338ca', label: '真实样本（前 L 点）' },
+          { xs: xs.slice(L), ys: ys.slice(L), color: '#c3bddf', label: '补的零（' + (N - L) + ' 个）' }
+        ],
+        vlines: L < N ? [{ x: L - 0.5, color: '#dc2626', dash: [4, 4], label: 'L=' + L }] : [],
+        legend: true, xcount: Math.min(10, N)
+      });
+
+      /* --- 频域：DTFT 连续曲线 + DFT 茎叶 --- */
+      var wmin = v.showNeg ? -Math.PI : 0, wmax = Math.PI;
+      var curvePts = 1400;
+      var mags = [];
+      for (var i = 0; i <= curvePts; i++) {
+        var w = wmin + (wmax - wmin) * i / curvePts;
+        mags.push(dtftMagAt(xfull, w));
+      }
+      var mx = 0;
+      mags.forEach(function (m) { if (m > mx) mx = m; });
+      if (mx < 1e-9) mx = 1;
+
+      var kx = [], ky = [], kx2 = [], ky2 = [];
+      for (var k = 0; k < N; k++) {
+        var wk = 2 * Math.PI * k / N;                       /* 0…2π */
+        var wSigned = wk > Math.PI ? wk - 2 * Math.PI : wk; /* 折到 (−π, π] */
+        var mag = SSC.cabs(X[k]);
+        if (v.showNeg) {
+          if (wk <= Math.PI + 1e-9) { kx.push(wk); ky.push(mag); }
+          else { kx2.push(wSigned); ky2.push(mag); }
+        } else if (wk <= Math.PI + 1e-9) { kx.push(wk); ky.push(mag); }
+      }
+      var stems = [];
+      if (kx.length) stems.push({ xs: kx, ys: ky, color: '#dc2626', label: '|X[k]|（k = 0…⌊N/2⌋）' });
+      if (kx2.length) stems.push({ xs: kx2, ys: ky2, color: '#f59e0b', label: '|X[k]|（k > N/2，其实是负频率）' });
+
+      /* 把 DTFT 曲线也画成曲线对象（用密集采样点插值） */
+      SSC.plot(cv.spec, {
+        xmin: wmin, xmax: wmax, ymin: -0.12 * mx, ymax: mx * 1.22,
+        xlabel: 'ω (rad/样本)', ylabel: '|X|',
+        curves: [{
+          f: function (w) {
+            var t = (w - wmin) / (wmax - wmin) * curvePts;
+            var i0 = SSC.clamp(Math.floor(t), 0, curvePts - 1);
+            var fr = t - i0;
+            return mags[i0] * (1 - fr) + mags[i0 + 1] * fr;
+          },
+          color: '#0e7490', width: 2.2, samples: 700, label: 'DTFT |X(e^{jω})|（连续，与 N 无关）'
+        }],
+        stems: stems,
+        bands: v.showNeg ? [{ x1: -Math.PI / 2, x2: Math.PI / 2, color: 'rgba(21,128,61,.07)' }] : [],
+        vlines: v.showNeg
+          ? [{ x: Math.PI, color: '#7c3aed', dash: [4, 4], label: 'ω=π（最高离散频率）' },
+             { x: -Math.PI, color: '#7c3aed', dash: [4, 4] },
+             { x: -Math.PI / 2, color: '#15803d', dash: [3, 5] },
+             { x: Math.PI / 2, color: '#15803d', dash: [3, 5] }]
+          : [{ x: Math.PI, color: '#7c3aed', dash: [4, 4], label: 'ω=π（最高离散频率）' }],
+        legend: true,
+        tickFmt: function (t) {
+          var r = t / Math.PI;
+          if (Math.abs(r) < 1e-9) return '0';
+          if (Math.abs(r - 1) < 1e-9) return 'π';
+          if (Math.abs(r + 1) < 1e-9) return '−π';
+          if (Math.abs(r - 0.5) < 1e-9) return 'π/2';
+          if (Math.abs(r + 0.5) < 1e-9) return '−π/2';
+          return SSC.fmt(r, 2) + 'π';
+        }
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">N（变换长度）</div><div class="v">' + N + '</div></div>' +
+        '<div class="stat"><div class="k">L（真实样本数）</div><div class="v">' + L + '</div></div>' +
+        '<div class="stat"><div class="k">补零个数</div><div class="v">' + (N - L) + '</div></div>' +
+        '<div class="stat"><div class="k">频点间隔 Δω</div><div class="v">' + SSC.fmt(2 * Math.PI / N, 3) + ' rad</div></div>' +
+        '<div class="stat"><div class="k">X[0]（直流）</div><div class="v">' + SSC.fmt(SSC.cabs(X[0]), 3) + '</div></div>' +
+        '<div class="stat"><div class="k">|X| 最大频点</div><div class="v">k=' + maxIdx(X) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var N = Math.round(v.N), L = Math.min(Math.round(v.L), N);
+      var s = '频点间隔 <b>Δω = 2π/N = ' + SSC.fmt(2 * Math.PI / N, 4) + ' rad</b>，' +
+        '也就是说第 k 根茎叶长在 <b>ω<sub>k</sub> = 2πk/N</b> 处——红色的茎叶顶点永远落在青色曲线（DTFT）上，' +
+        '这就是 <b>X[k] = X(e<sup>j2πk/N</sup>)</b>。';
+      s += '<br>把 N 从 4 拉到 64：茎叶越来越密，而青线一动都不动。';
+      if (L < N) {
+        s += '<br><b>当前 L = ' + L + ' &lt; N = ' + N + '，后 ' + (N - L) + ' 个样本是补的零。</b>' +
+          '补零不改变青线（DTFT 只看真实的 ' + L + ' 个样本），只是把青线上的采样点变密——' +
+          '峰值因此可以读得更准（缓解栅栏效应），但<b>两个靠得很近的频率并不会因此分开</b>。';
+      } else {
+        s += '<br>此时没有补零：N 个样本 ↔ N 个频点，一一对应。';
+      }
+      return s;
+    }
+  });
+
+  /* ================= 实验 2：线性卷积 vs 循环卷积 ================= */
+  var xSeq = [1, 2, 3, 1];        /* 长度 4 */
+  var hSeq = [1, -1, 1];          /* 长度 3 */
+  SSC.lab({
+    mount: '#lab-circ',
+    title: '实验 2 · 同一个 x、同一个 h，只改 N：循环卷积何时等于线性卷积',
+    hint: '把 N 从 4 慢慢拉到 8，盯住红色的"绕回来的尾巴"',
+    columns: 1,
+    canvases: [
+      { id: 'in', label: '两个输入序列（蓝 x[n] 长 N₁=4，橙 h[n] 长 N₂=3）', height: 170 },
+      { id: 'out', label: '蓝色：线性卷积（真答案，长度 N₁+N₂−1）；红色：N 点循环卷积；紫色：被绕回来的尾巴', height: 250 }
+    ],
+    controls: [
+      { id: 'N', label: '循环卷积长度 N', min: 3, max: 12, step: 1, value: 4 },
+      { id: 'showWrap', label: '显示"绕回来的尾巴"', options: [{ v: 1, t: '显示' }, { v: 0, t: '隐藏' }], value: 1 }
+    ],
+    buttons: [
+      { label: 'N=4（会混叠）', onClick: function (vals, api) { api.set('N', 4); } },
+      { label: 'N=6（刚好够 L=N₁+N₂−1）', onClick: function (vals, api) { api.set('N', 6); } },
+      { label: 'N=10（多补几个零）', onClick: function (vals, api) { api.set('N', 10); } }
+    ],
+    draw: function (cv, v, api) {
+      var N = Math.round(v.N);
+      var lin = SSC.convSeq(xSeq, hSeq);          /* 长度 4+3-1 = 6 */
+      var L = lin.length;
+      var xN = fitN(xSeq, N), hN = fitN(hSeq, N);
+      var cir = circConv(xN, hN, N);
+
+      /* --- 输入序列 --- */
+      var xn = [], hn = [], i;
+      for (i = 0; i < Math.max(N, L); i++) { xn.push(i); hn.push(i); }
+      SSC.plot(cv.in, {
+        xmin: -0.6, xmax: Math.max(N, L) - 0.4, ymin: -4, ymax: 4,
+        xlabel: 'n', ylabel: '幅度',
+        stems: [
+          { xs: xn, ys: xn.map(function (j) { return xN[j] || 0; }), color: '#4338ca', label: 'x[n]（长 4）' },
+          { xs: hn, ys: hn.map(function (j) { return hN[j] || 0; }), color: '#ea8c1a', label: 'h[n]（长 3）' }
+        ],
+        legend: true
+      });
+
+      /* --- 线性 vs 循环 --- */
+      var wrap = [];   /* 绕回来的部分：循环卷积 − 线性卷积 */
+      for (i = 0; i < N; i++) wrap.push(cir[i] - (i < L ? lin[i] : 0));
+
+      var linX = [], linY = [];
+      for (i = 0; i < L; i++) { linX.push(i); linY.push(lin[i]); }
+      var cirX = [], cirY = [];
+      for (i = 0; i < N; i++) { cirX.push(i); cirY.push(cir[i]); }
+      var wrapX = [], wrapY = [];
+      for (i = 0; i < N; i++) if (Math.abs(wrap[i]) > 1e-9) { wrapX.push(i); wrapY.push(wrap[i]); }
+
+      var outStems = [
+        { xs: linX, ys: linY, color: '#0e7490', label: '线性卷积（真答案，长 ' + L + '）' },
+        { xs: cirX, ys: cirY, color: '#dc2626', label: 'N=' + N + ' 循环卷积' }
+      ];
+      if (v.showWrap && wrapX.length) {
+        outStems.push({ xs: wrapX, ys: wrapY, color: '#7c3aed', r: 3.4, label: '被绕回来的尾巴（循环 − 线性）' });
+      }
+
+      SSC.plot(cv.out, {
+        xmin: -0.6, xmax: Math.max(N, L) - 0.4, ymin: -9, ymax: 9,
+        xlabel: 'n', ylabel: 'y[n]',
+        stems: outStems,
+        bands: [{ x1: L - 0.5, x2: Math.max(N, L) - 0.4, color: 'rgba(220,38,38,.10)' }],
+        legend: true
+      });
+
+      var same = N >= L;
+      var wrapSum = wrap.reduce(function (a, b) { return a + Math.abs(b); }, 0);
+      api.readout(
+        '<div class="stat"><div class="k">线性卷积长度 L=N₁+N₂−1</div><div class="v">' + L + '</div></div>' +
+        '<div class="stat"><div class="k">当前 N</div><div class="v">' + N + '</div></div>' +
+        '<div class="stat"><div class="k">N ≥ L ？</div><div class="v" style="color:' + (same ? '#15803d' : '#dc2626') + '">' + (same ? '满足 ✔' : '不满足 ✘') + '</div></div>' +
+        '<div class="stat"><div class="k">两者一致？</div><div class="v" style="color:' + (same ? '#15803d' : '#dc2626') + '">' + (same ? '完全一致' : '不一致（混叠）') + '</div></div>' +
+        '<div class="stat"><div class="k">绕回量 |Σ wrap|</div><div class="v">' + SSC.fmt(wrapSum, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">线性卷积 y</div><div class="v" style="font-size:13px">[' + lin.join(', ') + ']</div></div>' +
+        '<div class="stat"><div class="k">循环卷积 y</div><div class="v" style="font-size:13px">[' + cir.slice(0, Math.min(N, 8)).join(', ') + (N > 8 ? ', …' : '') + ']</div></div>'
+      );
+    },
+    note: function (v) {
+      var N = Math.round(v.N);
+      var lin = SSC.convSeq(xSeq, hSeq), L = lin.length;
+      if (N >= L) {
+        return 'N = ' + N + ' ≥ L = ' + L + '：<b>循环卷积与线性卷积逐点相同</b>。' +
+          '原因是回绕的那段正好落在线性卷积尾部那些"本来就该是 0"的位置上（蓝色阴影区右侧）。' +
+          '这就是"补零到 N ≥ N₁+N₂−1"为什么有效。';
+      }
+      var xN = fitN(xSeq, N), hN = fitN(hSeq, N), cir = circConv(xN, hN, N);
+      var moved = [];
+      for (var i = 0; i < N; i++) { var w = cir[i] - (i < L ? lin[i] : 0); if (Math.abs(w) > 1e-9) moved.push('n=' + i + ' 多出 ' + SSC.fmt(w, 2)); }
+      return 'N = ' + N + ' &lt; L = ' + L + '：<b>时域混叠发生了</b>。线性卷积有 ' + L +
+        ' 个非零点，而循环卷积只装得下 N 个，多出来的 ' + (L - N) + ' 个值被回绕叠加到了头部：' +
+        (moved.length ? '<b>' + moved.join('；') + '</b>' : '') +
+        '。<br>把 N 调到 ≥ ' + L + '，红色茎叶就会和蓝色完全重合。' +
+        '<br><span class="tiny">顺带看一眼：如果 N 太短，循环卷积的结果甚至不是任何真实信号的卷积——它连长度都不对，信息被永久压掉了。</span>';
+    }
+  });
+
+  /* ================= 实验 3：时域周期延拓 ↔ 频域采样 ================= */
+  SSC.lab({
+    mount: '#lab-dual',
+    title: '实验 3 · 把 x 以 N 为周期重复，看频域发生什么',
+    hint: '先减小 N（重复得更频繁），再看频谱上的采样点怎么跟着变',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：x[n] 的 N 点周期延拓（重画两个周期）', height: 210 },
+      { id: 'spec', label: '频域：DTFT 曲线 + N 个采样点（DFT）', height: 210 }
+    ],
+    controls: [
+      { id: 'N', label: '周期 / 变换长度 N', min: 4, max: 24, step: 1, value: 6 },
+      { id: 'L', label: '基本段的有效长度 L', min: 2, max: 24, step: 1, value: 4 }
+    ],
+    draw: function (cv, v) {
+      var N = Math.round(v.N);
+      var L = Math.min(Math.round(v.L), N);
+      var base = makeSeq(L);                    /* 基本段：L 个非零值 */
+      var seg = fitN(base, N);                  /* 一个周期：补零到 N */
+
+      /* --- 时域：画 3 个周期 --- */
+      var xs = [], ys = [];
+      for (var i = 0; i < 3 * N; i++) { xs.push(i); ys.push(seg[i % N]); }
+      SSC.plot(cv.time, {
+        xmin: -0.6, xmax: 3 * N - 0.4, ymin: -2.2, ymax: 2.2,
+        xlabel: 'n（同一个 x[n] 被复制了 3 遍）', ylabel: 'x̃[n]',
+        stems: [{ xs: xs, ys: ys, color: '#4338ca', r: 2.4 }],
+        vlines: [
+          { x: N - 0.5, color: '#dc2626', dash: [4, 4], label: 'N' },
+          { x: 2 * N - 0.5, color: '#dc2626', dash: [4, 4], label: '2N' }
+        ]
+      });
+
+      /* --- 频域 --- */
+      var wmin = -Math.PI, wmax = Math.PI, P = 900, mags = [];
+      for (var j = 0; j <= P; j++) mags.push(dtftMagAt(base, wmin + (wmax - wmin) * j / P));
+      var mx = 0;
+      mags.forEach(function (m) { if (m > mx) mx = m; });
+      if (mx < 1e-9) mx = 1;
+
+      var kx = [], ky = [], kx2 = [], ky2 = [];
+      var X = SSC.dft(seg);
+      for (var k = 0; k < N; k++) {
+        var wk = 2 * Math.PI * k / N;
+        var ws = wk > Math.PI ? wk - 2 * Math.PI : wk;
+        var m = SSC.cabs(X[k]);
+        if (wk <= Math.PI + 1e-9) { kx.push(wk); ky.push(m); } else { kx2.push(ws); ky2.push(m); }
+      }
+      SSC.plot(cv.spec, {
+        xmin: wmin, xmax: wmax, ymin: -0.12 * mx, ymax: mx * 1.22,
+        xlabel: 'ω (rad/样本)', ylabel: '|X|',
+        curves: [{
+          f: function (w) {
+            var t = (w - wmin) / (wmax - wmin) * P;
+            var i0 = SSC.clamp(Math.floor(t), 0, P - 1), fr = t - i0;
+            return mags[i0] * (1 - fr) + mags[i0 + 1] * fr;
+          },
+          color: '#0e7490', width: 2.2, samples: 700, label: 'DTFT |X(e^{jω})|（连续）'
+        }],
+        stems: [
+          { xs: kx, ys: ky, color: '#dc2626', label: 'DFT 采样点（0 ≤ ω ≤ π）' },
+          { xs: kx2, ys: ky2, color: '#f59e0b', label: '同一批点折到负频率' }
+        ],
+        vlines: [{ x: Math.PI, color: '#7c3aed', dash: [4, 4] }, { x: -Math.PI, color: '#7c3aed', dash: [4, 4] }],
+        legend: true,
+        tickFmt: function (t) {
+          var r = t / Math.PI;
+          if (Math.abs(r) < 1e-9) return '0';
+          if (Math.abs(Math.abs(r) - 1) < 1e-9) return (r < 0 ? '−' : '') + 'π';
+          if (Math.abs(Math.abs(r) - 0.5) < 1e-9) return (r < 0 ? '−' : '') + 'π/2';
+          return SSC.fmt(r, 2) + 'π';
+        }
+      });
+    },
+    note: function (v) {
+      var N = Math.round(v.N), L = Math.min(Math.round(v.L), N);
+      return '左边把 x[n] 以 <b>N = ' + N + '</b> 为周期无限重复；右边是在 [−π,π) 上取 <b>' + N + ' 个等间隔频率点</b>。' +
+        '两者是同一个对偶关系的两面：<b>时域周期延拓 ↔ 频域采样</b>。' +
+        '<br>N 变小 → 时域重复得更挤 → 频域采样点变稀；N 变大 → 重复得更疏 → 频域采样点变密。' +
+        (L < N ? '<br>当前 L = ' + L + ' &lt; N，中间有一大段零：这正是"补零只加密频域采样、不改变 DTFT 曲线"的样子。' : '') +
+        '<br><span class="tiny">再看一眼红色虚线：接缝处（n = N 附近）如果两个周期拼接得不连续，频谱上就会多出能量——这就是泄漏时域一侧的样子。</span>';
+    }
+  });
+
+  /* ================= 自测 ================= */
+  SSC.quiz('#quiz8', [
+    {
+      q: '为什么计算机不能直接算 DTFT X(e^{jω})，而必须算 DFT？',
+      opts: [
+        'DTFT 要求 n 从 −∞ 到 +∞ 求和，而且 ω 是连续变量，两个都不是有限步骤能完成的',
+        'DTFT 只在信号周期时才有定义',
+        'DTFT 的输出是实数，计算机只能处理复数',
+        'DTFT 的公式里有积分，计算机不会做积分'
+      ],
+      a: 0,
+      why: '两个障碍：求和范围无限（内存有限）、自变量 ω 连续（只能算有限个点）。DFT 同时对这两点下手：只取 N 项、只在 N 个等间隔频点上求值。',
+      tag: '动机'
+    },
+    {
+      q: 'x[n] 是长度 N=8 的序列。X[k] 与 DTFT X(e^{jω}) 的关系是？',
+      opts: [
+        'X[k] = X(e^{j2πk/8})，即 DTFT 在 8 个等间隔频率上的取值',
+        'X[k] = X(e^{jk})，即频率间隔为 1 rad/样本',
+        'X[k] 是 X(e^{jω}) 的积分平均',
+        '两者没有确定关系，取决于信号'
+      ],
+      a: 0,
+      why: '把 ω = 2πk/N 代入 DTFT 定义，求和恰好变成 DFT 定义。N=8 时间隔是 2π/8 = π/4。注意间隔是 2π/N 而不是 1。',
+      tag: '核心关系'
+    },
+    {
+      q: '两个序列长度分别是 5 和 4。用 FFT 做线性卷积，循环卷积长度 N 至少要取多少？',
+      opts: ['8', '5', '4', '20'],
+      a: 0,
+      why: '线性卷积长度 L = N₁+N₂−1 = 5+4−1 = 8，所以 N ≥ 8。取 N=5 会让长度为 8 的结果中后 3 个值回绕叠加到头部，产生时域混叠。',
+      tag: '计算'
+    },
+    {
+      q: '对一个纯正弦信号取 100 个样本做 DFT，发现幅度谱上每一根谱线都不为零（有很多旁瓣）。最可能的原因是？',
+      opts: [
+        '截断长度不等于信号周期的整数倍，产生了泄漏',
+        'DFT 算法本身有误差，换成 FFT 就好了',
+        '信号里本来就有很多频率成分',
+        '正弦信号不能做 DFT'
+      ],
+      a: 0,
+      why: '截断等于乘矩形窗，窗的谱（Dirichlet 核）有主瓣和无穷多旁瓣，与信号谱一卷积就把能量摊开了。只有整周期截断时，窗谱零点才正好压在其它频点上，谱才干净。',
+      tag: '泄漏'
+    },
+    {
+      q: '把一个 4 点序列补零到 1024 点再做 DFT，下列说法正确的是？',
+      opts: [
+        '频域采样点变密了（能看到更细的曲线），但真实频率分辨率没有提高',
+        '真实频率分辨率提高了 256 倍',
+        '补零后 DTFT 曲线本身变窄了',
+        '补零会引入额外的谐波'
+      ],
+      a: 0,
+      why: '补零不改变 DTFT（0 的 DTFT 是 0），所以曲线不变，只是在该曲线上取更多点——缓解栅栏效应、峰值读得更准。真实分辨率由观测时长决定：Δf = 1/T，与补零个数无关。',
+      tag: '补零/分辨率'
+    },
+    {
+      q: 'FFT 与 DFT 的关系是？',
+      opts: [
+        'FFT 是计算 DFT 的快速算法，输出与 DFT 完全相同，代价从 N² 降到约 (N/2)log₂N',
+        'FFT 是一种精度更高的近似变换',
+        'FFT 只适用于实信号，DFT 只适用于复信号',
+        'FFT 的输出是连续谱，DFT 的输出是离散谱'
+      ],
+      a: 0,
+      why: '两者数学上是同一个东西。FFT 靠"把 N 点 DFT 拆成两个 N/2 点 DFT + 蝶形合并"递归实现，复数乘法从 N² 降到 (N/2)log₂N；本站内核的 SSC.fft 与 SSC.dft 结果差在 1e-14 量级的浮点噪声内。',
+      tag: 'FFT'
+    }
+  ], '第 8 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

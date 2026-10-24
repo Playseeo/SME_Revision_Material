@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 9 章　采样定理与信号重建｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch09">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第三段 · 从连续到离散 · 第 9 章</div>
+        <h1>采样定理与信号重建</h1>
+        <p class="lede">
+          前面八章我们一会用连续时间 <span class="mono">x(t)</span>、一会用离散时间 <span class="mono">x[n]</span>，中间那一步一直是"跳"过去的。
+          这一章把这一步补上：一段连续的声音、一帧连续的图像，<b>到底能不能用有限个数字完整地记录下来？</b>
+          答案是<b>能</b>，但要满足一个条件。这个条件和"不满足时会发生什么"，
+          就是整门课里最有工程价值的两个结论：<b><span class="term" data-def="sampling theorem，中文含义：采样定理（Nyquist–Shannon 定理）。带限信号只要采样率高于其最高频率的两倍（f_s &gt; 2f_M），就能由样本唯一确定并精确重建；否则会发生混叠。">采样定理</span></b>（sampling theorem）与
+          <b><span class="term" data-def="aliasing，中文含义：混叠。采样率不足时，高于 f_s/2 的频率成分在采样后伪装成低频成分，表观频率 = min_k|f−k·f_s|；而且这种伪装在采样之后无法拆穿——高频和低频已经混进同一个频段。">混叠</span></b>（aliasing）。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch06-ctft.html">第 6 章 连续时间傅里叶变换 CTFT</a>（要用"时域相乘 = 频域卷积"）<br>
+          <a href="ch07-dtft.html">第 7 章 离散时间傅里叶变换 DTFT</a>（要知道离散谱天然以 2π 为周期）
+        </div>
+        <div class="cell mid"><b>这一站</b>采样定理的完整推导、混叠频率的计算、sinc 重建、内插与抽取</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch08-dft.html">第 8 章 DFT 与 FFT</a>（采到的 N 个数具体怎么算频谱）<br>
+          <a href="ch13-ztransform.html">第 13 章 z 变换</a>（离散序列的另一套语言）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 一个让人不安的问题</a>
+        <a href="#s2">2. 采样 = 乘冲激串</a>
+        <a href="#s3">3. 完整推导：频谱为什么要周期延拓</a>
+        <a href="#s4">4. 采样定理：条件的由来</a>
+        <a href="#s5">5. 动手：原信号、采样点、与"混叠后的表观波形"</a>
+        <a href="#s6">6. 动手：把采样率推到 2f 以下，看频谱怎么叠起来</a>
+        <a href="#s7">7. 混叠频率怎么算</a>
+        <a href="#s8">8. 理想重建：sinc 内插公式的完整推导</a>
+        <a href="#s9">9. 动手：sinc 内插重建，看曲线什么时候崩</a>
+        <a href="#s10">10. 从冲激串到数字序列：C/D 与 D/C</a>
+        <a href="#s11">11. 内插（上采样）与抽取（下采样）</a>
+        <a href="#s12">12. 动手：抽取与抗混叠</a>
+        <a href="#s13">13. 实操：零阶保持与其它实际重建办法</a>
+        <a href="#s14">14. 常见坑</a>
+        <a href="#s15">15. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 一个让人不安的问题</h2>
+
+      <p>
+        你的手机录下一段钢琴声，存成 44100 个数每秒的数组。<b>声音本来是连续变化的空气压强</b>——两个采样点之间那段时间里，
+        压强究竟怎么走的？手机没存。那播出来为什么听不出丢东西？
+      </p>
+      <p>
+        反过来更让人不安：如果采样点很稀，会不会有一堆完全不同的信号，采样结果<b>完全一样</b>？
+        答案是<b>会</b>。下面这个事实必须先接受：
+      </p>
+
+      <div class="box warn">
+        <span class="tag">只给一串采样点，能不能唯一确定原信号？</span>
+        <p>
+          <b>不能。</b>比如 <span class="mono">x<sub>1</sub>(t) = 0</span> 和
+          <span class="mono">x<sub>2</sub>(t) = sin(2π·5t)</span>，在 <span class="mono">t = 0, 1, 2, …</span> 秒上取值全是 0。
+          无穷多个不同的连续信号可以有完全相同的采样值。
+        </p>
+        <p style="margin-bottom:0">
+          所以"采样"这件事，<b>如果不对信号加限制，是一定会丢信息的</b>。采样定理要做的事不是"反驳"这句话，
+          而是找出<b>什么样的信号、以多快的速度采样</b>，才能保证不丢。
+          那个限制条件就是：信号必须是<span class="term" data-def="band-limited，中文含义：带限。信号的频谱在某个频率之外严格为 0，即 X(jω)=0（|ω| &gt; ω_M）。带限是采样定理唯一的入场条件。">带限</span>的（band-limited）。
+        </p>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">直觉先行：采样为什么能行</span>
+        <p>
+          关键在于<b>频率只有有限个"名额"</b>。如果信号里最高的频率成分是 <span class="mono">ω<sub>M</sub></span>，
+          那么频谱就集中在 <span class="mono">[−ω<sub>M</sub>, ω<sub>M</sub>]</span> 这一小段里。
+        </p>
+        <p style="margin-bottom:0">
+          采样会在频域造出这个频谱的<b>无穷多份副本</b>，一份接一份地排下去，相邻副本中心隔开
+          <span class="mono">ω<sub>s</sub></span>（采样角频率）。只要 <span class="mono">ω<sub>s</sub></span> 足够大，
+          相邻两份就<b>不会碰到一起</b>；不碰，就不会混。于是我们可以用一把"剪刀"（理想低通滤波器）
+          把原信号那一份单独剪下来，其余全部丢掉——原信号就完整回来了。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 采样 = 乘冲激串</h2>
+
+      <p>
+        要把"每 <span class="mono">T</span> 秒取一个值"这件事写成公式，需要一件工具：
+        <span class="mono">T</span> 间隔的冲激串。<span class="mono">T</span> 叫
+        <span class="term" data-def="sampling period，中文含义：采样周期。相邻两个采样时刻之间的时间间隔，单位秒。T 与采样率的关系是 f_s = 1/T。">采样周期</span>（sampling period），
+        它的倒数就是<span class="term" data-def="sampling frequency，中文含义：采样率/采样频率。每秒采样多少个点，f_s = 1/T（Hz）；对应的角频率 ω_s = 2π/T（rad/s）。">采样率</span>（sampling frequency）：
+      </p>
+      <div class="eq center-eq">
+        f<sub>s</sub> = <span class="frac"><span class="num">1</span><span class="den">T</span></span> &nbsp;(Hz),
+        &nbsp;&nbsp;&nbsp;
+        ω<sub>s</sub> = <span class="frac"><span class="num">2π</span><span class="den">T</span></span> &nbsp;(rad/s)
+        <span class="lbl">(9-1)</span>
+      </div>
+
+      <div class="eq center-eq">
+        p(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+        δ(t − nT)
+        <span class="lbl">(9-2)</span>
+      </div>
+
+      <p>
+        这个 <span class="mono">p(t)</span> 是一串等间距的<span class="term" data-def="impulse train，中文含义：冲激串。每隔 T 一个 δ(t−nT) 的无限序列，p(t)=Σδ(t−nT)，是采样的数学模型（也叫梳状函数）。">冲激串</span>（impulse train）——
+        想象一把无限长的梳子，齿距 <span class="mono">T</span>。用它乘上信号，就得到采样：
+      </p>
+      <div class="eq center-eq">
+        x<sub>p</sub>(t) = x(t)·p(t)
+        = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+        x(nT) δ(t − nT)
+        <span class="lbl">(9-3)</span>
+      </div>
+      <p>
+        这一步用的是冲激的筛选性质：<span class="mono">x(t)δ(t−nT) = x(nT)δ(t−nT)</span>，
+        即"冲激只挑出它所在那一刻的函数值"。于是 <span class="mono">x<sub>p</sub>(t)</span> 是一串冲激，
+        <b>第 n 个冲激的"面积"就是第 n 个采样值 x(nT)</b>。
+        术语上这叫<span class="term" data-def="impulse-train sampling，中文含义：冲激串采样。用周期冲激串乘连续信号来建模"等间隔取样"，数学上等价于保留采样点处的值、丢掉其它时刻。">冲激串采样</span>（impulse-train sampling）。
+      </p>
+
+      <div class="box warn">
+        <span class="tag">别被"冲激"吓到</span>
+        <p style="margin-bottom:0">
+          真实电路当然不会产生数学上的冲激（那需要无穷大的瞬时能量）。
+          这只是<b>建模</b>：我们关心的是"哪些时刻的值被保留了"，冲激串是最方便的记号。
+          实际实现里的"<span class="term" data-def="zero-order hold, ZOH，中文含义：零阶保持。D/A 转换最常用的重建方式：每个采样值保持 T 秒不变，输出阶梯波。等效于冲激串通过一个宽度 T 的矩形滤波器，幅度在奈奎斯特处下垂到 2/π≈63.7%。">零阶保持</span>"（zero-order hold）会在第 13 节单独讲，它和冲激串采样的差别是明确的、可以修的。
+        </p>
+      </div>
+
+      <h2 id="s3">3. 完整推导：频谱为什么要周期延拓</h2>
+      <p class="small muted">
+        这是本章的核心，也是全站最值得逐字读的一段推导。它只用两件你已经有的东西：
+        <b>冲激串的傅里叶变换（第 6 章）</b>和<b>时域相乘 = 频域卷积（第 6 章）</b>。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：时域乘冲激串 → 频域卷积 → 频谱以 ω<sub>s</sub> 为周期延拓叠加</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：写出冲激串的频谱 P(jω)。</b></p>
+            <p>
+              <span class="mono">p(t)</span> 是以 <span class="mono">T</span> 为周期的周期信号，基频正是
+              <span class="mono">ω<sub>s</sub> = 2π/T</span>。周期信号的傅里叶变换是一串冲激（第 6 章式 (6-?) 那一类结论），
+              对 <span class="mono">p(t)</span> 算出来是：
+            </p>
+            <div class="eq center-eq">
+              P(jω) = <span class="frac"><span class="num">2π</span><span class="den">T</span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              δ(ω − kω<sub>s</sub>)
+              <span class="lbl">(9-4)</span>
+            </div>
+            <p class="why">为什么：时域上间隔 T 的一串冲激，频域上就是间隔 <span class="mono">ω<sub>s</sub>=2π/T</span> 的一串冲激，每个的面积是 <span class="mono">2π/T</span>。这是"时域越窄（T 越小），频域越宽（冲激隔得越开）"的直接体现；严格的算法是把 p(t) 写成傅里叶级数 <span class="mono">p(t) = (1/T)Σe<sup>jkω<sub>s</sub>t</sup></span>，逐项变换后每项给出一个 <span class="mono">2πδ(ω−kω<sub>s</sub>)</span>，合并系数即得 <span class="mono">2π/T</span>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：时域相乘 → 频域卷积。</b></p>
+            <p>
+              第 6 章的相乘性质告诉我们：<span class="mono">x(t)·p(t)</span> 的频谱是
+              <span class="mono">(1/2π)</span> 倍的 <span class="mono">X(jω)</span> 与 <span class="mono">P(jω)</span> 的卷积：
+            </p>
+            <div class="eq center-eq">
+              X<sub>p</sub>(jω) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>
+              X(jθ) P(j(ω−θ)) dθ
+              <span class="lbl">(9-5)</span>
+            </div>
+            <p class="why">为什么相乘会变成卷积：这是傅里叶变换的对偶性质之一（第 6 章性质表："时域相乘 = 频域卷积"，且必须带 1/2π）。它成立的原因是两边的 <span class="mono">e<sup>−jωt</sup></span> 探针在时域乘积展开后会把两个频率"捆"在一起。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：把 (9-4) 代进卷积，用"卷 δ 就是平移"把积分算掉。</b></p>
+            <p>
+              核心事实：<span class="mono">X(jω) ∗ δ(ω − ω<sub>0</sub>) = X(j(ω−ω<sub>0</sub>))</span>——
+              与一个位于 <span class="mono">ω<sub>0</sub></span> 的冲激做卷积，等于把整个 X 平移 <span class="mono">ω<sub>0</sub></span>。
+              于是求和与积分交换，逐项平移：
+            </p>
+            <div class="eq center-eq">
+              X<sub>p</sub>(jω) = <span class="frac"><span class="num">1</span><span class="den">2π</span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              <span class="frac"><span class="num">2π</span><span class="den">T</span></span>
+              X(j(ω − kω<sub>s</sub>))
+              = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              X(j(ω − kω<sub>s</sub>))
+              <span class="lbl">(9-6)</span>
+            </div>
+            <p class="why">为什么能交换求和与积分：<span class="mono">P(jω)</span> 是一串冲激（广义函数），逐项卷积的严格表述是"卷积的线性性"——卷积对相加的每一项分别做再相加，这是卷积定义式里积分线性带来的，不需要额外条件。系数 <span class="mono">(1/2π)·(2π/T) = 1/T</span> 就是全部的缩放。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：读懂 (9-6) 说的是什么。</b></p>
+            <p style="margin-bottom:0">
+              <b>① 形状没变，只是被复制了无穷多份。</b>
+              <span class="mono">X<sub>p</sub>(jω)</span> 是原频谱 <span class="mono">X(jω)</span> 在频率轴上每隔 <span class="mono">ω<sub>s</sub></span> 复制一份、
+              再整体乘 <span class="mono">1/T</span> 得到的（<span class="mono">k=0</span> 那一份是原信号本身）。
+              这个"隔 ω<sub>s</sub> 复制一份"的动作，就叫<span class="term" data-def="periodic replication / periodic extension，中文含义：周期延拓（周期复制）。把频谱按 ω_s 为间隔无限复制下去，得到以 ω_s 为周期的谱。采样在时域做的事，在频域就是这个。">周期延拓</span>（periodic replication）。
+            </p>
+            <p class="why">为什么"周期延拓"这个词很贴切：<span class="mono">k</span> 取遍所有整数意味着副本排在 <span class="mono">…, −2ω<sub>s</sub>, −ω<sub>s</sub>, 0, ω<sub>s</sub>, 2ω<sub>s</sub>, …</span>，
+              整体当然以 <span class="mono">ω<sub>s</sub></span> 为周期：<span class="mono">X<sub>p</sub>(j(ω+ω<sub>s</sub>)) = X<sub>p</sub>(jω)</span>。
+              <b>"时域采样 → 频域周期化"</b>，这就是整个采样理论的第一句话。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">到这一步，结论已经很硬了</span>
+            <p style="margin-bottom:0">
+              我们不需要任何新假设，就从"采样 = 乘冲激串"推出了 <b>采样信号的频谱 = 原频谱的周期延拓叠加（缩放 1/T）</b>。
+              接下来唯一的问题就是：这些副本会不会互相重叠？
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s4">4. 采样定理：条件的由来</h2>
+
+      <p>
+        看图说话最清楚。设 <span class="mono">X(jω)</span> 只在 <span class="mono">|ω| ≤ ω<sub>M</sub></span> 内非零
+        （<span class="mono">ω<sub>M</sub></span> 就是信号的最高角频率）。
+        那么第 <span class="mono">k</span> 份副本占据的频率区间是
+      </p>
+      <div class="eq center-eq">
+        [kω<sub>s</sub> − ω<sub>M</sub>, &nbsp; kω<sub>s</sub> + ω<sub>M</sub>]
+      </div>
+      <p>
+        第 0 份占据 <span class="mono">[−ω<sub>M</sub>, ω<sub>M</sub>]</span>，第 1 份占据
+        <span class="mono">[ω<sub>s</sub>−ω<sub>M</sub>, ω<sub>s</sub>+ω<sub>M</sub>]</span>。
+        两份<b>不重叠</b>的条件是第 0 份的右端不超过第 1 份的左端：
+      </p>
+      <div class="eq center-eq">
+        ω<sub>M</sub> ≤ ω<sub>s</sub> − ω<sub>M</sub>
+        &nbsp;&nbsp;⟺&nbsp;&nbsp;
+        <b>ω<sub>s</sub> ≥ 2ω<sub>M</sub></b>
+        <span class="lbl">(9-7)</span>
+      </div>
+      <p>
+        严格版本要求 <span class="mono">ω<sub>s</sub> &gt; 2ω<sub>M</sub></span>（临界时两份在 <span class="mono">ω=ω<sub>M</sub></span> 处恰好相切，
+        教科书通常把等号算作"临界满足"，实做工程时会留余量）。以 Hz 为单位就是
+        <span class="mono">f<sub>s</sub> &gt; 2f<sub>M</sub></span>。
+      </p>
+
+      <div class="box ok">
+        <span class="tag">采样定理（Sampling Theorem，也叫 Nyquist–Shannon 定理）</span>
+        <p>
+          设 <span class="mono">x(t)</span> 是带限信号，<span class="mono">X(jω) = 0</span> 当 <span class="mono">|ω| &gt; ω<sub>M</sub></span>。
+          若采样角频率满足
+        </p>
+        <div class="eq center-eq">ω<sub>s</sub> &gt; 2ω<sub>M</sub></div>
+        <p style="margin-bottom:0">
+          则 <span class="mono">x(t)</span> 被它的样本 <span class="mono">x(nT)</span>（<span class="mono">n = 0, ±1, ±2, …</span>）<b>唯一确定</b>，
+          并且可以如下精确重建：把这串样本做成冲激串，通过一个<b>增益为 T、截止频率在 ω<sub>M</sub> 与 ω<sub>s</sub>−ω<sub>M</sub> 之间的理想低通滤波器</b>，
+          输出的就是原来的 <span class="mono">x(t)</span>。
+        </p>
+      </div>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0"><span class="term" data-def="Nyquist rate，中文含义：奈奎斯特率。能无失真恢复一个带限信号所需的最低采样率，等于 2f_M（或 2ω_M）。采样率低于它就会混叠。">奈奎斯特率</span>（Nyquist rate）</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">2f<sub>M</sub></span> 或 <span class="mono">2ω<sub>M</sub></span>。
+            它是信号自己的属性，<b>只跟信号有关、与你的采样器无关</b>。
+            "这个信号的奈奎斯特率是 20 kHz"意思是：至少要 20 kHz 采样才不丢。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0"><span class="term" data-def="Nyquist frequency，中文含义：奈奎斯特频率（折叠频率）。采样率的一半 f_s/2。它是该采样率下能正确表示的最高频率；超过它的成分都会混叠。">奈奎斯特频率</span>（Nyquist frequency）</h4>
+          <p class="small" style="margin-bottom:0">
+            <span class="mono">f<sub>s</sub>/2</span>，也叫折叠频率（folding frequency）。
+            它是<b>采样器</b>的属性：在这个采样率下，你最多能"看清"到 <span class="mono">f<sub>s</sub>/2</span> 这么高的频率；
+            再高的成分会被折下来冒充低频。
+          </p>
+        </div>
+      </div>
+
+      <div class="box trap">
+        <span class="tag">这两个词必须分清</span>
+        <p style="margin-bottom:0">
+          <b>奈奎斯特率 = 2f<sub>M</sub></b>（信号说了算，是"需求"）；
+          <b>奈奎斯特频率 = f<sub>s</sub>/2</b>（采样器说了算，是"能力"）。
+          不混叠的条件就是"能力 ≥ 需求"：<span class="mono">f<sub>s</sub>/2 ≥ f<sub>M</sub></span>。
+          考试里最常见的错法就是把这两个名字里的数字混着用。
+        </p>
+      </div>
+
+      <h2 id="s5">5. 动手：原信号、采样点、与"混叠后的表观波形"</h2>
+      <p>
+        下面这个实验台是全站最重要的演示之一。它把三样东西画在同一张图上：
+        <b>原来的正弦（蓝）、采样点（红点）、以及采样点"看起来像"的那条低频正弦（红虚线）</b>。
+        慢慢把 <span class="mono">f<sub>s</sub></span> 往下拖，你会看到红虚线停在一个较低的频率上不动，
+        而蓝线越来越密——到某一点，两者再也对不上。
+      </p>
+
+      <div id="lab-alias"></div>
+
+      <div class="box intuition">
+        <span class="tag">务必盯住的一瞬间</span>
+        <p style="margin-bottom:0">
+          当 <span class="mono">f<sub>s</sub></span> 降到 <span class="mono">2f</span> 以下的那一刻，
+          红虚线（表观频率）突然与蓝线（真实频率）分道扬镳。
+          <b>分道扬镳之后，采样点完全无法区分这两条曲线</b>——它们在这串采样点上逐点相等。
+          这就是混叠：高频成分<b>伪装</b>成了低频成分，而且这个伪装在采样之后<b>无法拆穿</b>。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 动手：把采样率推到 2f 以下，看频谱怎么叠起来</h2>
+      <p>
+        上图给你的是时域直觉，这张图给你频域的证据。它画出 (9-6) 式里那一串周期延拓的副本，
+        并用阴影标出奈奎斯特频率 <span class="mono">±f<sub>s</sub>/2</span> 之间的"安全区"。
+      </p>
+
+      <div id="lab-spectrum"></div>
+
+      <div class="box ok">
+        <span class="tag">读图规则</span>
+        <p>
+          <b>灰色竖线</b>是<span class="term" data-def="ideal lowpass filter，中文含义：理想低通滤波器。|ω|<ω_c 时增益为常数、之外严格为 0 的滤波器。它的冲激响应是 sinc，双边无限且非因果，所以物理上不可实时实现，只能作为理论基准。">理想低通滤波器</span>（重建滤波器）的边界，落在 <span class="mono">±f<sub>s</sub>/2</span> 处。
+          重建时只保留这条边界<b>以内</b>的东西。
+        </p>
+        <p style="margin-bottom:0">
+          <b>蓝色竖线</b>是原信号的分量（在 <span class="mono">±f</span>）。
+          <b>红色竖线</b>是周期延拓产生的副本（在 <span class="mono">±f + k f<sub>s</sub></span>）。
+          当 <span class="mono">f &gt; f<sub>s</sub>/2</span> 时，落在安全区里的"蓝色"竖线其实已经不是原来那一根了——
+          它被红色副本顶替，位置跑到了 <span class="mono">f<sub>s</sub> − f</span>。这就是混叠的频域样子。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 混叠频率怎么算</h2>
+
+      <p>
+        工程上需要的不是"发生了混叠"，而是"混成了什么"——<b>采样之后我读到的频率是多少</b>。
+        给你一个可以直接用的算法。
+      </p>
+
+      <details class="deriv">
+        <summary>推导 + 算法：混叠表观频率 ω<sub>alias</sub> = |ω − kω<sub>s</sub>| 取最小</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：从一个具体的正弦开始。</b></p>
+            <p>设 <span class="mono">x(t) = cos(ω<sub>0</sub>t)</span>，以周期 <span class="mono">T</span> 采样，样本是</p>
+            <div class="eq">
+              x(nT) = cos(ω<sub>0</sub>nT) = cos(nΩ<sub>0</sub>), &nbsp;&nbsp; Ω<sub>0</sub> = ω<sub>0</sub>T
+            </div>
+            <p class="why">为什么引入 <span class="mono">Ω<sub>0</sub></span>：离散序列的"频率"只能用每样本转多少弧度来描述，这个量叫数字频率，它把时间单位 T 吸收掉了。<span class="mono">Ω<sub>0</sub> = 2πf<sub>0</sub>/f<sub>s</sub></span>。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：关键的一步——余弦对 Ω 是"以 2π 为周期"的。</b></p>
+            <p>
+              因为 <span class="mono">cos(n(Ω<sub>0</sub> + 2πk)) = cos(nΩ<sub>0</sub> + 2πkn) = cos(nΩ<sub>0</sub>)</span>
+              （<span class="mono">n、k</span> 都是整数，<span class="mono">2πkn</span> 是 <span class="mono">2π</span> 的整数倍，余弦不变）。
+              所以数字频率 <span class="mono">Ω<sub>0</sub></span> 与 <span class="mono">Ω<sub>0</sub>+2πk</span> 产生<b>完全相同的样本</b>。
+            </p>
+            <p class="why">为什么这直接给出混叠：把 <span class="mono">Ω = ωT</span> 代回去，<span class="mono">ω<sub>0</sub></span> 与
+              <span class="mono">ω<sub>0</sub> + 2πk/T = ω<sub>0</sub> + kω<sub>s</sub></span> 给出的样本一模一样。
+              也就是说，<b>频率为 ω<sub>0</sub> 与频率为 ω<sub>0</sub>+kω<sub>s</sub> 的信号，在采样后完全无法区分</b>。
+              这是混叠的数学本质，也是"频率轴被折叠"的来源。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：选一个"落在安全区里"的代表。</b></p>
+            <p>
+              既然 <span class="mono">ω<sub>0</sub> + kω<sub>s</sub></span>（<span class="mono">k</span> 取所有整数）全都等价，
+              我们就能从这一族频率里挑出<b>离 0 最近</b>的那一个来表示"表观频率"，
+              它一定落在 <span class="mono">[−ω<sub>s</sub>/2, ω<sub>s</sub>/2]</span> 内：
+            </p>
+            <div class="eq center-eq">
+              ω<sub>alias</sub> = min<sub>k∈ℤ</sub> |ω<sub>0</sub> − kω<sub>s</sub>|
+              &nbsp;&nbsp;,&nbsp;&nbsp; 以 Hz 写：&nbsp;
+              f<sub>alias</sub> = min<sub>k∈ℤ</sub> |f<sub>0</sub> − k f<sub>s</sub>|
+              <span class="lbl">(9-8)</span>
+            </div>
+            <p class="why">为什么取最小的那个：<b>表观频率一定是"能产生同样样本的频率里最低的那个"</b>。
+              因为重建滤波器只保留 <span class="mono">f<sub>s</sub>/2</span> 以内的成分，所以滤波器输出的那条正弦，
+              其频率必然是这个范围内、且与采样点相容的唯一值。用式子说：所有等价频率里只有一个落在安全区内，就是它。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：等价的实用算法（随手可在脑子里算）。</b></p>
+            <p>把 <span class="mono">f<sub>0</sub></span> 逐步加减 <span class="mono">f<sub>s</sub></span>，直到落进 <span class="mono">[0, f<sub>s</sub>/2]</span>：</p>
+            <div class="eq">
+              f<sub>r</sub> = f<sub>0</sub> mod f<sub>s</sub> &nbsp;(结果取到 [0, f<sub>s</sub>)),
+              &nbsp;&nbsp;
+              f<sub>alias</sub> = min(f<sub>r</sub>, f<sub>s</sub> − f<sub>r</sub>)
+            </div>
+            <p class="why">为什么这叫"折叠"：把长条纸上的频率刻度按 <span class="mono">f<sub>s</sub>/2</span> 为折痕反复对折，
+              所有频率最终都落到 <span class="mono">[0, f<sub>s</sub>/2]</span> 上。所以 <span class="mono">f<sub>s</sub>/2</span> 又叫折叠频率。
+              这个算法和 (9-8) 完全等价，但更适合口算。</p>
+          </div>
+
+          <div class="box warn" style="margin-top:14px">
+            <span class="tag">别忘了幅度和相位也会被改</span>
+            <p style="margin-bottom:0">
+              频率被折回来时，余弦可能被整体反转（等价于相位加 π），也就是系数 Δ = ±1：
+              <span class="mono">f</span> 落在 <span class="mono">(f<sub>s</sub>/2, f<sub>s</sub>)</span> 时该分量取 <b>负号</b>，
+              落在 <span class="mono">(f<sub>s</sub>, 3f<sub>s</sub>/2)</span> 时取正号，如此交替。
+              所以混叠不只改频率，还可能把波形的相位翻个身——这就是为什么混叠的音频听起来不只是"音调变低"，而是失真、发糊。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h3>三个必须会手算的例子</h3>
+      <table class="tbl sm">
+        <thead><tr><th class="c">真实频率 f</th><th class="c">采样率 f<sub>s</sub></th><th class="c">f<sub>s</sub>/2</th><th class="c">表观频率 f<sub>alias</sub></th><th>说明</th></tr></thead>
+        <tbody>
+          <tr><td class="c ft">3 Hz</td><td class="c ft">10 Hz</td><td class="c ft">5 Hz</td><td class="c ft">3 Hz</td><td>3 &lt; 5，没混叠，读到真值</td></tr>
+          <tr><td class="c ft">7 Hz</td><td class="c ft">10 Hz</td><td class="c ft">5 Hz</td><td class="c ft">|7−10| = 3 Hz</td><td>折到 3 Hz，且该分量取负号</td></tr>
+          <tr><td class="c ft">13 Hz</td><td class="c ft">10 Hz</td><td class="c ft">5 Hz</td><td class="c ft">|13−10| = 3 Hz</td><td>与 7 Hz 采出来<b>一模一样</b>，采样后无法区分</td></tr>
+          <tr><td class="c ft">1.1 Hz</td><td class="c ft">1 Hz</td><td class="c ft">0.5 Hz</td><td class="c ft">|1.1−1| = 0.1 Hz</td><td>严重的低频"假拍"：1.1 Hz 被读成 0.1 Hz</td></tr>
+          <tr><td class="c ft">2 Hz</td><td class="c ft">1 Hz</td><td class="c ft">0.5 Hz</td><td class="c ft">0 Hz（直流）</td><td>每周期只采一个点，样本全相同 → 看起来是常数</td></tr>
+        </tbody>
+      </table>
+
+      <p class="small muted">
+        这些数字都能在本页实验台里复现：把 <span class="mono">f</span> 设成 7、<span class="mono">f<sub>s</sub></span> 设成 10，
+        红色的表观曲线会显示 <span class="mono">3 Hz</span>；把 <span class="mono">f</span> 设成 13 而保持 <span class="mono">f<sub>s</sub>=10</span>，
+        红点一模一样，红曲线也一模一样。
+      </p>
+
+      <h2 id="s8">8. 理想重建：sinc 内插公式的完整推导</h2>
+      <p>
+        定理只说"存在一个低通滤波器能把信号恢复回来"，还没说这个滤波器在时域长什么样。
+        把它算出来，就得到工程手册里那个著名的 sinc 内插公式。
+      </p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：从"理想低通滤波器"到 x(t) = Σ x(nT)·sinc((t−nT)/T)</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：确定重建滤波器的两个参数。</b></p>
+            <p>
+              从 (9-6) 看到，采样把频谱乘上了 <span class="mono">1/T</span>，所以滤波器必须带<b>增益 T</b> 才能把幅度还原回去。
+              截止频率呢？必须<b>大于 ω<sub>M</sub></b>（否则把信号自己的高频成分也砍掉了），
+              同时<b>小于 ω<sub>s</sub> − ω<sub>M</sub></b>（否则会把相邻副本吃进来）。
+              最常用的自然选择是取两者正中间：
+            </p>
+            <div class="eq center-eq">
+              ω<sub>c</sub> = <span class="frac"><span class="num">ω<sub>s</sub></span><span class="den">2</span></span>
+              = <span class="frac"><span class="num">π</span><span class="den">T</span></span>
+              &nbsp;&nbsp;（即 f<sub>c</sub> = f<sub>s</sub>/2）
+            </div>
+            <p class="why">为什么可以取 <span class="mono">ω<sub>s</sub>/2</span>：因为条件是 <span class="mono">ω<sub>M</sub> ≤ ω<sub>s</sub>/2 ≤ ω<sub>s</sub>−ω<sub>M</sub></span>，
+              中间这个值恰好同时满足"大于等于 ω<sub>M</sub>"与"小于等于 ω<sub>s</sub>−ω<sub>M</sub>"（临界时取等号）。
+              于是重建滤波器就是：<b>H(jω) = T</b>（<span class="mono">|ω| &lt; π/T</span>），否则 0。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：查表求这个滤波器的冲激响应 h(t)。</b></p>
+            <p>用第 6 章的变换对：理想低通 <span class="mono">rect(ω/2W) ⟷ sin(Wt)/(πt)</span>。放到我们这里，<span class="mono">W = π/T</span>，再乘增益 T：</p>
+            <div class="eq center-eq">
+              h(t) = T · <span class="frac"><span class="num">sin(πt/T)</span><span class="den">πt/T</span></span> · <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span style="font-size:15px">…</span>
+            </div>
+            <p>整理干净（把 T 与分母上的 1/T 合并）：</p>
+            <div class="eq center-eq">
+              h(t) = <span class="frac"><span class="num">sin(πt/T)</span><span class="den">πt/T</span></span>
+              = sinc<sub>π</sub>(t/T)
+              <span class="lbl">(9-9)</span>
+            </div>
+            <p class="why">为什么这里出现的是 <span class="mono">sinc<sub>π</sub>(u) = sin(πu)/(πu)</span> 而不是 <span class="mono">sin u/u</span>：
+              因为截止频率里带着 π/T。两种 sinc 定义的差别就在这个 π 上（第 6 章"坑 2"提过），
+              采样定理的公式用 <span class="mono">sin(πu)/(πu)</span> 这一支最省事，因为它在整数点上正好是 0 或 1：
+              <b>sinc<sub>π</sub>(m) = 0（m 为非零整数）、sinc<sub>π</sub>(0) = 1</b>，这个性质下一步要用。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：时域卷积，得到内插公式。</b></p>
+            <p>重建就是把采样冲激串 <span class="mono">x<sub>p</sub>(t)</span> 送进这个滤波器，时域上是卷积：</p>
+            <div class="eq center-eq">
+              x<sub>r</sub>(t) = x<sub>p</sub>(t) ∗ h(t)
+              = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x(nT)δ(τ−nT) · h(t−τ) dτ
+            </div>
+            <p>用冲激的筛选性质把积分吃掉（</p>
+            <div class="eq center-eq">
+              x<sub>r</sub>(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x(nT) h(t − nT)
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x(nT) · <span class="frac"><span class="num">sin(π(t−nT)/T)</span><span class="den">π(t−nT)/T</span></span>
+              <span class="lbl">(9-10)</span>
+            </div>
+            <p class="why">为什么能直接把 <span class="mono">τ</span> 换成 <span class="mono">nT</span>：因为被积函数里只有 <span class="mono">δ(τ−nT)</span> 在 <span class="mono">τ=nT</span> 处非零，
+              积分等于把 <span class="mono">τ</span> 代入 <span class="mono">nT</span>（筛选性质），求和号只是把这些项加起来。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：验证 (9-10) 真的是"内插"——它在采样点上必须回到原值。</b></p>
+            <p>取 <span class="mono">t = mT</span>（一个采样时刻），代入 (9-10)：</p>
+            <div class="eq">
+              x<sub>r</sub>(mT) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">n=−∞</span></span>
+              x(nT) · sinc<sub>π</sub>(m − n)
+              = x(mT)
+            </div>
+            <p class="why">为什么：当 <span class="mono">n = m</span> 时 <span class="mono">sinc<sub>π</sub>(0)=1</span> 保留了 <span class="mono">x(mT)</span>；
+              当 <span class="mono">n ≠ m</span> 时 <span class="mono">m−n</span> 是非零整数，<span class="mono">sinc<sub>π</sub></span> 为 0，其它样本"不许插嘴"。
+              <b>每个样本只在自己那一刻说话</b>——这就是内插（interpolation）：用一个已知在所有整数点为 0、在 0 点为 1 的函数，
+              把离散点连成连续曲线。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">这一步的物理含义</span>
+            <p style="margin-bottom:0">
+              重建不是"猜测"两个采样点之间发生了什么，而是<b>由带限条件唯一地反推出来</b>。
+              (9-10) 里的每一项都是一个 <span class="mono">sinc<sub>π</sub></span> 波纹，
+              第 n 项的波纹在其它所有采样点上正好为 0，只在自己那个点上"顶起来"到样本值。
+              把所有波纹叠加，就得到一条<b>唯一</b>通过全部样本、且最高频率不超过 <span class="mono">f<sub>s</sub>/2</span> 的连续曲线。
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s9">9. 动手：sinc 内插重建，看曲线什么时候崩</h2>
+      <p>
+        这个实验台直接把 (9-10) 算给你看。灰虚线是真实信号，红点是采样值，青色曲线是 sinc 内插重建的结果。
+      </p>
+
+      <div id="lab-sinc"></div>
+
+      <div class="box warn">
+        <span class="tag">请务必亲自试的一步</span>
+        <p style="margin-bottom:0">
+          把 <span class="mono">f<sub>s</sub></span> 从高往低拖，穿过 <span class="mono">2f</span>。
+          <b>穿过之前</b>：青线几乎和灰虚线重合（之所以不是完全重合，是因为实验里只用了有限多项 sinc，属于计算截断，不是理论误差）。
+          <b>穿过之后</b>：青线依然<b>精准地穿过每一个红点</b>，但与灰虚线彻底分家——
+          它变成了一条低频波。这正是要记住的画面：<b>重建算法从不报错，它总是给你一条完美通过所有样本的曲线，只是那条曲线可能不是你原来的信号。</b>
+        </p>
+      </div>
+
+      <h2 id="s10">10. 从冲激串到数字序列：C/D 与 D/C</h2>
+
+      <p>
+        (9-3) 得到的 <span class="mono">x<sub>p</sub>(t)</span> 还是一串带时间标签的冲激。计算机要的是纯粹的数组
+        <span class="mono">x<sub>d</sub>[n] = x<sub>c</sub>(nT)</span>：第 n 个元素、没有时间单位。
+        这一步叫<span class="term" data-def="C/D conversion，continuous-to-discrete conversion，中文含义：连续到离散转换。把连续信号按周期 T 取样得到序列 x_d[n]=x_c(nT)，实际器件是 A/D 转换器。">C/D 转换</span>（continuous-to-discrete，连续到离散），
+        物理上就是 A/D 转换器。反方向的<span class="term" data-def="D/C conversion，discrete-to-continuous conversion，中文含义：离散到连续转换。把序列 x_d[n] 变成连续信号（先做冲激串再理想低通内插），实际器件是 D/A 转换器。">D/C 转换</span>（discrete-to-continuous，离散到连续）
+        是 D/A 转换器 + 重建滤波器。
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">这一步在频域只做了一件小事：把频率轴"除以 T"</span>
+        <p>
+          从冲激串换成数组，数学上就是把时间轴 <span class="mono">t = nT</span> 重新标记成 <span class="mono">n</span>，
+          相当于把时间轴压缩了 <span class="mono">1/T</span> 倍。由第 6 章的尺度性质（时域压缩 → 频域展宽），
+          频域频率轴相应地被<b>乘以 T</b>：
+        </p>
+        <div class="eq center-eq">
+          Ω = ωT
+          <span class="lbl">(9-11)</span>
+        </div>
+        <p style="margin-bottom:0">
+          这就是"连续频率 ω（rad/s）"与"数字频率 Ω（rad/样本）"之间的换算。
+          <span class="mono">ω<sub>s</sub> = 2π/T</span> 映射成 <span class="mono">Ω = 2π</span>，
+          所以离散谱天然以 <span class="mono">2π</span> 为周期（第 7 章的结论在这里得到了物理解释）；
+          而 <span class="mono">ω<sub>s</sub>/2</span> 映射成 <span class="mono">π</span>，所以离散序列里
+          <span class="mono">Ω = π</span> 是最高频率（对应模拟世界的奈奎斯特频率）。
+        </p>
+      </div>
+
+      <details class="deriv">
+        <summary>把上面的对应关系写成两个精确公式（含 D/C 侧的频率响应）</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>C/D 侧（采样后得到序列）：</b></p>
+            <div class="eq center-eq">
+              X<sub>d</sub>(e<sup>jΩ</sup>) = <span class="frac"><span class="num">1</span><span class="den">T</span></span>
+              <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              X<sub>c</sub>( j(Ω − 2πk)/T )
+            </div>
+            <p class="why">为什么：把 (9-6) 里的 <span class="mono">ω = Ω/T</span> 代进去即可（也可直接用 <span class="mono">X<sub>d</sub>(e<sup>jΩ</sup>) = X<sub>p</sub>(jΩ/T)</span>）。
+              注意括号里的 <span class="mono">(Ω−2πk)/T</span>：<span class="mono">k</span> 变化 1，
+              连续频率就变化 <span class="mono">2π/T = ω<sub>s</sub></span>——和 (9-6) 是同一件事，只是换了变量。</p>
+          </div>
+          <div class="step">
+            <p><b>D/C 侧（离散滤波器对应一个连续滤波器）：</b></p>
+            <div class="eq center-eq">
+              H<sub>d</sub>(e<sup>jΩ</sup>) = H<sub>c</sub>(jΩ/T),
+              &nbsp;&nbsp; |Ω| &lt; π
+              &nbsp;&nbsp;⟺&nbsp;&nbsp;
+              H<sub>d</sub>(e<sup>jωT</sup>) = H<sub>c</sub>(jω)
+            </div>
+            <p class="why">为什么这很重要：它意味着你可以在计算机里设计一个数字滤波器 <span class="mono">H<sub>d</sub></span>，
+              让它<b>恰好等价于</b>一个模拟滤波器 <span class="mono">H<sub>c</sub></span>。
+              这就是"用软件代替模拟电路"的理论依据：整条链路 <span class="mono">C/D → H<sub>d</sub> → D/C</span>
+              在满足采样定理时，对连续输入 <span class="mono">x<sub>c</sub>(t)</span> 的作用与直接串一个 <span class="mono">H<sub>c</sub>(jω)</span> 完全相同。
+              注意 <span class="mono">|Ω| &lt; π</span> 这个限制：只在奈奎斯特区间内等价，之外本来就被混叠污染了。</p>
+          </div>
+        </div>
+      </details>
+
+      <h2 id="s11">11. 内插（上采样）与抽取（下采样）</h2>
+
+      <p>
+        同一套"周期延拓"的思想，换成离散时间自己来一遍，就得到数字信号处理里天天用的两个操作：
+        <span class="term" data-def="interpolation / upsampling，中文含义：内插（上采样）。在样本之间插入新的值以提高采样率。标准做法是先插零再低通滤波，低通用来砍掉插零造成的多余频谱副本。">内插</span>与
+        <span class="term" data-def="decimation / downsampling，中文含义：抽取（下采样）。每 N 个样本只保留一个，把采样率降到 1/N。抽取会让频谱在 2π 内被展宽 N 倍，因此必须先做抗混叠低通。">抽取</span>。
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">抽取 / 下采样（decimation, downsampling）</h4>
+          <p class="small">
+            <span class="mono">x<sub>b</sub>[n] = x[nN]</span>：每 N 个点留一个。
+            新采样率 <span class="mono">f<sub>s</sub>' = f<sub>s</sub>/N</span>。
+          </p>
+          <p class="small" style="margin-bottom:0">
+            频域：<span class="mono">X<sub>b</sub>(e<sup>jω</sup>) = X<sub>p</sub>(e<sup>jω/N</sup>)</span>，
+            <b>频谱在 <span class="mono">2π</span> 内被"展宽"（拉伸）N 倍</b>。
+            这很好理解：频率轴 <span class="mono">[0, 2π)</span> 现在要装下原来 N 倍宽的频率范围，
+            新奈奎斯特频率降到 <span class="mono">f<sub>s</sub>/(2N)</span>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">内插 / 上采样（interpolation, upsampling）</h4>
+          <p class="small">
+            先在每两个样本之间插 N−1 个零（<span class="mono">x<sub>e</sub>[n] = x[n/N]</span>，n 为 N 的倍数时取值，否则为 0），
+            再过一个低通滤波器把"零造成的尖角"磨平。
+          </p>
+          <p class="small" style="margin-bottom:0">
+            频域：插零让频谱在 <span class="mono">2π</span> 内被<b>压缩</b> N 倍（出现 N 份副本挤在一起），
+            那个低通滤波器的作用就是只留中心那一份、把其余副本全砍掉。
+            <b>它砍掉副本的动作，就叫抗镜像滤波（anti-imaging）</b>。
+          </p>
+        </div>
+      </div>
+
+      <div class="box trap">
+        <span class="tag">为什么下采样之前必须先做抗混叠滤波</span>
+        <p>
+          抽取把奈奎斯特频率压低了 N 倍。原来"安全"的高频成分，在新的奈奎斯特频率看来就是超标的、
+          会被折叠下来的东西。所以正规流程是：
+        </p>
+        <div class="eq center-eq">
+          低通（截止 <span class="mono">f<sub>s</sub>/(2N)</span>）→ 抽取 N 倍
+        </div>
+        <p style="margin-bottom:0">
+          那个低通滤波器叫<span class="term" data-def="anti-aliasing filter，中文含义：抗混叠滤波器。在下采样（或 A/D 采样）之前把高于新奈奎斯特频率的成分滤掉，防止它们折叠成假低频。">抗混叠滤波器</span>（anti-aliasing filter）。
+          <b>高频信息是被主动丢掉的，不是被动变质的</b>——主动丢掉还能接受（你知道丢了什么），被动混叠则会让低频数据被污染，事后无法挽救。
+        </p>
+      </div>
+
+      <h2 id="s12">12. 动手：抽取与抗混叠</h2>
+      <p>
+        下面的实验台用一个 16 点序列演示抽取。你可以改信号的数字频率（也就是它有多"高"），
+        再改抽取倍数 N，看频谱被展宽成什么样子。
+      </p>
+
+      <div id="lab-decimate"></div>
+
+      <div class="box ok">
+        <span class="tag">请按这个顺序操作</span>
+        <p>
+          <b>①</b> 先选 <span class="mono">f = 2 Hz</span>、<span class="mono">N = 1</span>：蓝色曲线（原来 16 点的频谱）的峰在 2 Hz 处，
+          离新奈奎斯特（这时是 8 Hz）很远，一切正常。
+        </p>
+        <p>
+          <b>②</b> 把 <span class="mono">N</span> 调到 4：新采样率变成 4 Hz，新奈奎斯特变成 2 Hz。
+          峰正好压在边界上——还能勉强接受，因为 2 Hz 是"刚好没超标"。
+        </p>
+        <p style="margin-bottom:0">
+          <b>③</b> 把 <span class="mono">f</span> 换成 7 Hz、<span class="mono">N = 4</span>：7 Hz 远超 2 Hz，
+          读出台会告诉你它折叠成了 <span class="mono">|7 − 1×4| = 3</span>，
+          再折一次变成 <span class="mono">|3 − 4| = 1 Hz</span>。<b>一个 7 Hz 的成分，抽取后看起来是 1 Hz。</b>
+          而且这个错误无法通过任何后续处理修回来。
+        </p>
+      </div>
+
+      <h2 id="s13">13. 实操：零阶保持与其它实际重建办法</h2>
+      <p>
+        sinc 内插在数学上完美，但在工程上<b>做不到</b>，原因有两个：<b>①</b> h(t) 从 <span class="mono">t=−∞</span> 延伸到
+        <span class="mono">+∞</span>，<b>非因果</b>，实时系统必须等到未来才知道现在的值；<b>②</b> 衰减只有 <span class="mono">1/|t|</span>，很慢，
+        需要无限多项求和。实际系统用的是它的近似品。
+      </p>
+
+      <div class="grid g3">
+        <div class="card">
+          <h4 style="margin-top:0">零阶保持（ZOH）</h4>
+          <p class="small" style="margin-bottom:0">
+            每个采样值保持 <span class="mono">T</span> 秒不变，输出是阶梯波。
+            等效于"冲激串先过一个 <span class="mono">h<sub>0</sub>(t)</span> = 宽度 T、高度 1 的矩形"。
+            频域增益是 <span class="mono">|sinc(ωT/2)|</span>：在 <span class="mono">ω = π/T</span>（奈奎斯特）处已经衰减到理论值的
+            <span class="mono">2/π ≈ 63.7%</span>，还有 <span class="mono">ωT/2</span> 的线性相位（半个采样周期的延时）。
+            <b>代价小、能用，所以 D/A 芯片几乎都用它</b>，后面常再补一个反 sinc 补偿滤波器。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">一阶保持（线性内插）</h4>
+          <p class="small" style="margin-bottom:0">
+            把相邻采样点用直线连起来。等效冲激响应是三角形，频域是
+            <span class="mono">|sinc(ωT/2)|<sup>2</sup></span>：衰减更快（更像理想低通），
+            但输出的一阶导数不连续（折角），听感/画面上会有波纹。计算量比 ZOH 略高。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">过采样 + 高阶保持</h4>
+          <p class="small" style="margin-bottom:0">
+            现代做法：先用远高于奈奎斯特率的频率采样（过采样，oversampling），
+            让重建滤波器的过渡带变得极宽（好做、好造），再用多级数字滤波器降到目标采样率。
+            CD 用 <span class="mono">44.1 kHz</span> 存 20 kHz 带宽，靠的就是这条路线加上 1 bit 过采样 D/A。
+          </p>
+        </div>
+      </div>
+
+      <table class="tbl sm">
+        <thead><tr><th>重建方式</th><th class="c">冲激响应</th><th class="c">频响问题</th><th>实际使用场合</th></tr></thead>
+        <tbody>
+          <tr><td>理想（sinc）</td><td class="c ft">sin(πt/T)/(πt/T)</td><td class="c">无失真，但非因果、无限长</td><td>理论基准、离线后处理</td></tr>
+          <tr><td>零阶保持</td><td class="c ft">rect(t/T − 1/2)</td><td class="c">幅度按 sinc 下垂、延时 T/2</td><td>绝大多数 D/A 芯片</td></tr>
+          <tr><td>一阶保持</td><td class="c ft">tri(t/T)</td><td class="c">下垂更快、有折角</td><td>图形/动画插值、音频粗修</td></tr>
+          <tr><td>样条 / 多项式</td><td class="c ft">分段多项式</td><td class="c">平滑但不精确，等效低通不准</td><td>图像放大（双三次等）</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box warn">
+        <span class="tag">顺带回答一个常见疑问</span>
+        <p style="margin-bottom:0">
+          "现实信号有最高频率吗？"严格说——大多数没有（白噪声、理想方波、任何跳变都含有无穷高频）。
+          所以真实系统的做法是：<b>在 A/D 之前先加一个模拟低通（抗混叠滤波器），人为地把信号变成带限的</b>，
+          再按那个截止频率的 2 倍以上去采样。这样"满足采样定理"就不是碰运气，而是你设计出来的。
+          这也是为什么所有数据采集卡前面都有一颗模拟滤波器。
+        </p>
+      </div>
+
+      <h2 id="s14">14. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：把奈奎斯特率和奈奎斯特频率搞混</h4>
+          <p class="small">奈奎斯特率 = 2f<sub>M</sub>（信号的要求）；奈奎斯特频率 = f<sub>s</sub>/2（采样器的能力）。不混叠就是"能力 ≥ 要求"。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：以为 f<sub>s</sub> &gt; 2f 是"约等于"条件</h4>
+          <p class="small">它是严格条件。<span class="mono">f<sub>s</sub> = 2f</span> 是临界情形（正弦的谱是冲激，临界时刚好相切，尚可）；
+          实际信号有一定带宽，必须留余量，别贴着边界设计。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：忘了 1/T 的幅度缩放</h4>
+          <p class="small">(9-6) 里那个 <span class="mono">1/T</span> 一直在。重建滤波器增益取 T 就是为了补它。漏掉它，恢复出来的信号幅度会差 <span class="mono">1/T</span> 倍。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：混叠能靠"事后滤波"补救</h4>
+          <p class="small">不能。混叠把高频成分搬到了低频位置上，和原有的低频成分<b>混在同一个频段</b>，没有任何滤波器能把它们分开。唯一的办法是采样前就滤掉。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：直接抽取，不做抗混叠</h4>
+          <p class="small">下采样 N 倍，奈奎斯特频率降到 1/N，原来安全的高频必然折叠。正规顺序是"先低通、再抽取"，顺序反了信息就毁了。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：把 sinc 的两种定义用混</h4>
+          <p class="small">采样定理的公式里是 <span class="mono">sin(πu)/(πu)</span>（本站记作 <span class="mono">SSC.sincPi</span>），不是 <span class="mono">sin u/u</span>（<span class="mono">SSC.sinc</span>）。混了会让内插的零点位置全部错位。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：以为采样点越密，重建就一定越准</h4>
+          <p class="small">在满足定理的前提下，是的（样本多、截断误差小）。但如果不满足定理，增加采样密度并不会让已经混叠的那部分"恢复"——它只是把混叠后的假信号描得更清楚。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：用频率算错了混叠</h4>
+          <p class="small">混叠后的频率要按 (9-8) 折回 <span class="mono">[0, f<sub>s</sub>/2]</span>，<b>取绝对值、取最小</b>；
+          而且别忘了幅度可能整体反号。别只算一半就下结论。</p>
+        </div>
+      </div>
+
+      <h2 id="s15">15. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题的解释都写了"为什么"。</p>
+      <div id="quiz9"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 9 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* ================= 页面内自备工具 =================
+     foldFreq ：把真实频率折进 [0, fs/2]，返回表观频率与符号（9-8）
+     nSamples ：根据绘图窗口决定需要多少个采样点
+     reconstruct：用截断的 sinc 内插重建（9-10），只求和有意义的那些项 */
+  function foldFreq(f, fs) {
+    var r = ((f % fs) + fs) % fs;                 /* 折到 [0, fs) */
+    var fold = r > fs / 2;                        /* 是否超过奈奎斯特频率 */
+    var app = fold ? fs - r : r;                  /* 折到 [0, fs/2] */
+    return { app: app, wrap: fold, sign: fold ? -1 : 1 };
+  }
+  /* 与 (9-8) 完全等价的暴力版本，用来交叉验证：min_k |f − k·fs| */
+  function foldFreqBrute(f, fs) {
+    var best = Infinity;
+    for (var k = -40; k <= 40; k++) best = Math.min(best, Math.abs(f - k * fs));
+    return best;
+  }
+  /* 采样：n 从 n0 到 n1，样本值 x(n/fs) */
+  function sampleSeq(f, fs, n0, n1, phase) {
+    var out = [], n;
+    for (n = n0; n <= n1; n++) out.push(Math.cos(2 * Math.PI * f * (n / fs) + (phase || 0)));
+    return out;
+  }
+  /* 截断 sinc 内插：samples 的下标 0 对应 n = n0（即 t = n0/fs）
+     说明：内核的 SSC.sincInterp(samples, Ts, t) 假定样本从 n=0 开始、且对**全部**样本求和。
+     实验台里样本下标是负数、而且要对很远的尾巴做截断（否则每次重绘要算几百万次乘法），
+     所以这里自己写一份等价实现。两者的一致性由下面 crossCheck() 在页面加载时当场验证。 */
+  function interpAt(samples, fs, n0, t, guard) {
+    var Ts = 1 / fs, s = 0, i, arg;
+    for (i = 0; i < samples.length; i++) {
+      arg = (t - (n0 + i) * Ts) / Ts;
+      if (Math.abs(arg) > guard) continue;        /* sinc 尾巴衰减很慢，但超过 guard 个样本的贡献可忽略 */
+      s += samples[i] * SSC.sincPi(arg);
+    }
+    return s;
+  }
+  /* 内核 SSC.sincInterp 的用法演示 + 与 interpAt 的一致性自检（结果打在控制台） */
+  function crossCheckKernelSinc() {
+    var fsT = 8, nA = 0, nB = 40;                 /* 样本下标 0…40，正好符合内核的约定 */
+    var samples = [], k;
+    for (k = nA; k <= nB; k++) samples.push(Math.cos(2 * Math.PI * 0.7 * k / fsT));
+    var worst = 0;
+    for (k = 0; k <= 200; k++) {
+      var t = 5 * k / 200;                        /* t ∈ [0,5] s */
+      var a = SSC.sincInterp(samples, 1 / fsT, t);                 /* 内核版：n 从 0 开始 */
+      var b = interpAt(samples, fsT, nA, t, 1e6);                 /* 本页版：不做截断，应与内核完全一致 */
+      worst = Math.max(worst, Math.abs(a - b));
+    }
+    return worst;
+  }
+
+  /* ================= 实验 1：混叠（时域三件套） ================= */
+  var SINC_DIFF = null;                           /* 第一次绘制实验 3 时算一次：interpAt 与内核的差 */
+  SSC.lab({
+    mount: '#lab-alias',
+    title: '实验 1 · 原信号 vs 采样点 vs 混叠后的表观波形',
+    hint: '把 f_s 从 40 慢慢拖到 2 以下，盯住红色虚线什么时候和蓝线分家',
+    columns: 1,
+    canvases: [
+      { id: 'time', label: '蓝：原信号 cos(2πft)　红点：采样值　红虚线：采样点"看起来像"的那条低频正弦', height: 260 }
+    ],
+    controls: [
+      { id: 'f', label: '信号频率 f', min: 1, max: 12, step: 0.5, value: 2, unit: ' Hz' },
+      { id: 'fs', label: '采样率 f_s', min: 1, max: 40, step: 0.5, value: 20, unit: ' Hz' },
+      { id: 'showAlias', label: '是否画"表观波形"', options: [{ v: 1, t: '画（教学用）' }, { v: 0, t: '不画（只看实际拿到的）' }], value: 1 }
+    ],
+    buttons: [
+      { label: '正常采样（fs = 20, f = 2）', onClick: function (vals, api) { api.set('fs', 20); api.set('f', 2); } },
+      { label: '临界（fs = 4 = 2f）', onClick: function (vals, api) { api.set('fs', 4); api.set('f', 2); } },
+      { label: '严重混叠（fs = 3, f = 2）', onClick: function (vals, api) { api.set('fs', 3); api.set('f', 2); } },
+      { label: '看不见的 7 Hz（fs = 10）', onClick: function (vals, api) { api.set('fs', 10); api.set('f', 7); } }
+    ],
+    draw: function (cv, v, api) {
+      var f = v.f, fs = v.fs;
+      var Tshow = 3 / f;                        /* 显示 3 个周期 */
+      var xmin = -Tshow / 2, xmax = Tshow / 2;
+
+      /* 采样点：n 从 −nmax 到 nmax */
+      var nmax = Math.max(4, Math.ceil(Tshow / 2 * fs) + 1);
+      var ptX = [], ptY = [];
+      for (var n = -nmax; n <= nmax; n++) {
+        var t = n / fs;
+        if (t < xmin - 1e-9 || t > xmax + 1e-9) continue;
+        ptX.push(t); ptY.push(Math.cos(2 * Math.PI * f * t));
+      }
+
+      var fold = foldFreq(f, fs);
+      var curves = [
+        { f: function (t) { return Math.cos(2 * Math.PI * f * t); }, color: '#4338ca', width: 2.2, samples: 900, label: '原信号 cos(2πft)，f=' + SSC.fmt(f, 2) + ' Hz' }
+      ];
+      if (v.showAlias) {
+        curves.push({
+          f: function (t) { return fold.sign * Math.cos(2 * Math.PI * fold.app * t); },
+          color: '#dc2626', width: 2, dash: [6, 4], samples: 900,
+          label: '表观波形（' + SSC.fmt(fold.app, 2) + ' Hz' + (fold.wrap ? '，反相' : '') + '）'
+        });
+      }
+
+      SSC.plot(cv.time, {
+        xmin: xmin, xmax: xmax, ymin: -1.45, ymax: 1.45,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: curves,
+        points: ptX.map(function (t, i) { return { x: t, y: ptY[i], color: '#dc2626', r: 3.2 }; }),
+        hlines: [{ y: 0, color: 'rgba(110,130,165,.45)', dash: [] }],
+        legend: true
+      });
+
+      /* ---- 读数 ---- */
+      var ok = fs >= 2 * f;
+      /* "实测表观频率"：不信公式，直接对采样序列做 FFT 找谱峰（SSC.fft 需要 2 的幂长度）。
+         搜索范围是 1…N/2（含奈奎斯特 bin）：cos(2πf n/fs) 的谱峰一定落在 [0, fs/2] 内，
+         对应频率 = k·f_s/128。这是对"采样点本身"的独立测量，用来和折叠公式对照。 */
+      var FFTN = 128;
+      var fftIn = sampleSeq(f, fs, 0, FFTN - 1, 0);
+      var measured = null;
+      var Xf = SSC.fft(fftIn), bestM = -1, bestK = 0;
+      for (var kk = 1; kk <= FFTN / 2; kk++) {          /* k = N/2 就是奈奎斯特 bin */
+        var mm = SSC.cabs(Xf[kk]);
+        if (mm > bestM + 1e-9) { bestM = mm; bestK = kk; }
+      }
+      if (bestM > 1e-6) measured = bestK * fs / FFTN;   /* 幅度≈0 说明信号被采成了常数 */
+
+      api.readout(
+        '<div class="stat"><div class="k">真实频率 f</div><div class="v">' + SSC.fmt(f, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">采样率 f_s</div><div class="v">' + SSC.fmt(fs, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">奈奎斯特频率 f_s/2</div><div class="v">' + SSC.fmt(fs / 2, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">奈奎斯特率 2f</div><div class="v">' + SSC.fmt(2 * f, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">是否满足 f_s ≥ 2f</div><div class="v" style="color:' + (ok ? '#15803d' : '#dc2626') + '">' + (ok ? '满足 ✔' : '不满足 ✘') + '</div></div>' +
+        '<div class="stat"><div class="k">表观频率 min|f−k f_s|</div><div class="v" style="color:' + (ok ? '#15803d' : '#dc2626') + '">' + SSC.fmt(fold.app, 3) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">折叠算法核对（暴力版）</div><div class="v">' + SSC.fmt(foldFreqBrute(f, fs), 3) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">对采样点做 128 点 FFT 实测</div><div class="v">' + (measured == null ? '0 Hz（被采成了常数）' : SSC.fmt(measured, 3) + ' Hz') + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var f = v.f, fs = v.fs, fold = foldFreq(f, fs), ok = fs >= 2 * f;
+      var s = '';
+      if (ok) {
+        s = '当前 <b>f_s = ' + SSC.fmt(fs, 2) + ' Hz ≥ 2f = ' + SSC.fmt(2 * f, 2) + ' Hz</b>，满足采样定理：' +
+          '红色虚线（表观）和蓝色实线（真实）<b>完全重合</b>，采样点忠实记录了原信号。';
+      } else {
+        s = '当前 <b>f_s = ' + SSC.fmt(fs, 2) + ' Hz &lt; 2f = ' + SSC.fmt(2 * f, 2) + ' Hz</b>，<b>混叠了</b>。' +
+          '红点属于两条曲线共有，红色虚线是采样点真正"看起来像"的那条低频正弦：' +
+          '<b>' + SSC.fmt(f, 2) + ' Hz 被读成了 |' + SSC.fmt(f, 2) + ' − ' + Math.round(f / fs) + '×' + SSC.fmt(fs, 2) + '| = ' + SSC.fmt(fold.app, 2) + ' Hz</b>' +
+          '（k = ' + Math.round(f / fs) + ' 就是让 |f − k·f_s| 最小的那一份副本）' +
+          (fold.wrap ? '，而且整体反相（乘了 −1）' : '') + '。' +
+          '<br>注意：<b>没有任何后续处理能把这条红线变回蓝线</b>，因为采样点里已经不含区分它们的信息了。';
+      }
+      s += '<br><span class="tiny">图上只画了 3 个周期的真实信号便于对照；真实系统里你只会拿到红点，看不到蓝线。</span>';
+      return s;
+    }
+  });
+
+  /* ================= 实验 2：频谱周期延拓 ================= */
+  SSC.lab({
+    mount: '#lab-spectrum',
+    title: '实验 2 · 频域看混叠：周期延拓的副本什么时候互相压过来',
+    hint: '把 f_s 拖到 2f 以下，看落在 ±f_s/2 阴影区里的到底是哪一根线',
+    columns: 1,
+    canvases: [
+      { id: 'spec', label: '采样后信号的线谱（竖线=冲激）与重建滤波器通带（阴影）', height: 260 }
+    ],
+    controls: [
+      { id: 'f', label: '信号频率 f', min: 1, max: 12, step: 0.5, value: 2, unit: ' Hz' },
+      { id: 'fs', label: '采样率 f_s', min: 1, max: 40, step: 0.5, value: 20, unit: ' Hz' },
+      { id: 'kmax', label: '画到第几份副本', min: 1, max: 4, step: 1, value: 3 }
+    ],
+    draw: function (cv, v, api) {
+      var f = v.f, fs = v.fs, K = Math.round(v.kmax);
+      var center = Math.min(14, Math.ceil(fs * (K + 1)));
+      var xmin = -center, xmax = center;
+      var fold = foldFreq(f, fs);
+      var ok = fs >= 2 * f;
+
+      var lines = [], orig = [], copy = [];
+      var kk, ff, a;
+      for (kk = -K; kk <= K; kk++) {
+        ff = f + kk * fs;
+        if (Math.abs(ff) <= center) { var o1 = { x: ff, color: '#4338ca', width: 2, label: kk === 0 ? '原信号分量（k=0）' : '' }; orig.push(o1); lines.push(o1); }
+        ff = -f + kk * fs;
+        if (Math.abs(ff) <= center) { var o2 = { x: ff, color: '#4338ca', width: 2 }; orig.push(o2); lines.push(o2); }
+      }
+      /* 把"落进安全区"的那些成分单独标红：它们才是重建后真正留下的频率 */
+      for (kk = 0; kk < lines.length; kk++) {
+        var xx = lines[kk].x;
+        if (Math.abs(xx) <= fs / 2 + 1e-9) { lines[kk].color = '#dc2626'; lines[kk].width = 2.6; }
+      }
+      lines.push({ x: fs / 2, color: '#7c3aed', dash: [5, 4], label: '±f_s/2（重建滤波边界）' });
+      lines.push({ x: -fs / 2, color: '#7c3aed', dash: [5, 4] });
+
+      SSC.plot(cv.spec, {
+        xmin: xmin, xmax: xmax, ymin: -0.25, ymax: 1.35,
+        xlabel: '频率 (Hz)', ylabel: '冲激面积',
+        bands: [{ x1: -fs / 2, x2: fs / 2, color: 'rgba(21,128,61,.09)' }],
+        stems: [
+          { xs: lines.filter(function (L) { return L.dash; }).map(function (L) { return L.x; }), ys: lines.filter(function (L) { return L.dash; }).map(function () { return 1.0; }), color: '#7c3aed', label: '' },
+          { xs: lines.filter(function (L) { return !L.dash && L.color === '#4338ca'; }).map(function (L) { return L.x; }), ys: lines.filter(function (L) { return !L.dash && L.color === '#4338ca'; }).map(function () { return 0.95; }), color: '#4338ca', label: '周期延拓的副本（±f + kf_s）' },
+          { xs: lines.filter(function (L) { return !L.dash && L.color === '#dc2626'; }).map(function (L) { return L.x; }), ys: lines.filter(function (L) { return !L.dash && L.color === '#dc2626'; }).map(function () { return 1.1; }), color: '#dc2626', label: '落在安全区内的成分（重建后会保留）' }
+        ],
+        hlines: [{ y: 0, color: 'rgba(110,130,165,.45)' }],
+        legend: true
+      });
+
+      var inside = [];
+      for (kk = -K; kk <= K; kk++) {
+        a = Math.abs(f + kk * fs);
+        if (a <= fs / 2 + 1e-9) { inside.push(SSC.fmt(a, 3) + ' Hz' + (kk === 0 ? '（就是原信号）' : '（第 ' + kk + ' 份副本压过来的）')); }
+      }
+      api.readout(
+        '<div class="stat"><div class="k">f_s / 2（安全区半宽）</div><div class="v">' + SSC.fmt(fs / 2, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">结论</div><div class="v" style="color:' + (ok ? '#15803d' : '#dc2626') + '">' + (ok ? '不重叠 ✔' : '重叠了 ✘') + '</div></div>' +
+        '<div class="stat"><div class="k">表观频率</div><div class="v">' + SSC.fmt(fold.app, 3) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">安全区内的成分</div><div class="v" style="font-size:12.5px">' + (inside.length ? inside.join('；') : '无') + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var f = v.f, fs = v.fs, fold = foldFreq(f, fs), ok = fs >= 2 * f;
+      if (ok) {
+        return '副本之间排得整整齐齐：第 0 份占 <b>[−' + SSC.fmt(f, 2) + ', ' + SSC.fmt(f, 2) + '] Hz</b>，' +
+          '第 1 份占 <b>[' + SSC.fmt(fs - f, 2) + ', ' + SSC.fmt(fs + f, 2) + '] Hz</b>，第 −1 份占 ' +
+          '<b>[−' + SSC.fmt(fs + f, 2) + ', −' + SSC.fmt(fs - f, 2) + '] Hz</b>……' +
+          '相邻两份之间的空隙宽 <b>f_s − 2f = ' + SSC.fmt(fs - 2 * f, 2) + ' Hz</b>。' +
+          '<br>阴影区（±' + SSC.fmt(fs / 2, 2) + ' Hz）里只有原信号那一份，所以把它剪下来就能完整恢复。' +
+          '<br>把 f_s 一点点调小：空隙变窄。<b>空隙归零的那一刻，就是混叠开始的那一刻。</b>';
+      }
+      return 'f_s = ' + SSC.fmt(fs, 2) + ' Hz 已经不够了：第 1 份副本的左边缘在 <b>f_s − f = ' +
+        SSC.fmt(fs - f, 2) + ' Hz</b>，已经越过 0，压到原信号头上。' +
+        '结果是阴影区（±' + SSC.fmt(fs / 2, 2) + ' Hz）里出现了一根<b>本不该在那里</b>的红线，位置在 <b>' +
+        SSC.fmt(fold.app, 2) + ' Hz</b>。' +
+        '<br>低通滤波器没法区分"这是原来的低频"还是"这是高频折过来的"——它只看频率高低，于是把错的那个放行了。' +
+        '<b>这就是频域里混叠的全部机制。</b>';
+    }
+  });
+
+  /* ================= 实验 3：sinc 内插重建 ================= */
+  SSC.lab({
+    mount: '#lab-sinc',
+    title: '实验 3 · 用 sinc 内插重建：改 f_s 看曲线什么时候崩',
+    hint: '拖动 f_s 穿过 2f；注意青色重建曲线始终穿过每一个红点',
+    columns: 1,
+    canvases: [
+      { id: 'rec', label: '灰虚线：真实信号　红点：样本　青线：sinc 内插重建（式 9-10）', height: 260 }
+    ],
+    controls: [
+      { id: 'f', label: '信号频率 f', min: 1, max: 6, step: 0.5, value: 2, unit: ' Hz' },
+      { id: 'fs', label: '采样率 f_s', min: 1.5, max: 30, step: 0.5, value: 12, unit: ' Hz' },
+      { id: 'T', label: '显示时长（几个信号周期）', min: 2, max: 6, step: 1, value: 3 }
+    ],
+    buttons: [
+      { label: '充分采样（fs = 12）', onClick: function (vals, api) { api.set('fs', 12); } },
+      { label: '刚好 2f（fs = 4）', onClick: function (vals, api) { api.set('fs', 4); } },
+      { label: '欠采样（fs = 3）', onClick: function (vals, api) { api.set('fs', 3); } },
+      { label: '严重欠采样（fs = 1.5）', onClick: function (vals, api) { api.set('fs', 1.5); } }
+    ],
+    draw: function (cv, v, api) {
+      if (SINC_DIFF === null) {
+        SINC_DIFF = crossCheckKernelSinc();
+        if (window.console) console.log('[第 9 章] 本页 interpAt 与内核 SSC.sincInterp 的最大差 =', SINC_DIFF);
+      }
+      var f = v.f, fs = v.fs, nPer = Math.round(v.T);
+      var half = nPer / (2 * f);                 /* 半窗宽：nPer 个周期 */
+      var xmin = -half, xmax = half;
+      /* 样本范围要同时满足两件事：
+         ① 盖住窗口（±ceil(half*fs)），否则窗口边缘没有样本可用；
+         ② 让 sinc 尾巴衰减小到看不见。sinc 的尾巴按 1/(π·距离) 衰减，
+            要误差低于 1e-2 就得延伸到 300 个样本以外。
+         上限 330 是为了别让滑块拖到极端时算太久。 */
+      var win = Math.ceil(half * fs);
+      var GUARD = 300;
+      var need = Math.max(Math.min(330, win + 20), Math.min(330, GUARD / 1.5));
+      var n0 = -Math.max(need, 12);
+      var n1 = Math.max(need, 12);
+      var samples = sampleSeq(f, fs, n0, n1, 0);
+      var Ts = 1 / fs;
+
+      /* 采样点 */
+      var ptX = [], ptY = [], i;
+      for (i = 0; i < samples.length; i++) {
+        var tt = (n0 + i) * Ts;
+        if (tt < xmin - 1e-9 || tt > xmax + 1e-9) continue;
+        ptX.push(tt); ptY.push(samples[i]);
+      }
+
+      /* 重建：为了不让重建曲线自己产生混叠假象，采样点要比像素密度还高 */
+      var reconX = [], reconY = [];
+      var M = 700;
+      for (i = 0; i <= M; i++) {
+        var t = xmin + (xmax - xmin) * i / M;
+        reconX.push(t); reconY.push(interpAt(samples, fs, n0, t, GUARD));
+      }
+      /* 用惰性插值给 plot 用 */
+      var reconF = function (t) {
+        var u = (t - xmin) / (xmax - xmin) * M;
+        var i0 = SSC.clamp(Math.floor(u), 0, M - 1), fr = u - i0;
+        return reconY[i0] * (1 - fr) + reconY[i0 + 1] * fr;
+      };
+
+      SSC.plot(cv.rec, {
+        xmin: xmin, xmax: xmax, ymin: -1.75, ymax: 1.75,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: function (t) { return Math.cos(2 * Math.PI * f * t); }, color: '#8b96ad', width: 1.8, dash: [6, 4], samples: 900, label: '真实信号 cos(2πft)' },
+          { f: reconF, color: '#0e7490', width: 2.4, samples: 800, label: 'sinc 内插重建' }
+        ],
+        points: ptX.map(function (t, j) { return { x: t, y: ptY[j], color: '#dc2626', r: 3.6 }; }),
+        hlines: [{ y: 0, color: 'rgba(110,130,165,.4)' }],
+        legend: true
+      });
+
+      /* 误差：把重建与真实信号逐点比（去掉窗口两端各 5% 的边界，那里 sinc 被截断得最狠） */
+      var err = 0;
+      for (i = Math.round(0.05 * M); i <= Math.round(0.95 * M); i++) {
+        var tE = xmin + (xmax - xmin) * i / M;
+        var d = Math.abs(reconY[i] - Math.cos(2 * Math.PI * f * tE));
+        if (d > err) err = d;
+      }
+      var fold = foldFreq(f, fs);
+      var ok = fs >= 2 * f;
+      api.readout(
+        '<div class="stat"><div class="k">采样率 f_s</div><div class="v">' + SSC.fmt(fs, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">奈奎斯特率 2f</div><div class="v">' + SSC.fmt(2 * f, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">是否满足定理</div><div class="v" style="color:' + (ok ? '#15803d' : '#dc2626') + '">' + (ok ? '满足 ✔' : '不满足 ✘') + '</div></div>' +
+        '<div class="stat"><div class="k">每周期样本数 f_s/f</div><div class="v">' + SSC.fmt(fs / f, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">重建最大误差（窗内 90%）</div><div class="v" style="color:' + (err < 0.02 ? '#15803d' : '#dc2626') + '">' + SSC.fmt(err, 4) + '</div></div>' +
+        '<div class="stat"><div class="k">重建曲线的主频</div><div class="v">' + SSC.fmt(fold.app, 3) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">与内核 SSC.sincInterp 的差</div><div class="v">' + (SINC_DIFF === null ? '—' : SINC_DIFF.toExponential(1)) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var f = v.f, fs = v.fs, fold = foldFreq(f, fs), ok = fs >= 2 * f;
+      if (ok) {
+        return '满足 <b>f_s = ' + SSC.fmt(fs, 2) + ' ≥ 2f = ' + SSC.fmt(2 * f, 2) + ' Hz</b>：青线与灰虚线贴合，' +
+          '误差只来自"只用了有限多项 sinc"这个计算截断（理论上的内插公式要无穷多项）。' +
+          '<br>把 f_s 继续调大：样本更密，误差更小——这正是过采样带来的好处。';
+      }
+      return '<b>f_s = ' + SSC.fmt(fs, 2) + ' &lt; 2f = ' + SSC.fmt(2 * f, 2) + ' Hz，重建失败。</b>' +
+        '但请注意一件极其重要的事：<b>青线仍然精确穿过每一个红点</b>（这是内插公式的必然），' +
+        '它只是换了一条低频曲线——主频变成了 <b>' + SSC.fmt(fold.app, 2) + ' Hz</b>' +
+        (fold.wrap ? '（还整体反相）' : '') + '。' +
+        '<br>换句话说：<b>重建算法永远不报错</b>。它给你一条完美通过所有样本的曲线，而那条曲线是不是你原来的信号，取决于采样时有没有混叠。';
+    }
+  });
+
+  /* ================= 实验 4：抽取（下采样）与频谱展宽 ================= */
+  SSC.lab({
+    mount: '#lab-decimate',
+    title: '实验 4 · 抽取 N 倍：频谱被展宽，高峰被折回',
+    hint: '先固定 f=2 改 N；再把 f 换成 7、N=4，看峰跑到哪里去了',
+    columns: 1,
+    canvases: [
+      { id: 'spec', label: '蓝：原序列（16 点，fs=16 Hz）的频谱　橙：抽取 N 倍后的频谱（画在同一个 Hz 轴上）', height: 250 },
+      { id: 'time', label: '时域：原序列（蓝）与抽取后的序列（橙，用新采样率的时间刻度）', height: 170 }
+    ],
+    controls: [
+      { id: 'f', label: '信号频率 f（原 fs=16 Hz 下的 Hz 数）', min: 1, max: 7, step: 1, value: 2, unit: ' Hz' },
+      { id: 'N', label: '抽取倍数 N', min: 1, max: 4, step: 1, value: 1 }
+    ],
+    buttons: [
+      { label: '不抽取（N=1）', onClick: function (vals, api) { api.set('N', 1); } },
+      { label: '抽取 2 倍', onClick: function (vals, api) { api.set('N', 2); } },
+      { label: '抽取 4 倍', onClick: function (vals, api) { api.set('N', 4); } },
+      { label: '7 Hz + 抽取 4 倍（会混叠）', onClick: function (vals, api) { api.set('f', 7); api.set('N', 4); } }
+    ],
+    draw: function (cv, v, api) {
+      var FS = 16, LEN = 16, M = 512;              /* 原采样率 16 Hz，16 点，频谱画 512 个格点 */
+      var f = v.f, N = Math.round(v.N);
+      var fs2 = FS / N;
+
+      var x = [], n;
+      for (n = 0; n < LEN; n++) x.push(Math.cos(2 * Math.PI * f * n / FS));
+      var xd = [];
+      for (n = 0; n < LEN; n += N) xd.push(x[n]);
+
+      /* 两个序列的 DTFT，横轴换算成 Hz */
+      function specHz(seq, fs, m) {
+        var Om = 2 * Math.PI * m / M;              /* 0…2π → 0…fs */
+        var re = 0, im = 0, i;
+        for (i = 0; i < seq.length; i++) { re += seq[i] * Math.cos(Om * i); im -= seq[i] * Math.sin(Om * i); }
+        return Math.hypot(re, im);
+      }
+      var S1 = [], S2 = [], mx = 0;
+      for (var m = 0; m <= M; m++) {
+        var a = specHz(x, FS, m), b = specHz(xd, fs2, m);
+        S1.push(a); S2.push(b);
+        if (a > mx) mx = a; if (b > mx) mx = b;
+      }
+      if (mx < 1e-9) mx = 1;
+      var pick = function (arr) {
+        return function (hz) {
+          var u = hz / FS * M;                     /* 横轴统一用 Hz（原采样率刻度） */
+          var i0 = SSC.clamp(Math.floor(u), 0, M - 1), fr = u - i0;
+          return arr[i0] * (1 - fr) + arr[i0 + 1] * fr;
+        };
+      };
+
+      SSC.plot(cv.spec, {
+        xmin: 0, xmax: FS / 2, ymin: -0.06 * mx, ymax: mx * 1.2,
+        xlabel: '频率 (Hz)（横轴统一按原 fs=16 Hz 标）', ylabel: '|X|',
+        curves: [
+          { f: pick(S1), color: '#4338ca', width: 2.2, samples: 700, label: '原序列频谱（观测 16 点，fs=16 Hz）' },
+          { f: pick(S2), color: '#ea8c1a', width: 2.2, samples: 700, label: '抽取 ' + N + ' 倍后的频谱（新 fs=' + SSC.fmt(fs2, 2) + ' Hz）' }
+        ],
+        bands: [{ x1: fs2 / 2, x2: FS / 2, color: 'rgba(220,38,38,.08)' }],
+        vlines: [
+          { x: fs2 / 2, color: '#dc2626', dash: [5, 4], label: '新奈奎斯特 ' + SSC.fmt(fs2 / 2, 2) + ' Hz' },
+          { x: FS / 2, color: '#7c3aed', dash: [5, 4], label: '原奈奎斯特 8 Hz' }
+        ],
+        legend: true
+      });
+
+      /* 时域 */
+      var t1x = [], t1y = [], t2x = [], t2y = [];
+      for (n = 0; n < LEN; n++) { t1x.push(n / FS); t1y.push(x[n]); }
+      for (n = 0; n < xd.length; n++) { t2x.push(n / fs2); t2y.push(xd[n]); }
+      SSC.plot(cv.time, {
+        xmin: -0.03, xmax: LEN / FS + 0.03, ymin: -1.4, ymax: 1.4,
+        xlabel: 't (s)', ylabel: '幅度',
+        stems: [
+          { xs: t1x, ys: t1y, color: '#4338ca', r: 2.4, label: '原序列（16 点，间隔 1/16 s）' },
+          { xs: t2x, ys: t2y, color: '#ea8c1a', r: 3.4, label: '抽取后（' + xd.length + ' 点，间隔 1/' + SSC.fmt(fs2, 2) + ' s）' }
+        ],
+        legend: true
+      });
+
+      var folded = foldFreqBrute(f, fs2);
+      var ok = f <= fs2 / 2 + 1e-9;
+      api.readout(
+        '<div class="stat"><div class="k">原采样率 / 点数</div><div class="v">16 Hz / 16 点</div></div>' +
+        '<div class="stat"><div class="k">抽取 N 倍后</div><div class="v">' + SSC.fmt(fs2, 2) + ' Hz / ' + xd.length + ' 点</div></div>' +
+        '<div class="stat"><div class="k">新奈奎斯特频率</div><div class="v">' + SSC.fmt(fs2 / 2, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">信号频率 f</div><div class="v">' + SSC.fmt(f, 2) + ' Hz</div></div>' +
+        '<div class="stat"><div class="k">是否混叠</div><div class="v" style="color:' + (ok ? '#15803d' : '#dc2626') + '">' + (ok ? '不混叠 ✔' : '混叠 ✘') + '</div></div>' +
+        '<div class="stat"><div class="k">表观频率 min|f−k·fs|</div><div class="v" style="color:' + (ok ? '#15803d' : '#dc2626') + '">' + SSC.fmt(folded, 3) + ' Hz</div></div>'
+      );
+    },
+    note: function (v) {
+      var f = v.f, N = Math.round(v.N), fs2 = 16 / N;
+      var folded = foldFreqBrute(f, fs2);
+      var ok = f <= fs2 / 2 + 1e-9;
+      var s = '抽取 N=' + N + ' 倍：新采样率降到 <b>' + SSC.fmt(fs2, 2) +
+        ' Hz</b>，新奈奎斯特频率只有 <b>' + SSC.fmt(fs2 / 2, 2) + ' Hz</b>。' +
+        '橙色曲线相对蓝色被<b>横向拉宽了 ' + N + ' 倍</b>（原来挤在 [0,' + SSC.fmt(8 / N, 2) + '] Hz 里的内容，现在铺满了整个 [0,8] Hz）——' +
+        '因为同样的 2π 弧度现在要代表更低的采样率，单位 Hz 就被"放大"了。';
+      if (ok) {
+        s += '<br>此时 f = ' + SSC.fmt(f, 2) + ' Hz ≤ ' + SSC.fmt(fs2 / 2, 2) + ' Hz，峰还在安全区内，<b>抽取没造成损失</b>。';
+      } else {
+        s += '<br><b>f = ' + SSC.fmt(f, 2) + ' Hz &gt; ' + SSC.fmt(fs2 / 2, 2) +
+          ' Hz，混叠了</b>：这个成分被折到 <b>' + SSC.fmt(folded, 2) + ' Hz</b>。' +
+          '红底区域就是"新奈奎斯特以外"的禁区，任何落在那里的内容都会折进来。' +
+          '<br>要避免它，正经做法是<b>先低通到 ' + SSC.fmt(fs2 / 2, 2) + ' Hz 再抽取</b>——这就是抗混叠滤波器。';
+      }
+      s += '<br><span class="tiny">注：这是 16 点序列的 <b>DTFT</b>（不是 DFT），所以曲线是连续的，便于看清"展宽"这个动作本身。抽取后的橙线在 [0,8] Hz 上画的是它自己的 [0,2π) 周期，再往外（8…16 Hz）是同一个周期的重复。</span>';
+      return s;
+    }
+  });
+
+  /* ================= 自测 ================= */
+  SSC.quiz('#quiz9', [
+    {
+      q: '为什么"只给一串采样点"不足以保证能恢复原信号？',
+      opts: [
+        '因为无穷多个不同的连续信号可以有完全相同的采样值；必须额外限定信号是带限的',
+        '因为采样点总有测量误差',
+        '因为计算机只能处理有限个数',
+        '因为采样会改变信号的相位'
+      ],
+      a: 0,
+      why: '例如 x₁(t)=0 与 x₂(t)=sin(2π·5t) 在 t=0,1,2,… 秒上取值都是 0。只有加上"信号带限且采样率足够"这两个条件，样本才唯一确定原信号——这就是采样定理的用处。',
+      tag: '概念'
+    },
+    {
+      q: '信号最高频率 f_M = 5 kHz。要不混叠，采样率至少要多高？这个"10 kHz"叫什么？',
+      opts: [
+        '10 kHz，叫奈奎斯特率（＝2f_M）',
+        '10 kHz，叫奈奎斯特频率（＝f_s/2）',
+        '5 kHz，叫奈奎斯特率',
+        '2.5 kHz，叫折叠频率'
+      ],
+      a: 0,
+      why: '不混叠条件是 f_s ≥ 2f_M，这里 2f_M=10 kHz 就是奈奎斯特率（信号的性质）。而奈奎斯特频率是 f_s/2=5 kHz（采样器的性质）。两者数值可能相等，但含义完全不同。',
+      tag: '概念/计算'
+    },
+    {
+      q: '一个 7 Hz 的正弦被 10 Hz 采样。采样后它"看起来"是多少 Hz？',
+      opts: ['3 Hz', '7 Hz', '17 Hz', '0 Hz'],
+      a: 0,
+      why: '按 (9-8)：min|7−k·10| 取 k=1 得 |7−10|=3 Hz。因为 f_s/2=5 Hz，7 Hz 超过了奈奎斯特频率，被折到 5−(7−5)=3 Hz；并且这个分量整体反相（乘 −1）。',
+      tag: '计算'
+    },
+    {
+      q: '采样后信号的频谱 X_p(jω) 与原始频谱 X(jω) 的关系是？',
+      opts: [
+        'X_p 是 X 以 ω_s 为周期的延拓叠加，并整体乘 1/T',
+        'X_p 就是 X，采样不改变频谱',
+        'X_p 是 X 被压缩 ω_s 倍',
+        'X_p 是把 X 在频域也做了等间隔采样'
+      ],
+      a: 0,
+      why: '(9-6)：X_p(jω) = (1/T)Σ_k X(j(ω−kω_s))。时域乘冲激串 ⇒ 频域与冲激串卷积 ⇒ 把 X 平移复制无穷多份再乘 1/T。写内插公式时那个增益 T 就是用来补这个 1/T 的。',
+      tag: '推导'
+    },
+    {
+      q: '理想重建时，每个样本 x(nT) 乘的函数是 sin(π(t−nT)/T) 除以 π(t−nT)/T。为什么必须是这个函数？',
+      opts: [
+        '因为它是理想低通的冲激响应，且在其它所有采样点上恰好为 0，只在自己那个点上为 1',
+        '因为它的衰减最快，计算最省',
+        '因为它是对称的偶函数',
+        '因为它是矩形窗的频谱'
+      ],
+      a: 0,
+      why: 'h(t)=sin(πt/T)/(πt/T) 是增益 T、截止 π/T 的理想低通的冲激响应。它在非零整数点上是 0，所以 x_r(mT) 只留下 m 那一项 = x(mT)。这个"零点互不干扰"的性质是内插能成立的关键。',
+      tag: '重建'
+    },
+    {
+      q: '要把采样率降到原来的 1/4（抽取 4 倍），正确的顺序是？',
+      opts: [
+        '先低通滤波到新奈奎斯特频率 f_s/8，再每 4 个点取 1 个',
+        '先每 4 个点取 1 个，再用低通滤波补救',
+        '直接每 4 个点取 1 个，不需要滤波',
+        '先把信号放大 4 倍，再抽取'
+      ],
+      a: 0,
+      why: '抽取让奈奎斯特频率降到 1/4，原本安全的高频会被折成假低频。混叠一旦发生，高频与低频已经混在同一频段，任何后续滤波都无法分离，所以必须"先滤后抽"。那个滤波器叫抗混叠滤波器。',
+      tag: '抽取'
+    }
+  ], '第 9 章自测 · 6 题');
+});
+</script>
+</body>
+</html>

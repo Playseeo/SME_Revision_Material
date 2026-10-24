@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>信号与系统 · 交互图谱 —— 学习地图</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="index">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">Signals and Systems · Interactive Atlas</div>
+        <h1>学习地图：一张图看懂整门课</h1>
+        <p class="lede">
+          这门课其实只在回答一个问题：<b>线性时不变系统会怎样改变一个信号？</b>
+          答案出奇地简单——<b>它不创造新频率</b>，只是把每个频率的复指数乘上一个数。
+          于是"分析"变成"把信号摊成复指数"，而摊开来、摊回去的工具，就是傅里叶级数、傅里叶变换、拉普拉斯变换与 z 变换。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>无需前置。只要你会：复数、欧拉公式、δ 函数的基本想法、等比级数收敛条件。<br>
+          不确定就先做下面的<a href="#check">前置自查</a>。
+        </div>
+        <div class="cell mid"><b>这一站</b>全局地图 + 学习路径 + 四大变换速览</div>
+        <div class="cell"><b>看完去哪</b><a href="ch01-signals.html">第 1 章 信号与系统基本概念</a>（按顺序的第一站）<br>
+          想先看结论 → <a href="ch14-atlas.html">第 14 章 四大变换总对照</a></div>
+      </div>
+
+      <div class="box" style="margin-top:0">
+        <span class="tag">全课程唯一主线（记住这一句，后面都是它的展开）</span>
+        <p style="margin:6px 0 0">
+          复指数 <span class="term" data-def="complex exponential，形如 e^{st}（连续）或 z^n（离散）的信号。它是唯一一类被 LTI 系统作用后<b>形状不变</b>的信号。">复指数</span>
+          <b>是 LTI 系统的特征函数</b>（<span class="term" data-def="eigenfunction：被系统作用后只被乘一个数、形状不变的那种输入信号。中文也叫"本征函数"。">特征函数</span>，
+          英文 eigenfunction）：<span class="mono">e<sup>jωt</sup> → H(jω)·e<sup>jωt</sup></span>。
+          所以只要能把信号写成复指数的加权和，"系统对信号做了什么"就变成"每个频率乘了几倍"——乘法永远比卷积简单。
+        </p>
+      </div>
+
+      <h2 id="map">1. 概念依赖图（点方框直接跳到那一站）</h2>
+      <p class="small muted">
+        箭头 = <b>必须先懂左边，才看得懂右边</b>。从上往下走就是正常学习顺序，与左侧目录完全一致。
+      </p>
+
+      <div class="mapbox">
+        <svg viewBox="0 0 940 620" width="100%" style="min-width:760px;height:auto" font-family="inherit" role="img" aria-label="概念依赖图">
+          <defs>
+            <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+              <path d="M0,0 L10,5 L0,10 z" fill="#8b96ad"></path>
+            </marker>
+          </defs>
+          <style>
+            .nd{fill:#fff;stroke:#cfd8e8;stroke-width:1.4;rx:10}
+            .nd:hover{stroke:#4338ca;stroke-width:2}
+            .lb{font-size:13px;fill:#1b2436;font-weight:600}
+            .lb2{font-size:11px;fill:#7b879c}
+            .grp{font-size:12px;fill:#7b879c;font-weight:700;letter-spacing:.06em}
+            .ln{stroke:#8b96ad;stroke-width:1.3;fill:none;marker-end:url(#ar)}
+            .band{fill:rgba(67,56,202,.05)}
+          </style>
+
+          <rect class="band" x="8" y="8" width="924" height="118" rx="12"></rect>
+          <rect class="band" x="8" y="136" width="924" height="112" rx="12"></rect>
+          <rect class="band" x="8" y="258" width="924" height="112" rx="12"></rect>
+          <rect class="band" x="8" y="380" width="924" height="112" rx="12"></rect>
+          <rect class="band" x="8" y="502" width="924" height="110" rx="12"></rect>
+
+          <text class="grp" x="22" y="30">第一段 · 地基：信号怎么描述，系统怎么描述</text>
+          <text class="grp" x="22" y="158">第二段 · 傅里叶级数：周期信号 = 离散的谐波叠加</text>
+          <text class="grp" x="22" y="280">第三段 · 傅里叶变换：非周期信号 = 连续的频谱</text>
+          <text class="grp" x="22" y="402">第四段 · 从连续到离散，再到系统与应用</text>
+          <text class="grp" x="22" y="524">第五段 · 统一框架：把频率推广成复数</text>
+
+          <!-- 第一段 -->
+          <a href="ch01-signals.html"><rect class="nd" x="30" y="46" width="184" height="60"></rect>
+            <text class="lb" x="46" y="72">1 · 信号与系统</text><text class="lb2" x="46" y="92">δ、u、复指数、能量/功率</text></a>
+          <a href="ch02-convolution.html"><rect class="nd" x="272" y="46" width="184" height="60"></rect>
+            <text class="lb" x="288" y="72">2 · LTI 与卷积</text><text class="lb2" x="288" y="92">y = x ∗ h</text></a>
+          <a href="ch03-eigenfunction.html"><rect class="nd" x="514" y="46" width="200" height="60"></rect>
+            <text class="lb" x="530" y="72">3 · 复指数是特征函数</text><text class="lb2" x="530" y="92">频域分析为什么可行</text></a>
+
+          <!-- 第二段 -->
+          <a href="ch04-ctfs.html"><rect class="nd" x="30" y="176" width="184" height="56"></rect>
+            <text class="lb" x="46" y="200">4 · CTFS 连续傅里叶级数</text><text class="lb2" x="46" y="219">a_k ↔ 谐波线谱</text></a>
+          <a href="ch05-dtfs.html"><rect class="nd" x="272" y="176" width="184" height="56"></rect>
+            <text class="lb" x="288" y="200">5 · DTFS 离散傅里叶级数</text><text class="lb2" x="288" y="219">只有 N 个谐波</text></a>
+
+          <!-- 第三段 -->
+          <a href="ch06-ctft.html"><rect class="nd" x="30" y="298" width="184" height="56"></rect>
+            <text class="lb" x="46" y="322">6 · CTFT 连续傅里叶变换</text><text class="lb2" x="46" y="341">T→∞，谱变连续</text></a>
+          <a href="ch07-dtft.html"><rect class="nd" x="272" y="298" width="184" height="56"></rect>
+            <text class="lb" x="288" y="322">7 · DTFT 离散时间傅里叶变换</text><text class="lb2" x="288" y="341">频谱以 2π 为周期</text></a>
+          <a href="ch08-dft.html"><rect class="nd" x="514" y="298" width="200" height="56"></rect>
+            <text class="lb" x="530" y="322">8 · DFT / FFT</text><text class="lb2" x="530" y="341">计算机真正算的那个</text></a>
+
+          <!-- 第四段 -->
+          <a href="ch09-sampling.html"><rect class="nd" x="24" y="420" width="180" height="56"></rect>
+            <text class="lb" x="36" y="444">9 · 采样定理与重建</text><text class="lb2" x="36" y="463">混叠、奈奎斯特率、sinc 内插</text></a>
+          <a href="ch10-filters.html"><rect class="nd" x="214" y="420" width="170" height="56"></rect>
+            <text class="lb" x="226" y="444">10 · 时频与滤波器</text><text class="lb2" x="226" y="463">幅度/相位、理想滤波</text></a>
+          <a href="ch11-modulation.html"><rect class="nd" x="394" y="420" width="170" height="56"></rect>
+            <text class="lb" x="406" y="444">11 · 调制与通信</text><text class="lb2" x="406" y="463">频谱搬移、解调</text></a>
+          <a href="ch15-applications.html"><rect class="nd" x="574" y="420" width="160" height="56"></rect>
+            <text class="lb" x="586" y="444">附 A · 应用串讲</text><text class="lb2" x="586" y="463">图像滤波、PCA/K-L</text></a>
+          <a href="ch16-cheatsheet.html"><rect class="nd" x="744" y="420" width="170" height="56"></rect>
+            <text class="lb" x="756" y="444">附 B · 速查与坑</text><text class="lb2" x="756" y="463">表格 + Top 坑</text></a>
+
+          <!-- 第五段 -->
+          <a href="ch12-laplace.html"><rect class="nd" x="120" y="542" width="210" height="56"></rect>
+            <text class="lb" x="136" y="566">12 · 拉普拉斯变换</text><text class="lb2" x="136" y="585">s = σ + jω，ROC 是竖条</text></a>
+          <a href="ch13-ztransform.html"><rect class="nd" x="380" y="542" width="210" height="56"></rect>
+            <text class="lb" x="396" y="566">13 · z 变换</text><text class="lb2" x="396" y="585">z = e^{sT}，ROC 是圆环</text></a>
+          <a href="ch14-atlas.html"><rect class="nd" x="640" y="542" width="220" height="56"></rect>
+            <text class="lb" x="656" y="566">14 · 四大变换总对照</text><text class="lb2" x="656" y="585">一张表打通全部关系</text></a>
+
+          <!-- 箭头 -->
+          <path class="ln" d="M214,76 L268,76"></path>
+          <path class="ln" d="M456,76 L510,76"></path>
+          <path class="ln" d="M122,106 L122,172"></path>
+          <path class="ln" d="M122,232 L122,294"></path>
+          <path class="ln" d="M214,204 L268,204"></path>
+          <path class="ln" d="M364,232 L364,294"></path>
+          <path class="ln" d="M456,326 L510,326"></path>
+          <path class="ln" d="M114,354 L114,416"></path>
+          <path class="ln" d="M200,354 L200,390 L299,390 L299,416"></path>
+          <path class="ln" d="M364,354 L364,372 L170,372 L170,416"></path>
+          <path class="ln" d="M400,354 L400,378 L340,378 L340,416"></path>
+          <path class="ln" d="M430,354 L430,416"></path>
+          <path class="ln" d="M114,476 L114,510 L225,510 L225,538"></path>
+          <path class="ln" d="M479,476 L485,510 L485,538"></path>
+          <path class="ln" d="M330,570 L376,570"></path>
+          <path class="ln" d="M590,570 L636,570"></path>
+          <path class="ln" d="M614,326 L614,384 L829,384 L829,416"></path>
+        </svg>
+      </div>
+
+      <div class="box intuition">
+        <span class="tag">三个"看"的角度，其实是同一件事</span>
+        <p>
+          <b>时域</b>看信号随时间怎么变（卷积、微分方程）；
+          <b>频域</b>看信号里各个频率各占多少（频谱、频响）；
+          <b>复平面</b>看系统把哪些"复频率"放大、哪些压死（极点零点、ROC）。
+          三者由同一组变换连起来：<span class="mono">时域卷积 ⇔ 频域相乘</span>。
+        </p>
+      </div>
+
+      <h2 id="route">2. 学习路径：每一站解决什么问题</h2>
+      <p class="small muted">建议按顺序走。每站末尾都有 2–4 道自测题，答完再走下一站。</p>
+      <ol class="routelist">
+        <li><div><div class="t">先看 <a href="index.html">学习地图</a>（你现在在这里）</div><div class="d">5 分钟。拿到全局地图 + 做完下面的"前置自查"。</div></div></li>
+        <li><div><div class="t"><a href="ch01-signals.html">第 1 章　信号与系统基本概念</a></div><div class="d">能把信号分类（连续/离散、周期/非周期、能量/功率）；会用 δ、u 把信号"拆开"；知道系统六条性质各是什么意思。</div></div></li>
+        <li><div><div class="t"><a href="ch02-convolution.html">第 2 章　LTI 系统与卷积</a></div><div class="d">会算卷积和、卷积积分；知道卷积为什么是"翻转—平移—相乘—求和"；知道 h[n] 完全决定一个 LTI 系统。</div></div></li>
+        <li><div><div class="t"><a href="ch03-eigenfunction.html">第 3 章　复指数：频域分析为什么可行</a></div><div class="d">能亲手验证 e^{jωt} → H(jω)e^{jωt}；理解"特征函数/特征值"；理解正交分解的普遍思想（顺带知道小波、PCA 的位置）。</div></div></li>
+        <li><div><div class="t"><a href="ch04-ctfs.html">第 4 章　连续时间傅里叶级数 CTFS</a></div><div class="d">会把周期信号展成谐波和；会算 a_k；知道吉布斯现象；会把 a_k 画成线谱。</div></div></li>
+        <li><div><div class="t"><a href="ch05-dtfs.html">第 5 章　离散时间傅里叶级数 DTFS</a></div><div class="d">知道为什么离散周期信号只有 N 个独立谐波；会算 c_k 并用 DFT 验证。</div></div></li>
+        <li><div><div class="t"><a href="ch06-ctft.html">第 6 章　连续时间傅里叶变换 CTFT</a> <span class="badge">核心</span></div><div class="d">会算常见信号的 X(jω)；熟练性质表；理解"时宽 × 带宽"；能用 Y=HX 分析微分方程描述的 LTI 系统。</div></div></li>
+        <li><div><div class="t"><a href="ch07-dtft.html">第 7 章　离散时间傅里叶变换 DTFT</a> <span class="badge">核心</span></div><div class="d">知道 X(e^{jω}) 为什么以 2π 为周期；会算常见序列的 DTFT；掌握离散卷积性质。</div></div></li>
+        <li><div><div class="t"><a href="ch08-dft.html">第 8 章　DFT 与 FFT</a></div><div class="d">知道 DFT 是对 DTFT 的采样、隐含周期延拓；理解循环卷积与"补零"；知道 FFT 只是快速算法。</div></div></li>
+        <li><div><div class="t"><a href="ch09-sampling.html">第 9 章　采样定理与重建</a></div><div class="d">会画采样前后的频谱；能判断会不会混叠；会用 sinc 内插重建；懂内插与抽取。</div></div></li>
+        <li><div><div class="t"><a href="ch10-filters.html">第 10 章　时频特性与滤波器</a></div><div class="d">会读 Bode/频响曲线；懂理想低通为什么不可实现、非理想滤波器怎么折中；会用极零点判断滤波类型。</div></div></li>
+        <li><div><div class="t"><a href="ch11-modulation.html">第 11 章　调制、解调与通信</a></div><div class="d">懂"乘以载波 = 频谱搬移"；会算 AM 解调；知道频分复用。</div></div></li>
+        <li><div><div class="t"><a href="ch12-laplace.html">第 12 章　拉普拉斯变换</a> <span class="badge">核心</span></div><div class="d">理解 s=σ+jω 的含义；会用 ROC 判断收敛与因果/稳定；会用 s 域解微分方程并画零极点图。</div></div></li>
+        <li><div><div class="t"><a href="ch13-ztransform.html">第 13 章　z 变换</a> <span class="badge">核心</span></div><div class="d">会算常见序列的 X(z) 并写清 ROC；掌握三条 ROC 铁律；会做逆 z 变换（部分分式/长除）；会用 z 域判断因果与稳定。</div></div></li>
+        <li><div><div class="t"><a href="ch14-atlas.html">第 14 章　四大变换总对照</a></div><div class="d">能默画出"级数—变换—拉氏—z"的关系图，并说清换到哪一个、什么时候用哪个。</div></div></li>
+        <li><div><div class="t"><a href="ch15-applications.html">附 A　应用串讲</a> ／ <a href="ch16-cheatsheet.html">附 B　速查表与常见坑</a></div><div class="d">复习与查表用，不必按顺序读。</div></div></li>
+      </ol>
+
+      <h2 id="atlas">3. 四大变换速览（详细对照在 <a href="ch14-atlas.html">第 14 章</a>）</h2>
+      <table class="tbl sm">
+        <thead>
+          <tr><th>工具</th><th>适用信号</th><th>变换变量</th><th>谱的样子</th><th>最像它的"一句话"</th></tr>
+        </thead>
+        <tbody>
+          <tr><td class="ft">傅里叶级数<br>CTFS / DTFS</td><td>周期信号</td><td class="ft">k（谐波序号）</td><td>离散谱线</td><td>把周期信号拆成"基波 + 各次谐波"，只有离散的频率存在。</td></tr>
+          <tr><td class="ft">傅里叶变换<br>CTFT / DTFT</td><td>非周期（绝对可积/可和）</td><td class="ft">ω（实频率）</td><td>连续谱</td><td>把周期推向无穷，离散谱线挤成一条连续曲线。</td></tr>
+          <tr><td class="ft">拉普拉斯变换</td><td>连续、可含增长因子</td><td class="ft">s = σ + jω</td><td>复平面上定义</td><td>给傅里叶变换加一个"衰减旋钮" e<sup>−σt</sup>，让它对更野的信号也收敛。</td></tr>
+          <tr><td class="ft">z 变换</td><td>离散、可含增长因子</td><td class="ft">z = e<sup>sT</sup></td><td>复平面上定义</td><td>离散版的拉普拉斯；单位圆 z=e<sup>jω</sup> 上就是 DTFT。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="check">4. 前置自查：你需不需要先补数学</h2>
+      <p class="small muted">下面 5 题只考"预备知识"，与信号无关。答不上来也不用慌——每题反馈里给了补法。</p>
+      <div id="precheck"></div>
+
+      <h2 id="how">5. 这份网页怎么用</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">每页都有固定结构</h4>
+          <ul class="small" style="margin:0;padding-left:20px">
+            <li><b>本站位置</b>：先看什么 → 这一站 → 看完去哪。</li>
+            <li><b>直觉先行</b>：先讲"这公式在说什么人话"，再上数学。</li>
+            <li><b>符号首次出现即解释</b>：带虚线下划线的词，鼠标停上去有解释。</li>
+            <li><b>可折叠推导</b>：点开"▸ 推导"，每一步都写了为什么能这样变形。</li>
+            <li><b>动手实验台</b>：带滑块/可拖拽的方框，改参数图形立刻变。</li>
+            <li><b>自测</b>：页末 2–4 题，选项一点就给解释。</li>
+          </ul>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">三个使用建议</h4>
+          <ul class="small" style="margin:0;padding-left:20px">
+            <li><b>先拖滑块再读公式</b>。把参数推到极端值（周期很长、脉宽很窄、极点冲出单位圆），看清极限行为，公式就变具体了。</li>
+            <li><b>把每一对"变换对"当成一个单词背</b>。δ↔1、e<sup>−at</sup>u(t)↔1/(a+jω)、a<sup>n</sup>u[n]↔1/(1−az<sup>−1</sup>)，这些都是词汇表。</li>
+            <li><b>不求一次读透</b>。第一遍只要回答"这一站在解决什么问题"；第二遍再抠推导。</li>
+          </ul>
+        </div>
+      </div>
+
+      <h2 id="source">6. 内容来源与边界（可核查）</h2>
+      <div class="box warn">
+        <span class="tag">这份网页的知识点依据</span>
+        <p>
+          <b>主干（以你自己的课为准）</b>：<span class="mono">SME206-Lecture0/1/2</span>——课程大纲为 Oppenheim《Signals and Systems》第 1–8 章
+          （信号与系统 → LTI → 连续傅里叶级数 → 连续傅里叶变换 → 离散时间傅里叶变换 → 时频特性 → 采样 → 通信）。
+        </p>
+        <p>
+          <b>补充（课程大纲之外、但属于同一体系）</b>：z 变换、拉普拉斯变换、DFT/FFT 细节、希尔伯特变换、内插与抽取、
+          正交分解（哈尔小波 / 勒让德 / K-L 变换）——来自课程资料中的《Z 变换》《拉普拉斯变换》《离散傅里叶变换性质》
+          《采样定理》《信号的内插与抽取》等讲义，以及 Oppenheim 教材第 9、10 章。<b>实验课（Lab1–3）内容未被用作知识来源。</b>
+        </p>
+      </div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 离线单页站点（直接双击打开即可，无需联网） · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  SSC.quiz('#precheck', [
+    {
+      q: '复数 3 − 4j 的模长 |z| 是多少？',
+      opts: ['5', '7', '1', '25'],
+      a: 0,
+      why: '|z| = √(3² + (−4)²) = √25 = 5。复数的模长是它到原点的距离，后面 |X(jω)|、|H(e^{jω})| 用的就是这个。',
+      tag: '复数'
+    },
+    {
+      q: 'e^{jθ} 用正弦余弦写出来是？',
+      opts: ['cosθ + j sinθ', 'cosθ − j sinθ', 'j cosθ + sinθ', 'cosθ · sinθ'],
+      a: 0,
+      why: '欧拉公式 e^{jθ} = cosθ + j sinθ。整门课的复指数信号都基于它；由它还能推出 cosθ = (e^{jθ}+e^{−jθ})/2，这是"余弦 = 一对复指数"的来源。',
+      tag: '欧拉公式'
+    },
+    {
+      q: '∫_{−∞}^{∞} x(t)δ(t − 3) dt 等于多少？',
+      opts: ['x(3)', 'x(0)', '0', 'x(t)'],
+      a: 0,
+      why: 'δ 的"筛选性质"：冲激只把 t=3 那一瞬间的取值挑出来。这是第 1、2 章反复要用的工具。',
+      tag: 'δ 函数'
+    },
+    {
+      q: 'a 为常数时，e^{−at} 在 t → +∞ 时会怎样？',
+      opts: ['a>0 时趋于 0，a<0 时发散', '总是趋于 0', '总是发散', '与 a 无关'],
+      a: 0,
+      why: '这正是"收敛域"（ROC）思想的雏形：a>0 才有衰减因子，积分才收敛。第 12、13 章的 ROC 讨论的就是这件事。',
+      tag: '指数'
+    },
+    {
+      q: 'n 从 0 到 ∞，等比级数 Σ r^n 在什么条件下收敛？收敛到多少？',
+      opts: ['|r|<1，收敛到 1/(1−r)', '|r|>1，收敛到 1/(1−r)', '总有 |r|<1 才收敛，值为 r/(1−r)', '任何 r 都收敛'],
+      a: 0,
+      why: '|r|<1 时 Σ_{n=0}^{∞} r^n = 1/(1−r)。z 变换里 a^n u[n] ↔ 1/(1−az^{−1}) 的 ROC 条件 |az^{−1}|<1 就是它。',
+      tag: '级数'
+    }
+  ], '前置自查 · 5 题');
+});
+</script>
+</body>
+</html>

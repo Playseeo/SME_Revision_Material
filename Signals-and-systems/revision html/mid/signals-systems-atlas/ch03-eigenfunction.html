@@ -1,0 +1,1145 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>第 3 章　复指数：频域分析为什么可行｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch03">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">第一段 · 地基 · 第 3 章</div>
+        <h1>复指数：频域分析为什么可行</h1>
+        <p class="lede">
+          第 2 章说：LTI 系统的输出是输入与冲激响应的<b>卷积</b>——一个翻转、平移、相乘、积分的苦活。
+          这一章只证明一句话：<b>如果输入是复指数 <span class="mono">e<sup>st</sup></span> 或 <span class="mono">z<sup>n</sup></span>，
+          输出就是同一个复指数乘上一个复数</b>。卷积不见了，只剩一次乘法。
+          后面所有的傅里叶级数、傅里叶变换、DFT、拉普拉斯与 z 变换，全部架在这一句话上。
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch02-convolution.html">第 2 章 卷积</a>（本章唯一的工具：<span class="mono">y=h∗x</span>）<br>
+          <a href="ch01-signals.html">第 1 章 信号与系统基本概念</a>（复指数、<span class="mono">δ</span>、LTI 六条性质）
+        </div>
+        <div class="cell mid"><b>这一站</b>特征函数 → <span class="mono">H(s)</span>/<span class="mono">H(z)</span> → 频率响应 → 正交分解</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch04-ctfs.html">第 4 章 傅里叶级数</a>（把周期信号拆成谐波，直接吃这一章的结论）<br>
+          <a href="ch06-ctft.html">第 6 章 傅里叶变换</a>（非周期版本）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 这一章想省掉的那一步</a>
+        <a href="#s2">2. 特征函数与特征值：从矩阵到系统</a>
+        <a href="#s3">3. 验证一：连续时间 e<sup>st</sup> → H(s)e<sup>st</sup></a>
+        <a href="#s4">4. 验证二：离散时间 z<sup>n</sup> → H(z)z<sup>n</sup></a>
+        <a href="#s5">5. 实验 1（核心）：把 |z| 推过单位圆</a>
+        <a href="#s6">6. 一条性质为什么就够：叠加与傅里叶的诞生</a>
+        <a href="#s7">7. 频率响应 H(jω) 怎么读：模=放大，辐角=相移</a>
+        <a href="#s8">8. 实验 2：逐频率的增益与相移</a>
+        <a href="#s9">9. 正交分解的普遍思想（傅里叶 / 勒让德 / 哈尔 / K-L）</a>
+        <a href="#s10">10. 实验 3：换一套基，看误差怎么变</a>
+        <a href="#s11">11. 常见坑</a>
+        <a href="#s12">12. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 这一章想省掉的那一步</h2>
+
+      <p>
+        先把目标说清楚。第 2 章的卷积
+      </p>
+      <div class="eq center-eq">
+        y(t) = (h <span class="op">∗</span> x)(t) =
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        h(τ) x(t−τ) dτ
+        <span class="lbl">(3-1)</span>
+      </div>
+      <p>
+        对每个 t 都要算一次积分。想求系统对"很多种输入"的响应，就得算很多次积分——很累。
+        有没有一种输入，能让这个积分<b>当场算完</b>，剩下的只是一个乘数？
+      </p>
+
+      <div class="box intuition">
+        <span class="tag">换基信号的思路（Oppenheim 3.0 的两条要求）</span>
+        <p>
+          与其硬算任意信号，不如挑一族"好用的"<span class="term" data-def="basic signal / basis signal，中文含义：基信号。用来搭建其它信号的"积木"。">基信号</span>，
+          让它同时满足两件事：
+        </p>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>拼得出来</b>：这一族基信号的线性组合能表示足够多、足够有用的信号；</li>
+          <li><b>响应够简单</b>：系统对每个基信号的响应，结构要简单到能一眼写出来。</li>
+        </ul>
+        <p style="margin-bottom:0">
+          复指数（continuous: <span class="mono">e<sup>st</sup></span>；discrete: <span class="mono">z<sup>n</sup></span>，
+          <span class="mono">s</span> 与 <span class="mono">z</span> 是复数）同时满足这两条。
+          第 1 条要等到第 4～6 章（傅里叶级数与变换）才完全兑现，本页先兑现第 2 条。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 特征函数与特征值：从矩阵到系统</h2>
+
+      <p>
+        这件事你在<span class="term" data-def="linear algebra，中文含义：线性代数。研究向量、矩阵与线性变换的学科；这里只用它最基本的一个概念：特征向量。">线性代数</span>里见过。
+        一个矩阵 <span class="mono">A</span> 作用在向量 <span class="mono">v</span> 上，一般会把 <span class="mono">v</span> 转个方向、拉长缩短；
+        但对某些特殊的 <span class="mono">v</span>，<b>方向不变，只被拉长了一个倍数</b>：
+      </p>
+      <div class="eq center-eq">
+        A v = λ v
+        <span class="lbl">(3-2)</span>
+      </div>
+      <p>
+        这样的 <span class="mono">v</span> 叫矩阵 <span class="mono">A</span> 的
+        <span class="term" data-def="eigenvector，中文含义：特征向量。被矩阵作用后方向不变、只被缩放的那个特殊向量。">特征向量</span>，
+        <span class="mono">λ</span> 叫对应的
+        <span class="term" data-def="eigenvalue，中文含义：特征值。特征向量被拉伸的倍数，是一个（复）数。">特征值</span>。
+        好处是：只要把任意向量拆成特征向量的组合，矩阵的作用就退化成"每个成分各乘一个数"，矩阵乘法变成逐项乘法。
+      </p>
+
+      <p>
+        <b>LTI 系统也是一个线性算子</b>（它把信号变成信号，而且是线性的）。于是同一个问题可以问一遍：
+        什么样的输入 <span class="mono">x</span>，经过系统后<b>形状不变</b>，只是整体乘了个复数？
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">连续时间：<span class="mono">e<sup>st</sup></span></h4>
+          <div class="eq">
+            e<sup>st</sup> &nbsp;<span class="op">⟶</span>&nbsp; H(s) e<sup>st</sup>
+          </div>
+          <p class="small" style="margin-bottom:0">
+            输入是 <span class="mono">e<sup>st</sup></span>，输出仍是 <span class="mono">e<sup>st</sup></span>，
+            只多乘一个与时间无关的复数 <span class="mono">H(s)</span>。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">离散时间：<span class="mono">z<sup>n</sup></span></h4>
+          <div class="eq">
+            z<sup>n</sup> &nbsp;<span class="op">⟶</span>&nbsp; H(z) z<sup>n</sup>
+          </div>
+          <p class="small" style="margin-bottom:0">
+            完全平行的结论：<span class="mono">z<sup>n</sup></span> 进去，<span class="mono">H(z)z<sup>n</sup></span> 出来。
+          </p>
+        </div>
+      </div>
+
+      <p>
+        这样的输入叫系统的
+        <span class="term" data-def="eigenfunction，中文含义：特征函数。经过 LTI 系统后形状不变、只被乘一个复常数的输入信号，例如 e^{st} 与 z^n。">特征函数</span>
+        （eigenfunction），那个复常数叫
+        <span class="term" data-def="eigenvalue，中文含义：特征值。特征函数经过系统后被乘的那个复常数，即 H(s) 或 H(z)。">特征值</span>（eigenvalue）。
+        当 <span class="mono">s</span>、<span class="mono">z</span> 取任意复数时，这个复常数记为
+        <span class="mono">H(s)</span> 或 <span class="mono">H(z)</span>，叫系统的
+        <span class="term" data-def="system function，中文含义：系统函数。冲激响应的拉普拉斯/z 变换，H(s)=∫h(t)e^{−st}dt 或 H(z)=Σh[n]z^{−n}；它把系统对每个复频率的作用打包成一个复常数。">系统函数</span>
+        （system function）。
+      </p>
+
+      <table class="tbl sm">
+        <thead><tr><th>线性代数</th><th>LTI 系统</th><th>对照说明</th></tr></thead>
+        <tbody>
+          <tr><td class="ft">矩阵 A</td><td class="ft">系统（冲激响应 h）</td><td>都是"线性作用在某个对象上"。</td></tr>
+          <tr><td class="ft">向量 v</td><td class="ft">信号 x(t) / x[n]</td><td>被作用的对象。</td></tr>
+          <tr><td class="ft">特征向量</td><td class="ft">e<sup>st</sup> / z<sup>n</sup></td><td>形状不变，只被缩放。</td></tr>
+          <tr><td class="ft">特征值 λ</td><td class="ft">H(s) / H(z)</td><td>缩放的倍数（复数，含幅度与相位）。</td></tr>
+          <tr><td class="ft">v = Σ c<sub>i</sub> v<sub>i</sub></td><td class="ft">x = Σ a<sub>k</sub> e<sup>s<sub>k</sub>t</sup></td><td>拆成特征函数的组合。</td></tr>
+          <tr><td class="ft">A v = Σ c<sub>i</sub>λ<sub>i</sub>v<sub>i</sub></td><td class="ft">y = Σ a<sub>k</sub>H(s<sub>k</sub>)e<sup>s<sub>k</sub>t</sup></td><td>作用一次 = 逐项乘特征值。</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s3">3. 验证一：连续时间 e<sup>st</sup> → H(s)e<sup>st</sup></h2>
+      <p class="small muted">下面这段推导只有 6 步，每步都交代了"凭什么"。请务必展开看一遍——它是整门课的地基。</p>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：复指数为什么是 LTI 系统的特征函数</summary>
+        <div class="body">
+
+          <div class="step">
+            <p><b>第 1 步：把"系统作用"写成卷积。</b>设系统冲激响应为 <span class="mono">h(t)</span>，输入为 <span class="mono">x(t)</span>。</p>
+            <div class="eq">
+              y(t) = (h <span class="op">∗</span> x)(t) =
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              h(τ) x(t−τ) dτ
+            </div>
+            <p class="why">为什么：这是第 2 章的结论——LTI 系统的输出就是输入与冲激响应的卷积。本页全程只用它。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 2 步：代入 <span class="mono">x(t) = e<sup>st</sup></span>。</b></p>
+            <div class="eq">
+              y(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              h(τ) e<sup>s(t−τ)</sup> dτ
+            </div>
+            <p class="why">为什么：<span class="mono">x(t−τ)</span> 就是把 <span class="mono">x(t)=e<sup>st</sup></span> 里的 <span class="mono">t</span>
+              整体换成 <span class="mono">t−τ</span>，得到 <span class="mono">e<sup>s(t−τ)</sup></span>。这里 <span class="mono">s</span> 是复常数，先不要动它。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 3 步：把指数拆开。</b></p>
+            <div class="eq">
+              e<sup>s(t−τ)</sup> = e<sup>st</sup> · e<sup>−sτ</sup>
+            </div>
+            <p class="why">为什么：指数的加法法则 <span class="mono">e<sup>a+b</sup> = e<sup>a</sup>e<sup>b</sup></span>，对复数同样成立
+              （因为 <span class="mono">e<sup>z</sup></span> 的定义就是一个幂级数，级数相乘自然给出这条法则）。
+              <b>这一步是整个推导的转轴</b>：它把一个"含 t 和 τ 混在一起"的指数，拆成了"只含 t"乘"只含 τ"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 4 步：把与 τ 无关的因子提到积分号外。</b></p>
+            <div class="eq">
+              y(t) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              h(τ) · e<sup>st</sup> · e<sup>−sτ</sup> dτ
+              = e<sup>st</sup>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              h(τ) e<sup>−sτ</sup> dτ
+            </div>
+            <p class="why">为什么：积分变量是 τ，而 <span class="mono">e<sup>st</sup></span> 里只有 <span class="mono">t</span>，
+              对这次积分来说它是<b>常数</b>，可以提到积分号外。<b>提出来的这个因子恰好就是输入本身</b>——
+              这就是"输出 = 常数 × 输入"的全部来源。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 5 步：给剩下的积分起个名字。</b></p>
+            <div class="eq">
+              H(s) ≜ <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              h(τ) e<sup>−sτ</sup> dτ
+              &nbsp;&nbsp;⟹&nbsp;&nbsp; y(t) = H(s) · e<sup>st</sup>
+              <span class="lbl">(3-3)</span>
+            </div>
+            <p class="why">为什么可以这样起名：这个积分里只剩 τ，积完之后与 t 无关；它只跟系统（也就是 <span class="mono">h</span>）和复频率 <span class="mono">s</span> 有关。
+              所以 <span class="mono">H(s)</span> 是一个<b>复数</b>：模长告诉你"这个复指数被放大几倍"，辐角告诉你"被推迟了多少"。</p>
+          </div>
+
+          <div class="step">
+            <p><b>第 6 步：说清什么时候它才有意义。</b></p>
+            <p>要 <span class="mono">H(s)</span> 是有限值，就要求上面那个积分收敛。因为
+              <span class="mono">|e<sup>−sτ</sup>| = e<sup>−Re{s}·τ</sup></span>，所以条件是：</p>
+            <div class="eq">
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+              |h(τ)| · e<sup>−Re{s}·τ</sup> dτ &lt; ∞
+            </div>
+            <p class="why">为什么重要：<span class="mono">e<sup>st</sup></span> 并不是对<b>所有</b>复数 s 都是特征函数。
+              满足上式的那些 <span class="mono">s</span> 组成的集合，叫
+              <span class="term" data-def="region of convergence (ROC)，中文含义：收敛域。使变换积分/求和收敛的那些 s（或 z）的集合；H(s) 的表达式必须配上 ROC 才算完整。">收敛域</span>
+              （region of convergence，ROC）。只有 <span class="mono">s</span> 落在 ROC 内，"输出 = H(s) × 输入"才成立。
+              第 13 章讲 z 变换时，这个条件会变成"ROC 三条铁律"。</p>
+          </div>
+
+          <div class="box ok" style="margin-top:16px">
+            <span class="tag">结论</span>
+            <p style="margin-bottom:0">
+              复指数 <span class="mono">e<sup>st</sup></span> 是任何 LTI 系统的特征函数，对应的特征值是
+              <span class="mono">H(s) = ∫h(τ)e<sup>−sτ</sup>dτ</span>（前提：<span class="mono">s</span> 在 ROC 内）。
+              <b>卷积被一个乘法换掉了。</b>
+            </p>
+          </div>
+        </div>
+      </details>
+
+      <div class="card">
+        <h4 style="margin-top:0">算一个最小的例子：纯时移系统</h4>
+        <p class="small">
+          取 <span class="mono">y(t) = x(t−3)</span>（把信号整体推迟 3 秒）。这当然是 LTI 的，冲激响应是
+          <span class="mono">h(t) = δ(t−3)</span>。按式 (3-3)，用 <span class="mono">δ</span> 的筛选性质
+          <span class="mono">∫f(τ)δ(τ−t<sub>0</sub>)dτ = f(t<sub>0</sub>)</span>：
+        </p>
+        <div class="eq">
+          H(s) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+          δ(τ−3) e<sup>−sτ</sup> dτ = e<sup>−3s</sup>
+        </div>
+        <p class="small">
+          于是输入 <span class="mono">x(t) = e<sup>j2t</sup></span> 时（即 <span class="mono">s = j2</span>），
+          输出应为 <span class="mono">H(j2)e<sup>j2t</sup> = e<sup>−j6</sup>e<sup>j2t</sup> = e<sup>j2(t−3)</sup></span>，
+          这正是直接算 <span class="mono">x(t−3)</span> 的结果 ✓。两条路给出同一个答案。
+        </p>
+        <p class="small" style="margin-bottom:0">
+          更一般地，输入 <span class="mono">x(t) = cos(4t) + cos(7t)</span>，输出就是每个频率成分各乘自己的特征值：
+          <span class="mono">½e<sup>j4t</sup></span> 乘 <span class="mono">H(j4)=e<sup>−j12</sup></span>，
+          <span class="mono">½e<sup>−j4t</sup></span> 乘 <span class="mono">H(−j4)=e<sup>j12</sup></span>……合起来正好是
+          <span class="mono">cos(4(t−3)) + cos(7(t−3))</span>。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 验证二：离散时间 z<sup>n</sup> → H(z)z<sup>n</sup></h2>
+      <p>离散时间是逐字平行的，只是积分换成求和。</p>
+
+      <details class="deriv">
+        <summary>推导：z<sup>n</sup> 是离散 LTI 系统的特征函数</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：写出卷积和（第 2 章）。</b></p>
+            <div class="eq">
+              y[n] = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              h[k] x[n−k]
+            </div>
+            <p class="why">为什么：离散时间 LTI 系统的输出是卷积和，与连续时间的卷积积分一一对应。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：代入 <span class="mono">x[n] = z<sup>n</sup></span> 并拆指数。</b></p>
+            <div class="eq">
+              y[n] = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              h[k] z<sup>n−k</sup>
+              = <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              h[k] · z<sup>n</sup> · z<sup>−k</sup>
+              = z<sup>n</sup>
+              <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              h[k] z<sup>−k</sup>
+            </div>
+            <p class="why">为什么：幂的运算法则 <span class="mono">z<sup>n−k</sup> = z<sup>n</sup>z<sup>−k</sup></span>；
+              然后 <span class="mono">z<sup>n</sup></span> 不含求和变量 k，可以提到求和号外——与连续时间第 4 步完全同一个动作。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：起名。</b></p>
+            <div class="eq">
+              H(z) ≜ <span class="sum"><span class="top">+∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              h[k] z<sup>−k</sup>
+              &nbsp;&nbsp;⟹&nbsp;&nbsp; y[n] = H(z) z<sup>n</sup>
+              <span class="lbl">(3-4)</span>
+            </div>
+            <p class="why">为什么：求和结果只与系统（<span class="mono">h</span>）和复数 <span class="mono">z</span> 有关，与 n 无关，所以它是一个复常数。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：收敛条件（等比级数的老规矩）。</b></p>
+            <p>要使求和收敛，必须 <span class="mono">Σ|h[k]|·|z|<sup>−k</sup> &lt; ∞</span>。取一个最常用的系统来体会：</p>
+            <div class="eq">
+              h[n] = α<sup>n</sup> u[n] &nbsp;⟹&nbsp;
+              H(z) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+              (α z<sup>−1</sup>)<sup>k</sup>
+              = <span class="frac"><span class="num">1</span><span class="den">1 − α z<sup>−1</sup></span></span>
+            </div>
+            <p class="why">为什么能求和：这是公比 <span class="mono">q = α/z</span> 的无穷等比级数，
+              求和公式 <span class="mono">Σ<sub>k≥0</sub>q<sup>k</sup> = 1/(1−q)</span> 成立的<b>前提是 |q| &lt; 1</b>，
+              也就是 <b>|z| &gt; |α|</b>。所以这个系统的 <span class="mono">H(z)</span> 表达式永远要配上
+              <span class="mono">ROC: |z| &gt; |α|</span> 一起写。式子和 ROC 缺一不可——下一节的实验台会让你亲眼看到为什么。</p>
+          </div>
+        </div>
+      </details>
+
+      <table class="tbl sm">
+        <thead><tr><th></th><th class="c">连续时间</th><th class="c">离散时间</th></tr></thead>
+        <tbody>
+          <tr><td>特征函数</td><td class="c ft">e<sup>st</sup></td><td class="c ft">z<sup>n</sup></td></tr>
+          <tr><td>特征值</td><td class="c ft">H(s) = ∫h(τ)e<sup>−sτ</sup>dτ</td><td class="c ft">H(z) = Σ<sub>k</sub>h[k]z<sup>−k</sup></td></tr>
+          <tr><td>输出</td><td class="c ft">y(t) = H(s)e<sup>st</sup></td><td class="c ft">y[n] = H(z)z<sup>n</sup></td></tr>
+          <tr><td>收敛条件</td><td class="c">∫|h(τ)|e<sup>−Re{s}τ</sup>dτ &lt; ∞</td><td class="c">Σ|h[k]||z|<sup>−k</sup> &lt; ∞</td></tr>
+          <tr><td>只看纯振荡时</td><td class="c ft">s = jω → H(jω)</td><td class="c ft">z = e<sup>jω</sup> → H(e<sup>jω</sup>)</td></tr>
+        </tbody>
+      </table>
+
+      <h2 id="s5">5. 实验 1（核心）：把 |z| 推过单位圆</h2>
+      <p>
+        实验台做一件事：把 <span class="mono">x[n] = z<sup>n</sup></span> 送进系统
+        <span class="mono">h[n] = α<sup>n</sup>u[n]</span>，左边显示<b>真的按卷积和一项一项加起来</b>的输出，
+        右边显示复平面上的 <span class="mono">z</span>。
+      </p>
+      <div class="box warn">
+        <span class="tag">先记住这个式子，它是本实验的全部内容</span>
+        <div class="eq" style="margin:8px 0">
+          y[n] = <span class="sum"><span class="top">n</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+          h[k] z<sup>n−k</sup>
+          = z<sup>n</sup>
+          <span class="sum"><span class="top">n</span><span class="sym">Σ</span><span class="bot">k=0</span></span>
+          (α/z)<sup>k</sup>
+        </div>
+        <p style="margin-bottom:0" class="small">
+          注意求和号的上限是 <b>n</b>（不是 ∞）：因为因果系统只用到前 <span class="mono">n+1</span> 个冲激响应样点，
+          所以这是一个<b>部分和</b>。让 <span class="mono">n→∞</span>，只有当 <span class="mono">|α/z| &lt; 1</span>
+          （即 <span class="mono">|z| &gt; |α|</span>）时它才收敛到 <span class="mono">1/(1−α/z) = H(z)</span>，
+          这时才有"<span class="mono">y[n] = H(z)z<sup>n</sup></span>"。滑块推一推，你会直接看到这句话的两半。
+        </p>
+      </div>
+
+      <div id="lab-eigen"></div>
+
+      <div class="box intuition">
+        <span class="tag">你应该看到的三种情况</span>
+        <ul style="margin:6px 0 0;padding-left:20px">
+          <li><b>|z| &gt; |α|（z 在 ROC 内）</b>：红线（预测 <span class="mono">H(z)z<sup>n</sup></span>）很快贴上蓝线（真实卷积输出）——特征是特征函数。</li>
+          <li><b>|z| 稍大于 |α|</b>：要等几步才贴合。差多快贴上去，由 <span class="mono">|α/z|</span> 决定（它就是暂态衰减因子）。</li>
+          <li><b>|z| &lt; |α|（z 在 ROC 外）</b>：真实输出<b>发散</b>，而 <span class="mono">H(z)z<sup>n</sup></span> 这个"公式结果"却安静地趋于 0。
+            这说明：<b>公式没有 ROC 是没有意义的</b>。</li>
+        </ul>
+        <p style="margin-bottom:0">
+          另外把 <span class="mono">|z|</span> 推到 1 以上：输入 <span class="mono">z<sup>n</sup></span> 自己就在按
+          <span class="mono">|z|<sup>n</sup></span> 增长，此时系统再稳定也压不住它——这是"<b>输入发散</b>"，与"<b>系统不稳定</b>"是两回事（见第 11 节坑 3）。
+        </p>
+      </div>
+
+      <h2 id="s6">6. 一条性质为什么就够：叠加与傅里叶的诞生</h2>
+      <p>
+        单说"复指数是特征函数"还不够震撼。真正好用的是：<b>把任意信号拆成复指数的线性组合</b>，
+        因为这时系统的作用就退化成"逐项乘特征值"。
+      </p>
+
+      <details class="deriv">
+        <summary>推导：线性组合进去，逐项乘特征值出来</summary>
+        <div class="body">
+          <div class="step">
+            <p>设输入是一组复指数的线性组合：</p>
+            <div class="eq">
+              x(t) = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k</span></span>
+              a<sub>k</sub> e<sup>s<sub>k</sub>t</sup>
+            </div>
+            <p class="why">为什么可以这样设：这就是"用基信号搭信号"。第 4 章会证明：周期信号都能这样写（取 <span class="mono">s<sub>k</sub> = jkω<sub>0</sub></span>），第 6 章会把"和"推广成"积分"。</p>
+          </div>
+          <div class="step">
+            <p>逐项用特征函数性质：</p>
+            <div class="eq">
+              a<sub>k</sub>e<sup>s<sub>k</sub>t</sup> &nbsp;<span class="op">⟶</span>&nbsp; a<sub>k</sub>H(s<sub>k</sub>)e<sup>s<sub>k</sub>t</sup>
+              &nbsp;&nbsp;&nbsp;(对每个 k 分别成立)
+            </div>
+            <p class="why">为什么：上面已经证过：系统作用在 <span class="mono">e<sup>s<sub>k</sub>t</sup></span> 上只乘一个 <span class="mono">H(s<sub>k</sub>)</span>；系数 <span class="mono">a<sub>k</sub></span> 是常数，由线性（齐次性）原样保留。</p>
+          </div>
+          <div class="step">
+            <p>再用叠加（可加性）把各项加起来：</p>
+            <div class="eq">
+              y(t) = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k</span></span>
+              a<sub>k</sub> H(s<sub>k</sub>) e<sup>s<sub>k</sub>t</sup>
+              <span class="lbl">(3-5)</span>
+            </div>
+            <p class="why">为什么：LTI 的定义就是"线性"——输入的线性组合产生输出的同样线性组合（叠加原理）。这一步把无穷多项的卷积，换成了无穷多项的乘法。</p>
+          </div>
+          <div class="step">
+            <p>取周期信号的情形 <span class="mono">s<sub>k</sub> = jkω<sub>0</sub></span>，就得到本章最该记住的一行：</p>
+            <div class="eq center-eq">
+              x(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              a<sub>k</sub>e<sup>jkω<sub>0</sub>t</sup>
+              &nbsp;&nbsp;<span class="op">⟶</span>&nbsp;&nbsp;
+              y(t) = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">k=−∞</span></span>
+              a<sub>k</sub>H(jkω<sub>0</sub>)e<sup>jkω<sub>0</sub>t</sup>
+            </div>
+            <p class="why">为什么这条最重要：它说"<b>LTI 系统对每个谐波单独动手</b>"——
+              第 k 个谐波的系数从 <span class="mono">a<sub>k</sub></span> 变成 <span class="mono">a<sub>k</sub>H(jkω<sub>0</sub>)</span>，
+              各个谐波之间互不干扰。所以只要知道 <span class="mono">H</span> 在各谐波频率上的值，输出立刻写得出来，
+              完全不必做卷积。这就是"频域分析"的全部合法性来源，也是第 4 章滤波与第 10 章滤波器的出发点。</p>
+          </div>
+        </div>
+      </details>
+
+      <div class="box ok">
+        <span class="tag">一句话总结</span>
+        <p style="margin-bottom:0">
+          <b>拆开（分析）→ 每个成分各乘一个复数（特征值）→ 拼回（综合）</b>。
+          傅里叶级数负责"拆"，<span class="mono">H</span> 负责"乘"，求和负责"拼回"。
+        </p>
+      </div>
+
+      <h2 id="s7">7. 频率响应 H(jω) 怎么读：模=放大，辐角=相移</h2>
+      <p>
+        工程上最关心的是纯振荡输入 <span class="mono">e<sup>jωt</sup></span>，此时 <span class="mono">s = jω</span>，
+        特征值记作 <span class="mono">H(jω)</span>，叫
+        <span class="term" data-def="frequency response，中文含义：频率响应（频响）。H(jω)=∫h(t)e^{−jωt}dt，是冲激响应的傅里叶变换；它是复数，模长=该频率的幅度增益，辐角=该频率的相移。">频率响应</span>
+        （frequency response）。它是复数，所以有两个可读的量：
+      </p>
+      <div class="eq center-eq">
+        H(jω) = |H(jω)| · e<sup>j∠H(jω)</sup>
+        &nbsp;&nbsp;&nbsp; 模长 = 幅度增益，辐角 = 相移
+      </div>
+
+      <details class="deriv">
+        <summary>推导：为什么余弦输入只被"改幅度 + 加相位"</summary>
+        <div class="body">
+          <div class="step">
+            <p>把余弦拆成两个复指数（欧拉公式）：</p>
+            <div class="eq">
+              x(t) = A cos(ω<sub>0</sub>t + φ)
+              = <span class="frac"><span class="num">A</span><span class="den">2</span></span>e<sup>jφ</sup>e<sup>jω<sub>0</sub>t</sup>
+              + <span class="frac"><span class="num">A</span><span class="den">2</span></span>e<sup>−jφ</sup>e<sup>−jω<sub>0</sub>t</sup>
+            </div>
+            <p class="why">为什么：<span class="mono">cos θ = (e<sup>jθ</sup>+e<sup>−jθ</sup>)/2</span>。这是把实信号写进复指数语言的唯一入口。</p>
+          </div>
+          <div class="step">
+            <p>两项各乘自己的特征值：</p>
+            <div class="eq">
+              y(t) = <span class="frac"><span class="num">A</span><span class="den">2</span></span>e<sup>jφ</sup>H(jω<sub>0</sub>)e<sup>jω<sub>0</sub>t</sup>
+              + <span class="frac"><span class="num">A</span><span class="den">2</span></span>e<sup>−jφ</sup>H(−jω<sub>0</sub>)e<sup>−jω<sub>0</sub>t</sup>
+            </div>
+            <p class="why">为什么 <span class="mono">e<sup>−jω<sub>0</sub>t</sup></span> 那项的特征值是 <span class="mono">H(−jω<sub>0</sub>)</span>：
+              特征值随频率取值，负频率处要取 <span class="mono">s=−jω<sub>0</sub></span>。</p>
+          </div>
+          <div class="step">
+            <p>用实系统的对称性 <span class="mono">H(−jω) = H<sup>*</sup>(jω)</span>：</p>
+            <div class="eq">
+              H(−jω<sub>0</sub>) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>h(τ)e<sup>+jω<sub>0</sub>τ</sup>dτ
+              =
+              <span style="font-size:22px">[</span>
+              <span class="integral"><span class="sym">∫</span><span class="lim"><span>∞</span><span>−∞</span></span></span>h(τ)e<sup>−jω<sub>0</sub>τ</sup>dτ
+              <span style="font-size:22px">]</span><sup>*</sup>
+              = H<sup>*</sup>(jω<sub>0</sub>)
+            </div>
+            <p class="why">为什么可以对整个积分取共轭：<span class="mono">h(τ)</span> 是<b>实数</b>（实系统的冲激响应），
+              实数的共轭是它自己，所以共轭号可以穿进积分、只作用在复指数上。</p>
+          </div>
+          <div class="step">
+            <p>记 <span class="mono">H(jω<sub>0</sub>) = |H|e<sup>j∠H</sup></span>，两项互为共轭，相加就是两倍实部：</p>
+            <div class="eq">
+              y(t) = A·Re<span style="font-size:20px">{</span>|H|e<sup>j(ω<sub>0</sub>t+φ+∠H)</sup><span style="font-size:20px">}</span>
+              = A|H| cos(ω<sub>0</sub>t + φ + ∠H)
+              <span class="lbl">(3-6)</span>
+            </div>
+            <p class="why">为什么结论这么干净：因为两个复指数的模长都是 <span class="mono">|H|</span>，所以余弦的<b>幅度</b>被乘上 <span class="mono">|H|</span>；
+              相位各自加上 <span class="mono">∠H</span>，所以余弦的<b>相位</b>被平移 <span class="mono">∠H</span>。
+              一句话：<b>模管放大，辐角管延时</b>。</p>
+          </div>
+        </div>
+      </details>
+
+      <h3>几个必须眼熟的 H</h3>
+      <table class="tbl sm">
+        <thead><tr><th>系统</th><th class="c">冲激响应 / 方程</th><th class="c">频响 H(jω) 或 H(e<sup>jω</sup>)</th><th>怎么读</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>理想时移 <span class="mono">t<sub>0</sub></span></td>
+            <td class="c ft">h(t) = δ(t−t<sub>0</sub>)</td>
+            <td class="c ft">e<sup>−jωt<sub>0</sub></sup></td>
+            <td>|H| = 1 全频段都不放大不衰减；∠H = −ωt₀ 与 ω 成正比（<b>线性相位</b>），效果就是整体推迟 t₀，波形不变。</td>
+          </tr>
+          <tr>
+            <td>微分器</td>
+            <td class="c ft">y = dx/dt</td>
+            <td class="c ft">jω</td>
+            <td>|H| = |ω|：频率越高放大越多 → 突出信号里的快速变化（图像里的边缘）。∠H = 90°。</td>
+          </tr>
+          <tr>
+            <td>一阶 RC 低通</td>
+            <td class="c ft">RC·dv<sub>C</sub>/dt + v<sub>C</sub> = v<sub>s</sub></td>
+            <td class="c ft"><span class="frac"><span class="num">1</span><span class="den">1 + jωRC</span></span></td>
+            <td>ω=0 时 |H|=1（直流全过）；ω ≫ 1/RC 时 |H| ≈ 1/(ωRC) 越来越小 → 低通。转折点在 ω=1/RC。</td>
+          </tr>
+          <tr>
+            <td>两点平均（离散，ω 的单位是 rad/样本）</td>
+            <td class="c ft">y[n] = ½(x[n]+x[n−1])</td>
+            <td class="c ft">e<sup>−jω/2</sup>cos(ω/2)</td>
+            <td>|H| = |cos(ω/2)|：ω=0 时 1，ω=π 时 0 → 高频被抹平（低通）；ω=π 在离散时间里是"最高频率"。</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <h2 id="s8">8. 实验 2：逐频率的增益与相移</h2>
+      <p>
+        下面这个实验台用三个频率成分凑一个输入 <span class="mono">x(t)</span>，再让它们穿过一个系统。
+        左边是被"逐频率乘特征值"之后的输出；右边是系统的 <span class="mono">|H(jω)|</span> 与 <span class="mono">∠H(jω)</span>。
+      </p>
+      <div class="box intuition">
+        <span class="tag">怎么读这两张图</span>
+        <p style="margin-bottom:0">
+          右边只画了三个点（<span class="mono">ω₀, 2ω₀, 3ω₀</span>）——因为输入只有这三个频率。
+          每个点的<b>高度</b>就是该成分被放大的倍数，每个点的<b>相位</b>就是该成分被推迟的角度。
+          左边红点是用"<b>不做变换、直接解方程/求导/时移</b>"算出来的输出（一条独立的路），
+          蓝线是用"<b>逐频率乘 H</b>"算出来的输出。两者应当重合——这就是特征函数性质在干活。
+        </p>
+      </div>
+
+      <div id="lab-resp"></div>
+
+      <h2 id="s9">9. 正交分解的普遍思想（傅里叶 / 勒让德 / 哈尔 / K-L）</h2>
+      <p>
+        到这里已经很清楚：<b>用复指数当基，系统分析变得简单</b>。但复指数不是唯一的基。
+        "挑一组基、把信号拆开"是一个通用的方法，值得单独说清楚。
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">三个词</h4>
+          <p class="small">
+            <span class="term" data-def="inner product，中文含义：内积。两个函数相乘再积分（离散是相乘再求和），记作 ⟨f,g⟩=∫f(t)g*(t)dt；它是"两个信号有多像"的度量。">内积</span>（inner product）：
+            两个信号"有多像"的度量，<span class="mono">⟨f,g⟩ = ∫ f(t) g<sup>*</sup>(t) dt</span>。
+          </p>
+          <p class="small">
+            <span class="term" data-def="orthogonality，中文含义：正交。两个信号内积为零，即互不相似、互相不干扰。">正交</span>（orthogonality）：
+            <span class="mono">⟨φ<sub>m</sub>, φ<sub>n</sub>⟩ = 0</span>（m ≠ n）。正交的好处是：
+            求第 n 个系数时，其它项的内积<b>自动变成 0</b>，不会互相干扰。
+          </p>
+          <p class="small" style="margin-bottom:0">
+            <span class="term" data-def="completeness，中文含义：完备性。这组基函数足够多，能把范围内的任何信号近似到任意精度（误差能量可任意小）。">完备</span>（completeness）：
+            基足够多，能把范围内的任何信号逼近到任意精度。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">求系数的公式只有一个</h4>
+          <div class="eq" style="font-size:17px">
+            c<sub>n</sub> =
+            <span class="frac"><span class="num">⟨f, φ<sub>n</sub>⟩</span><span class="den">⟨φ<sub>n</sub>, φ<sub>n</sub>⟩</span></span>
+            ,&nbsp;&nbsp; f<sub>N</sub> =
+            <span class="sum"><span class="top">N</span><span class="sym">Σ</span><span class="bot">n=0</span></span>
+            c<sub>n</sub> φ<sub>n</sub>
+          </div>
+          <p class="small" style="margin-bottom:0">
+            <b>投影</b>：把信号"投影"到每个基函数上，投影长度就是系数。
+            傅里叶级数的 <span class="mono">a<sub>k</sub></span>、离散余弦变换、小波系数、PCA 的系数，<b>都长这个样</b>。
+            第 4 章的 <span class="mono">a<sub>k</sub></span> 公式就是它把 <span class="mono">φ<sub>k</sub> = e<sup>jkω<sub>0</sub>t</sup></span> 代进去的结果。
+          </p>
+        </div>
+      </div>
+
+      <table class="tbl sm">
+        <thead><tr><th>基</th><th>基函数长什么样</th><th>擅长表示</th><th>典型用途</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><b>傅里叶基</b></td>
+            <td class="ft">e<sup>jkω<sub>0</sub>t</sup>（或 cos / sin），全局振荡</td>
+            <td>平滑的、周期性的、稳态的振荡成分</td>
+            <td>频谱分析、滤波、JPEG（DCT）、OFDM</td>
+          </tr>
+          <tr>
+            <td><b>勒让德多项式</b>（Legendre）</td>
+            <td class="ft">P<sub>n</sub>(x)，在 [−1,1] 上正交的多项式，1, x, (3x²−1)/2, …</td>
+            <td>平滑但有界的函数（多项式逼近）</td>
+            <td>数值积分（高斯求积）、球谐函数、天线方向图</td>
+          </tr>
+          <tr>
+            <td><b>哈尔小波</b>（Haar）</td>
+            <td class="ft">ψ(2<sup>j</sup>x−k)：±1 的方波块，尺度越细越窄</td>
+            <td><b>局部突变</b>（跳变、脉冲、边缘）</td>
+            <td>图像压缩、边缘检测、突变点定位</td>
+          </tr>
+          <tr>
+            <td><b>K-L 变换 / PCA</b></td>
+            <td class="ft">数据协方差（相关）矩阵 R 的特征向量</td>
+            <td>这<b>一批数据</b>里能量最集中的方向</td>
+            <td>降维、特征提取、人脸识别（特征脸）</td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="box">
+        <span class="tag">它们的共同点与区别（这才是有用的一课）</span>
+        <p>
+          <b>共同点</b>：都是"投影求系数 → 求和拼回去"，数学骨架完全一样。
+        </p>
+        <p style="margin-bottom:0">
+          <b>区别在"基的形状"和"你要表示什么"</b>：傅里叶基是全局的振荡函数，表示一个尖脉冲时要用很多项、
+          还会在跳变附近来回抖（吉布斯现象，见第 4 章）；哈尔小波的基函数自己就是局部的方块，
+          一个窄脉冲用<b>几个</b>系数就能抓住。反过来，一条平滑的正弦用哈尔基表示就要很多项。
+          <b>没有万能的基，只有合适的基</b>——PCA/K-L 更进一步：它不从公式里拿基，而是从数据里"学"出基。
+        </p>
+      </div>
+
+      <h2 id="s10">10. 实验 3：换一套基，看误差怎么变</h2>
+      <p>
+        目标信号是一个"光滑振荡 + 一个窄脉冲"的混合体（灰色曲线）。换基、改项数 N，看蓝色近似怎么追上去。
+        右侧柱状图是当前的系数 <span class="mono">c<sub>n</sub></span>（每个基函数"分到"多少）。
+      </p>
+      <div id="lab-basis"></div>
+
+      <h2 id="s11">11. 常见坑</h2>
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：只写 H(z) 的式子，忘了 ROC</h4>
+          <p class="small">
+            <span class="mono">1/(1−αz<sup>−1</sup>)</span> 这个式子<b>单独看是不完整的</b>。
+            "输出 = H(z)×输入"只在 <span class="mono">|z| &gt; |α|</span> 时成立。
+            实验 1 里把 |z| 调到 |α| 以下，你会看到真实输出在发散，而公式给出的却是 0。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：以为负频率是"不存在的频率"</h4>
+          <p class="small">
+            <span class="mono">e<sup>jωt</sup></span> 与 <span class="mono">e<sup>−jωt</sup></span> 是两个<b>不同的基函数</b>（一个逆时针转、一个顺时针转）。
+            实信号必须成对使用它们，才合成出真实的 cos/sin。所以实信号的谱总是关于 ω=0 对称。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：把"输入发散"当成"系统不稳定"</h4>
+          <p class="small">
+            <span class="mono">z<sup>n</sup></span> 在 <span class="mono">|z|&gt;1</span> 时自己不衰减，
+            但<b>任何</b>系统遇到它都会输出一个增长的信号。系统是否稳定，看的是
+            <span class="mono">h</span> 是否绝对可和/可积，以及极点是否在 ROC 的边界之内，与输入无关。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：把 |H(jω)| 当成"功率增益"</h4>
+          <p class="small">
+            <span class="mono">|H(jω)|</span> 是<b>幅度</b>增益；能量/功率增益是 <span class="mono">|H(jω)|<sup>2</sup></span>。
+            说"衰减 3 dB"时对应的是 <span class="mono">|H| = 1/√2 ≈ 0.707</span>，不是 0.5。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：离散时间的 ω 忘记以 2π 为周期</h4>
+          <p class="small">
+            因为 <span class="mono">e<sup>j(ω+2π)n</sup> = e<sup>jωn</sup></span>，
+            离散时间里 ω 和 ω+2π 是<b>同一个频率</b>。讨论 <span class="mono">H(e<sup>jω</sup>)</span> 时只在
+            <span class="mono">[−π, π)</span> 或 <span class="mono">[0, 2π)</span> 内看一遍就够（第 7 章详述）。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：以为 z 必须落在单位圆上</h4>
+          <p class="small">
+            <span class="mono">z = e<sup>jω</sup></span> 只是<b>一个特例</b>（此时得到频率响应 DTFT）。
+            <span class="mono">z</span> 可以是任意复数：<span class="mono">|z|</span> 管"衰减还是增长"，<span class="mono">∠z</span> 管"频率"。
+            这正是 z 变换比 DTFT 更强的地方（第 13 章）。
+          </p>
+        </div>
+      </div>
+
+      <h2 id="s12">12. 自测</h2>
+      <p class="small muted">每题都写了"为什么"。做错了不要紧，把解释读一遍再回去看实验台。</p>
+      <div id="quiz3"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 第 3 章 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  var PI = Math.PI;
+  var C = SSC.C, cadd = SSC.cadd, csub = SSC.csub, cmul = SSC.cmul, cdiv = SSC.cdiv, cabs = SSC.cabs;
+
+  /* ============================================================
+     实验 1（核心）：x[n] = z^n 通过 h[n] = α^n u[n]
+     ============================================================ */
+  SSC.lab({
+    mount: '#lab-eigen',
+    title: '实验 1 · 复指数输入 z^n 与系统 h[n]=α^n u[n]',
+    hint: '拖 |z| 与 ∠z；把 |z| 推到 1 以上、或推到 |α| 以下，看两条线怎么分开',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域实部：输入 Re z^n（灰）、真实卷积输出 Re y[n]（蓝）、预测 Re{H(z)z^n}（红点）', height: 210 },
+      { id: 'plane', label: '复平面：极点 α、收敛域 |z|>|α|（绿）、当前 z（红）与单位圆（青虚线）', height: 210 }
+    ],
+    controls: [
+      { id: 'r', label: '|z|（复指数的模）', min: 0.3, max: 1.6, step: 0.01, value: 1.10 },
+      { id: 'th', label: '∠z / π（辐角）', min: -0.95, max: 0.95, step: 0.01, value: 0.15 },
+      { id: 'alpha', label: '极点 α', min: 0.05, max: 1.20, step: 0.01, value: 0.70 },
+      { id: 'N', label: '观测点数 N', min: 8, max: 48, step: 1, value: 30 }
+    ],
+    buttons: [{ label: '回到 |z|>1、z 在 ROC 内', onClick: function (v, api) { api.set('r', 1.10); api.set('th', 0.15); api.set('alpha', 0.70); } }],
+    draw: function (cv, v, api) {
+      var r = v.r, th = v.th * PI, a = v.alpha, N = Math.round(v.N);
+      var z = C(r * Math.cos(th), r * Math.sin(th));
+      /* H(z) = 1 / (1 − α z^{-1}) = z / (z − α) */
+      var H = cdiv(z, csub(z, C(a, 0)));
+      var q = cdiv(C(a, 0), z);            /* q = α/z，|q|<1 时收敛（即 |z|>|α|） */
+
+      var xs = [], ix = [], iy = [], py = [];
+      var pn = C(1, 0), S = C(1, 0), qp = C(1, 0), lastErr = 0, scale = 1;
+      for (var n = 0; n <= N; n++) {
+        if (n > 0) { pn = cmul(pn, z); qp = cmul(qp, q); S = cadd(S, qp); }
+        var yn = cmul(pn, S);              /* 真实：y[n] = z^n · Σ_{k=0}^n (α/z)^k */
+        var pred = cmul(pn, H);            /* 预测：H(z) z^n */
+        xs.push(n); ix.push(pn.re); iy.push(yn.re); py.push(pred.re);
+        if (n === N) lastErr = cabs(csub(yn, pred)) / (cabs(pred) || 1e-12);
+        scale = Math.max(scale, Math.abs(yn.re), Math.abs(pred.re), Math.abs(pn.re));
+      }
+
+      SSC.plot(cv.time, {
+        xmin: 0, xmax: N, ymin: -1.15 * scale, ymax: 1.15 * scale,
+        xlabel: 'n（样本序号）', ylabel: '实部幅度',
+        stems: [
+          { xs: xs, ys: ix, color: '#c3ccdd', width: 1.2, r: 2.2, label: '输入 Re z^n' },
+          { xs: xs, ys: iy, color: '#4338ca', width: 1.8, r: 2.8, label: '真实卷积输出 Re y[n]' }
+        ],
+        points: py.map(function (y, i) { return { x: i, y: y, color: '#dc2626', r: 3.2 }; }),
+        legend: true
+      });
+
+      /* 复平面 */
+      var R = Math.max(1.9, a * 1.35);
+      var pv = SSC.plane(cv.plane, { R: R, unit: true, axesLabel: ['Re', 'Im'] });
+      pv.outside(a, 'rgba(21,128,61,.13)');            /* ROC: |z|>|α| */
+      pv.circle(a, '#7c3aed');                          /* |z|=|α| 的圆 */
+      pv.drawPZ([[a, 0]], []);                          /* 极点 α */
+      pv.line(0, 0, z.re, z.im, '#dc2626');
+      pv.dot(z.re, z.im, '#dc2626', 4.5);
+      pv.text(a, 0, 'α=' + SSC.fmt(a, 2), '#7c3aed');
+      pv.text(z.re, z.im, 'z', '#dc2626');
+
+      var inROC = r > a;
+      api.readout(
+        '<div class="stat"><div class="k">z</div><div class="v" style="font-size:13px">' + SSC.cstr([z.re, z.im], 3) + '</div></div>' +
+        '<div class="stat"><div class="k">|z| / |α|</div><div class="v">' + SSC.fmt(r, 2) + ' / ' + SSC.fmt(a, 2) + '</div></div>' +
+        '<div class="stat"><div class="k">H(z)</div><div class="v" style="font-size:13px">' + SSC.cstr([H.re, H.im], 3) + '</div></div>' +
+        '<div class="stat"><div class="k">|H(z)|</div><div class="v">' + SSC.fmt(cabs(H), 3) + '</div></div>' +
+        '<div class="stat"><div class="k">∠H(z)</div><div class="v">' + SSC.fmt(Math.atan2(H.im, H.re) * 180 / PI, 1) + '°</div></div>' +
+        '<div class="stat"><div class="k">暂态因子 |α/z|</div><div class="v">' + SSC.fmt(cabs(q), 3) + '</div></div>' +
+        '<div class="stat"><div class="k">y[N] 与预测的相对差</div><div class="v" style="color:' + (inROC ? '#41506b' : '#b91c1c') + '">' +
+        (inROC ? (isFinite(lastErr) ? (lastErr * 100).toFixed(2) + '%' : '—') : '不适用（z 在 ROC 外）') + '</div></div>' +
+        '<div class="stat"><div class="k">z 是否在 ROC 内</div><div class="v" style="color:' + (inROC ? '#15803d' : '#b91c1c') + '">' + (inROC ? '是' : '否') + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var r = v.r, a = v.alpha, q = a / r;
+      var s = '当前 <b>|z| = ' + SSC.fmt(r, 2) + '</b>，<b>|α| = ' + SSC.fmt(a, 2) + '</b>，暂态因子 <b>|α/z| = ' + SSC.fmt(q, 3) + '</b>。';
+      if (r > a) {
+        s += '因为 |z| &gt; |α|，z 落在 ROC 内：等比求和收敛，真实输出<b>贴上</b>了 H(z)z<sup>n</sup>——复指数确实是特征函数。';
+        if (q > 0.85) s += '（|α/z| 接近 1，所以贴合得慢，看得出暂态。）';
+        else s += '（|α/z| 远小于 1，几步就贴上了。）';
+      } else {
+        s += '<b style="color:#b91c1c">因为 |z| &lt; |α|，z 落在 ROC 外</b>：等比求和发散，真实输出一路涨上去，' +
+             '而 H(z)z<sup>n</sup> 这个"公式答案"却在往 0 走。这就是"<b>H(z) 必须配 ROC</b>"的直观含义。';
+      }
+      if (r > 1) s += '<br>注意 |z| &gt; 1：输入 z<sup>n</sup> <b>本身</b>就在按 ' + SSC.fmt(r, 2) + '<sup>n</sup> 增长，' +
+        '所以输出发散是输入造成的，与系统是否稳定无关。';
+      else s += '<br>|z| &lt; 1：输入<b>本身</b>在衰减，两条曲线最终都趋近 0 —— 此时判断 z 是否在 ROC 内，' +
+        '要看的是"两条曲线走的路径是否重合"，而不是"最终是否趋于 0"。';
+      return s;
+    }
+  });
+
+  /* ============================================================
+     实验 2：频率响应 —— 逐频率的增益与相移
+     ============================================================ */
+  var AMP = [1, 0.5, 0.3], PH = [0, PI / 4, -PI / 3];
+  function sysH(sys, w, v) {
+    if (sys === 'delay') return C(Math.cos(-w * v.t0), Math.sin(-w * v.t0));
+    if (sys === 'diff') return C(0, w / v.w0);
+    /* rc: 1/(1 + jωRC) */
+    return cdiv(C(1, 0), C(1, w * v.rc));
+  }
+  function xIn(t, w0) {
+    var s = 0;
+    for (var k = 1; k <= 3; k++) s += AMP[k - 1] * Math.cos(k * w0 * t + PH[k - 1]);
+    return s;
+  }
+  function yH(t, w0, sys, v) {   /* 逐频率乘 H（频域路线） */
+    var s = 0;
+    for (var k = 1; k <= 3; k++) {
+      var H = sysH(sys, k * w0, v), mag = cabs(H), ang = Math.atan2(H.im, H.re);
+      s += AMP[k - 1] * mag * Math.cos(k * w0 * t + PH[k - 1] + ang);
+    }
+    return s;
+  }
+  function yDirect(t, w0, sys, v) {  /* 时域路线：时移 / 直接求导 / 数值解 ODE */
+    if (sys === 'delay') return xIn(t - v.t0, w0);
+    if (sys === 'diff') {
+      var s = 0;
+      for (var k = 1; k <= 3; k++) s += -AMP[k - 1] * k * Math.sin(k * w0 * t + PH[k - 1]);
+      return s;                        /* dx/dt / ω₀ */
+    }
+    return v._rcSol ? v._rcSol(t) : 0; /* 由 draw 里预先算好的 Euler 解插值 */
+  }
+
+  SSC.lab({
+    mount: '#lab-resp',
+    title: '实验 2 · 换成 H(jω) 的读法：三个频率成分各乘一个复数',
+    hint: '换系统、拖 ω₀ / t₀ / RC，右边看三个频率点上的 |H| 与 ∠H',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：输入 x(t)（灰虚）、频域路线算出的 y(t)（蓝）、时域路线独立算出的 y(t)（红点）', height: 210 },
+      { id: 'mag', label: '幅度增益 |H(jω)|（点标出 kω₀）', height: 190 },
+      { id: 'phase', label: '相移 ∠H(jω) / π', height: 190 }
+    ],
+    controls: [
+      { id: 'sys', label: '系统', options: [
+        { v: 'delay', t: '理想时移 h(t)=δ(t−t₀)' },
+        { v: 'rc', t: '一阶 RC 低通' },
+        { v: 'diff', t: '微分器 y=dx/dt' }
+      ], value: 'rc' },
+      { id: 'w0', label: '基波频率 ω₀', min: 0.5, max: 4, step: 0.05, value: 1.2, unit: ' rad/s' },
+      { id: 't0', label: '时移量 t₀（仅时移系统用）', min: 0, max: 2, step: 0.05, value: 0.6, unit: ' s' },
+      { id: 'rc', label: '时间常数 RC（仅 RC 用）', min: 0.05, max: 2, step: 0.05, value: 0.35, unit: ' s' }
+    ],
+    draw: function (cv, v, api) {
+      var w0 = v.w0, sys = v.sys;
+      var tmax = 2.5 * 2 * PI / w0;
+
+      /* 时域路线之三：RC 用四阶龙格-库塔数值解 ODE：RC·y′ + y = x  ⇒  y′ = (x − y)/RC */
+      if (sys === 'rc') {
+        var dt = Math.max(0.001, Math.min(0.004, v.rc / 20));
+        var tA = -tmax - 8 * v.rc, tB = tmax;
+        var NSTEP = Math.round((tB - tA) / dt);
+        var arr = new Array(NSTEP + 1), yv = 0, i;
+        arr[0] = 0;
+        var fOde = function (tt, yy) { return (xIn(tt, w0) - yy) / v.rc; };
+        for (i = 0; i < NSTEP; i++) {
+          var tt = tA + i * dt;
+          var k1 = fOde(tt, yv), k2 = fOde(tt + dt / 2, yv + dt / 2 * k1),
+            k3 = fOde(tt + dt / 2, yv + dt / 2 * k2), k4 = fOde(tt + dt, yv + dt * k3);
+          yv += dt / 6 * (k1 + 2 * k2 + 2 * k3 + k4);
+          arr[i + 1] = yv;
+        }
+        v._rcSol = function (tq) {
+          var idx = (tq - tA) / dt;
+          if (idx < 0) return 0;
+          if (idx >= arr.length - 1) return arr[arr.length - 1];
+          var i0 = Math.floor(idx), fr = idx - i0;
+          return arr[i0] * (1 - fr) + arr[i0 + 1] * fr;
+        };
+      }
+
+      /* 纵轴范围：按"所有谐波都被放大到最大"的worst case留出余量 */
+      var magSum = 0;
+      for (var kk = 1; kk <= 3; kk++) magSum += AMP[kk - 1] * cabs(sysH(sys, kk * w0, v));
+      var ylim = Math.max(1.2 * 1.8, 1.15 * magSum);
+
+      SSC.plot(cv.time, {
+        xmin: -tmax, xmax: tmax, ymin: -ylim, ymax: ylim,
+        xlabel: 't (s)', ylabel: '幅度',
+        curves: [
+          { f: function (t) { return xIn(t, w0); }, color: '#c3ccdd', width: 1.4, dash: [5, 4], samples: 900, label: '输入 x(t)' },
+          { f: function (t) { return yH(t, w0, sys, v); }, color: '#4338ca', width: 2.3, samples: 900, label: '输出（逐频率乘 H）' }
+        ],
+        points: (function () {
+          var pts = [];
+          for (var i = 0; i <= 120; i++) { var tt = -tmax + 2 * tmax * i / 120; pts.push({ x: tt, y: yDirect(tt, w0, sys, v), color: '#dc2626', r: 2.0 }); }
+          return pts;
+        })(),
+        legend: true
+      });
+
+      var wmax = 4.2 * w0;
+      var magAt = function (w) { return cabs(sysH(sys, w, v)); };
+      var phAt = function (w) { var H = sysH(sys, w, v); return Math.atan2(H.im, H.re) / PI; };
+      var wpts = [1, 2, 3].map(function (k) { return k * w0; });
+
+      SSC.plot(cv.mag, {
+        xmin: 0, xmax: wmax, ymin: 0,
+        xlabel: 'ω (rad/s)', ylabel: '|H(jω)|',
+        curves: [{ f: magAt, color: '#0e7490', width: 2.2, samples: 700 }],
+        points: wpts.map(function (w) { return { x: w, y: magAt(w), color: '#dc2626', r: 4 }; }),
+        vlines: wpts.map(function (w) { return { x: w, color: '#e5c8c8' }; })
+      });
+      SSC.plot(cv.phase, {
+        xmin: 0, xmax: wmax, ymin: -1.05, ymax: 1.05,
+        xlabel: 'ω (rad/s)', ylabel: '∠H(jω) / π（单位：π rad）',
+        curves: [{ f: phAt, color: '#7c3aed', width: 2.2, samples: 700 }],
+        points: wpts.map(function (w) { return { x: w, y: phAt(w), color: '#dc2626', r: 4 }; }),
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        vlines: wpts.map(function (w) { return { x: w, color: '#e5c8c8' }; })
+      });
+
+      var rows = '';
+      for (var k = 1; k <= 3; k++) {
+        var H = sysH(sys, k * w0, v);
+        rows += '<div class="stat"><div class="k">k=' + k + '（ω=' + SSC.fmt(k * w0, 2) + '）</div><div class="v" style="font-size:12.5px">' +
+          '增益 ' + SSC.fmt(cabs(H), 3) + '　相移 ' + SSC.fmt(Math.atan2(H.im, H.re) * 180 / PI, 1) + '°</div></div>';
+      }
+      api.readout(rows);
+    },
+    note: function (v) {
+      var sys = v.sys, name = { delay: '理想时移 t₀=' + SSC.fmt(v.t0, 2) + ' s', rc: '一阶 RC 低通（RC=' + SSC.fmt(v.rc, 2) + ' s，转折频率 1/RC=' + SSC.fmt(1 / v.rc, 2) + ' rad/s）', diff: '微分器（已按 ω₀ 归一化）' }[sys];
+      var s = '当前系统：<b>' + name + '</b>。红点是用时域方法<b>独立</b>算出来的输出：';
+      if (sys === 'delay') s += '直接取 x(t−t₀)；';
+      else if (sys === 'rc') s += '用四阶龙格-库塔法数值求解微分方程 RC·y′+y=x；';
+      else s += '直接对 x(t) 求导再除以 ω₀；';
+      s += '蓝线是用"每个频率成分乘 H(jkω₀)"拼出来的。两者重合，说明 <b>H(jω) 就是逐频率的复数增益</b>。';
+      if (sys === 'rc' && v.w0 > 1 / v.rc) s += '<br>现在基波 ω₀ 已经超过转折点 1/RC：基波被压、输出变小，形状也被"磨圆"了——这就是低通滤波。';
+      if (sys === 'diff') s += '<br>微分器让高频成分按 k 倍放大，所以输出里三次谐波被抬得最高，波形变得更"尖"。';
+      if (sys === 'delay') s += '<br>时移系统的 |H| 恒等于 1、∠H 是过原点的直线（线性相位），所以输出只是原波形平移，形状一点没变。';
+      return s;
+    }
+  });
+
+  /* ============================================================
+     实验 3：换基近似（傅里叶 / 勒让德 / 哈尔）
+     ============================================================ */
+  var GT = function (x) { return 0.5 * Math.sin(2 * PI * x) + 0.9 * ((x >= 0.25 && x < 0.375) ? 1 : 0); };
+  function legP(n) {
+    var P = [[1], [0, 1]];
+    for (var m = 2; m <= n; m++) {
+      var a = P[m - 1], b = P[m - 2], c = [], i;
+      for (i = 0; i <= m; i++) c.push(0);
+      for (i = 0; i < a.length; i++) c[i + 1] += (2 * m - 1) * a[i];
+      for (i = 0; i < b.length; i++) c[i] -= (m - 1) * b[i];
+      for (i = 0; i <= m; i++) c[i] /= m;
+      P.push(c);
+    }
+    var cc = P[n];
+    return function (x) { var u = 2 * x - 1, s = 0; for (var i = cc.length - 1; i >= 0; i--) s = s * u + cc[i]; return s; };
+  }
+  function haarList(maxJ) {
+    var out = [{ name: 'φ（尺度函数，恒为 1）', g: function () { return 1; } }];
+    for (var j = 0; j <= maxJ; j++) {
+      (function (j) {
+        var s = Math.pow(2, j);
+        for (var k = 0; k < s; k++) {
+          (function (k) {
+            out.push({
+              name: 'ψ' + j + ',' + k + '（±1 方波块）',
+              g: function (x) { var u = s * x - k; return (u >= 0 && u < 0.5) ? 1 : ((u >= 0.5 && u < 1) ? -1 : 0); }
+            });
+          })(k);
+        }
+      })(j);
+    }
+    return out;
+  }
+  function fourierList(K) {
+    var out = [{ name: '1（直流）', g: function () { return 1; } }];
+    for (var k = 1; k <= K; k++) {
+      (function (k) {
+        out.push({ name: '√2 cos(2π' + k + 'x)', g: function (x) { return Math.SQRT2 * Math.cos(2 * PI * k * x); } });
+        out.push({ name: '√2 sin(2π' + k + 'x)', g: function (x) { return Math.SQRT2 * Math.sin(2 * PI * k * x); } });
+      })(k);
+    }
+    return out;
+  }
+  var BASES = {
+    'fourier': { label: '傅里叶基（全局振荡）', list: fourierList(8) },
+    'legendre': { label: '勒让德多项式（多项式基）', list: (function () { var L = [], i; for (i = 0; i < 16; i++) L.push({ name: 'P' + i + '(2x−1)', g: legP(i) }); return L; })() },
+    'haar': { label: '哈尔小波（局部方块）', list: haarList(3) }
+  };
+  var MG = 2000, HG = 1 / MG, WG = function (i) { return (i === 0 || i === MG) ? 0.5 : 1; };
+  function dotG(g1, g2) { var s = 0; for (var i = 0; i <= MG; i++) { var x = i * HG; s += WG(i) * g1(x) * g2(x) * HG; } return s; }
+  var E0 = dotG(GT, GT), COEF = {};
+  Object.keys(BASES).forEach(function (key) {
+    COEF[key] = BASES[key].list.map(function (b) { return dotG(GT, b.g) / dotG(b.g, b.g); });
+  });
+  function relErr(key, N) {
+    var L = BASES[key].list, cs = COEF[key], E = 0;
+    for (var i = 0; i <= MG; i++) {
+      var x = i * HG, s = 0, t;
+      for (t = 0; t < N; t++) s += cs[t] * L[t].g(x);
+      var e = GT(x) - s; E += WG(i) * e * e * HG;
+    }
+    return Math.sqrt(E / E0) * 100;
+  }
+  function approxOf(key, N) {
+    var L = BASES[key].list, cs = COEF[key];
+    return function (x) { var s = 0, t; for (t = 0; t < N; t++) s += cs[t] * L[t].g(x); return s; };
+  }
+
+  SSC.lab({
+    mount: '#lab-basis',
+    title: '实验 3 · 同一信号、不同基：谁更快抓住它',
+    hint: '换基、拖项数 N；注意误差读数的相对大小，以及蓝色曲线在脉冲附近的表现',
+    columns: 2,
+    canvases: [
+      { id: 'approx', label: '时域：目标信号 f(x)（灰）与 N 项近似（蓝）', height: 200 },
+      { id: 'coef', label: '系数 c_n（第 n 个基函数分到多少）', height: 200 }
+    ],
+    controls: [
+      { id: 'basis', label: '用哪套基', options: [
+        { v: 'fourier', t: '傅里叶基（全局振荡）' },
+        { v: 'legendre', t: '勒让德多项式' },
+        { v: 'haar', t: '哈尔小波（局部方块）' }
+      ], value: 'fourier' },
+      { id: 'N', label: '项数 N', min: 1, max: 16, step: 1, value: 8 }
+    ],
+    draw: function (cv, v, api) {
+      var key = v.basis, N = Math.round(v.N);
+      var L = BASES[key].list, cs = COEF[key];
+      SSC.plot(cv.approx, {
+        xmin: 0, xmax: 1, ymin: -1.4, ymax: 1.6,
+        xlabel: 'x', ylabel: '幅度',
+        curves: [
+          { f: GT, color: '#c3ccdd', width: 2.6, samples: 900, label: '目标信号 f(x)' },
+          { f: approxOf(key, N), color: '#4338ca', width: 2.2, samples: 900, label: 'N 项近似 f_N(x)' }
+        ],
+        vlines: [{ x: 0.25, color: '#e5c8c8' }, { x: 0.375, color: '#e5c8c8' }],
+        legend: true
+      });
+      var xs = [], ys = [];
+      for (var t = 0; t < N; t++) { xs.push(t + 1); ys.push(cs[t]); }
+      SSC.plot(cv.coef, {
+        xmin: 0.5, xmax: Math.max(4.5, N + 0.5), symmetric: true,
+        xlabel: '基函数序号 n', ylabel: 'c_n',
+        stems: [{ xs: xs, ys: ys, color: '#dc2626', label: '投影系数 c_n' }],
+        hlines: [{ y: 0, color: '#c3ccdd' }],
+        legend: true
+      });
+      var rows = '<div class="stat"><div class="k">当前基</div><div class="v" style="font-size:12.5px">' + BASES[key].label + '</div></div>' +
+        '<div class="stat"><div class="k">项数 N</div><div class="v">' + N + '</div></div>';
+      Object.keys(BASES).forEach(function (k2) {
+        rows += '<div class="stat"><div class="k">' + BASES[k2].label.split('（')[0] + ' 的相对误差</div><div class="v" style="color:' +
+          (k2 === key ? '#b91c1c' : '#41506b') + '">' + relErr(k2, Math.min(N, BASES[k2].list.length)).toFixed(1) + '%</div></div>';
+      });
+      api.readout(rows);
+    },
+    note: function (v) {
+      var key = v.basis, N = Math.round(v.N);
+      var s = '目标信号 = 一条平滑正弦（0.5·sin 2πx）+ 一个窄脉冲（宽 0.125，高 0.9）。' +
+        '灰色是原信号，蓝色是只用 <b>' + N + '</b> 个基函数拼出来的近似。';
+      if (key === 'fourier') s += '<br>傅里叶基是<b>全局</b>基：表示平滑部分很省，但为了凑出那个窄脉冲，需要很多高频项；' +
+        '项数不够时，脉冲附近会看到振荡（这就是吉布斯现象的雏形，第 4 章详述）。';
+      if (key === 'legendre') s += '<br>勒让德多项式是<b>多项式</b>基：整体光滑、没有振荡，但多项式本质上"拐不了急弯"，' +
+        '所以每个基函数都在脉冲附近被拉出一点小波纹，误差下降得慢。';
+      if (key === 'haar') s += '<br>哈尔小波是<b>局部</b>基：基函数自己就是方波块，脉冲所在的位置由某个小尺度的 ψ 负责，' +
+        '所以它能用少数几项把脉冲"切"出来（注意看 c_n 里那几个非零的大系数）；但它表示光滑正弦时又很费项。';
+      s += '<br><b>关键结论</b>：同一信号、同样的项数，换基就换误差。基的形状和信号的结构越匹配，系数越"紧凑"——' +
+        '这也是 JPEG 用 DCT、图像压缩用<b>小波</b>、降维用 <b>PCA/K-L</b> 的原因。';
+      return s;
+    }
+  });
+
+  /* ============================================================
+     自测
+     ============================================================ */
+  SSC.quiz('#quiz3', [
+    {
+      q: '为什么说复指数 e^{st} 是 LTI 系统的"特征函数"？',
+      opts: [
+        '因为系统作用在它上面只乘一个与时间无关的复常数，输出仍是同一个复指数',
+        '因为它是周期函数',
+        '因为它的模长恒等于 1',
+        '因为所有系统都对它做傅里叶变换'
+      ],
+      a: 0,
+      why: '把 x(t)=e^{st} 代入卷积，用 e^{s(t−τ)}=e^{st}e^{−sτ} 把 e^{st} 提出来，得到 y(t)=H(s)e^{st}——形状不变、只乘一个复常数，正是"特征函数"的定义。模长恒为 1 只在 s=jω 时成立，与本性质无关。',
+      tag: '概念'
+    },
+    {
+      q: '离散时间系统 h[n]=α^n u[n] 的 H(z)=1/(1−αz^{−1})。这个等式成立的条件是？',
+      opts: ['|z| > |α|', '|z| < |α|', '对所有复数 z 都成立', '|z| = 1'],
+      a: 0,
+      why: 'H(z)=Σ_{k≥0}(α/z)^k 是公比 q=α/z 的等比级数，只有 |q|<1 即 |z|>|α| 时收敛。这个条件就是 ROC；|z|=1（单位圆）只是 ROC 内部的特殊取值，不是成立的条件。',
+      tag: 'ROC'
+    },
+    {
+      q: '某实系统的 H(jω₀)=2e^{−jπ/3}。输入 x(t)=5cos(ω₀t) 时，稳态输出是？',
+      opts: ['10cos(ω₀t − π/3)', '5cos(ω₀t − π/3)', '10cos(ω₀t + π/3)', '2cos(ω₀t − π/3)'],
+      a: 0,
+      why: '实系统对余弦的作用是"A|H|cos(ω₀t+∠H)"：幅度乘以 |H|=2（5→10），相位加上 ∠H=−π/3。注意乘的是模长 2，不是复数本身——相位只负责平移时间轴。',
+      tag: '计算'
+    },
+    {
+      q: '输入 x(t)=cos(4t)+cos(7t) 通过 y(t)=x(t−3) 的时移系统。若用特征函数方法算，需要用到哪些特征值？',
+      opts: [
+        'H(j4)=e^{−j12} 与 H(j7)=e^{−j21}',
+        '只需要 H(j4)=e^{−j12}',
+        '需要 H(3)=e^{−j12}',
+        '需要用 H(s) 在 s=1 处的值'
+      ],
+      a: 0,
+      why: '输入里只有 ω=4 和 ω=7 两个频率，所以只用到 H(jω) 在这两点上的值。时移系统的 H(jω)=e^{−jωt₀}，t₀=3 时分别是 e^{−j12} 和 e^{−j21}。把余弦展开成复指数后两项成对出现，合起来正是 cos(4(t−3))+cos(7(t−3))。',
+      tag: '特征值'
+    },
+    {
+      q: '在实验 3（正交基近似）里，同一个信号换一套基，误差会变。这说明什么？',
+      opts: [
+        '基函数与信号结构的匹配程度决定了系数有多"紧凑"',
+        '正交基的完备性有差别，有的基不能表示这个信号',
+        '误差只由项数 N 决定，与基无关',
+        '只有傅里叶基是正交基'
+      ],
+      a: 0,
+      why: '三套基都在同一区间上正交且完备，N 相同时误差却不同：局部突变用哈尔小波（局部基）更省项，平滑振荡用傅里叶基更省项。所以选择基就是选择"用什么词汇描述这个信号"。',
+      tag: '正交分解'
+    },
+    {
+      q: '关于 H(s) 与 ROC 的关系，下面哪句话正确？',
+      opts: [
+        '只有 s 落在 ROC 内，"输出 = H(s)×输入"才成立；否则公式只是个形式记号',
+        'ROC 只影响数值大小，不影响结论是否成立',
+        '只要极点在左半平面，任何 s 都是特征函数',
+        'ROC 是系统稳定的充要条件，与特征函数无关'
+      ],
+      a: 0,
+      why: 'H(s) 是积分 ∫h(τ)e^{−sτ}dτ，s 取在 ROC 外时这个积分不收敛，"特征值"根本不存在。极点位置与稳定性讨论的是 h 的衰减（第 12/13 章），与"某个具体的 s 是不是特征函数"是两件事——实验 1 里把 |z| 调到 |α| 以下就能看到这个区别。',
+      tag: '易错'
+    }
+  ], '第 3 章自测 · 6 题');
+
+  document.getElementById('year').textContent = new Date().getFullYear();
+});
+</script>
+</body>
+</html>

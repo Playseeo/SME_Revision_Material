@@ -1,0 +1,1330 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>附 A　应用串讲：滤波、调制、图像、降维｜信号与系统 · 交互图谱</title>
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body data-page="ch15">
+<div class="layout">
+  <nav id="side"></nav>
+  <div id="main">
+
+    <header class="page">
+      <div class="wrap">
+        <div class="kicker">附录 · 附 A · 把十四章的公式用出去</div>
+        <h1>应用串讲：滤波、调制、图像、降维</h1>
+        <p class="lede">
+          前面十四章把工具造齐了：傅里叶级数、傅里叶变换、采样、拉普拉斯、z 变换。
+          这一页回答一个很实际的问题：<b>这些公式到底被用在哪儿？</b>
+          答案是四件事——<b>图像去噪与锐化</b>、<b>声音的滤波</b>、<b>通信里的调制</b>、<b>数据降维</b>。
+          它们看起来完全不同，背后却是同一句话：<b>滤波 = 沿一组基做正交分解，给每个基分量乘一个不同的数，再合成回去。</b>
+        </p>
+      </div>
+    </header>
+
+    <div class="wrap">
+
+      <div class="position">
+        <div class="cell"><b>先看这些</b>
+          <a href="ch10-filters.html">第 10 章 滤波器与频响</a>（要懂 <span class="mono">H(jω)</span>、通带/阻带）<br>
+          <a href="ch11-modulation.html">第 11 章 调制与解调</a>（频谱搬移那一套）<br>
+          <a href="ch08-dft.html">第 8 章 DFT 与 FFT</a>（这一页的图像实验就用它算）
+        </div>
+        <div class="cell mid"><b>这一站</b>二维傅里叶变换、图像滤波、巴特沃斯、PCA/K-L 降维</div>
+        <div class="cell"><b>看完去哪</b>
+          <a href="ch16-cheatsheet.html">附 B 速查表与常见坑</a>（把公式和坑一次收齐）<br>
+          <a href="ch14-atlas.html">第 14 章 四大变换总对照</a>（回头核对体系）
+        </div>
+      </div>
+
+      <div class="toc">
+        <b>本页目录</b>
+        <a href="#s1">1. 一条主线：滤波就是"给每个频率配一个权重"</a>
+        <a href="#s2">2. 二维傅里叶变换与图像滤波（实验 1）</a>
+        <a href="#s3">3. 幅度谱与相位谱：谁更重要</a>
+        <a href="#s4">4. 声音信号与多频成分滤波（实验 2）</a>
+        <a href="#s5">5. 理想滤波器做不到，于是有了巴特沃斯（实验 3）</a>
+        <a href="#s6">6. FIR 设计初步：窗函数法（实验 4）</a>
+        <a href="#s7">7. PCA / K-L 变换：换一组基来做降维（实验 5）</a>
+        <a href="#s8">8. 调制、解调与频分复用：复习 + 工程细节</a>
+        <a href="#s9">9. 常见坑</a>
+        <a href="#s10">10. 自测</a>
+      </div>
+
+      <h2 id="s1">1. 一条主线：滤波就是"给每个频率配一个权重"</h2>
+
+      <p>
+        先别看具体应用。把十四章的结论压成一句话：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">整门课的一句话</span>
+        <p style="margin:6px 0 0">
+          选一组基把信号摊开（傅里叶基、哈尔基、PCA 基……），得到一堆"分量系数"；
+          LTI 系统对每个分量只做一个动作——<b>乘一个复数</b>；
+          把乘完的分量加回去，就是输出。
+        </p>
+        <div class="eq center-eq">
+          y(t) = <span class="sum"><span class="top"></span><span class="sym">Σ</span><span class="bot">k</span></span>
+          <span style="font-size:22px">[</span> H(jω<sub>k</sub>) · a<sub>k</sub> <span style="font-size:22px">]</span> e<sup>jω<sub>k</sub>t</sup>
+        </div>
+        <p class="small" style="margin-bottom:0">
+          方括号里的 <span class="mono">H(jω<sub>k</sub>)·a<sub>k</sub></span> 就是把"第 k 个分量"先乘权重、再放回去。
+          所谓<b>低通滤波（low-pass filtering）</b>，不过是让 <span class="mono">|H(jω)|</span> 在低频处等于 1、高频处等于 0。
+        </p>
+      </div>
+
+      <p>
+        这句话的好处是：图像、声音、通信、数据降维全都套得进去，只是"基"和"要加的权重"不同：
+      </p>
+
+      <table class="tbl sm">
+        <thead><tr><th>应用</th><th>用什么基</th><th>权重怎么定</th><th>对应章节</th></tr></thead>
+        <tbody>
+          <tr><td>图像去噪 / 模糊</td><td>二维复指数 <span class="mono">e<sup>j(ux+vy)</sup></span></td><td>离中心（低频）近的留下，远的清 0</td><td><a href="ch10-filters.html">第 10 章</a> + 本页第 2 节</td></tr>
+          <tr><td>图像边缘检测 / 锐化</td><td>同上</td><td>反过来：中心清 0，远的留下</td><td>本页第 2 节</td></tr>
+          <tr><td>声音降噪</td><td>复指数（按帧做）</td><td>截止频率以下通过</td><td>本页第 4 节</td></tr>
+          <tr><td>通信</td><td>复指数</td><td>把整段频谱搬到载频附近</td><td><a href="ch11-modulation.html">第 11 章</a></td></tr>
+          <tr><td>数据降维（PCA）</td><td><b>由数据算出来的</b>特征向量</td><td>保留方差大的方向</td><td><a href="ch03-eigenfunction.html">第 3 章</a> + 本页第 7 节</td></tr>
+        </tbody>
+      </table>
+
+      <div class="box intuition">
+        <span class="tag">为什么低通等于"模糊"，高通等于"边缘"</span>
+        <p style="margin-bottom:0">
+          图像的"低频"是<b>大片平滑区域</b>（天空、墙面）；"高频"是<b>灰度突变处</b>——也就是轮廓和边缘。
+          所以：<b>留低频 = 模糊（去掉细节）</b>，<b>留高频 = 描出轮廓（去掉大片底色）</b>。
+          如果现在还不信，下面第 2 节可以当场用手拖出来看。
+        </p>
+      </div>
+
+      <h2 id="s2">2. 二维傅里叶变换与图像滤波（实验 1）</h2>
+
+      <p>
+        一张灰度图就是一个二元函数。把像素坐标记作 <span class="mono">(x, y)</span>，灰度值记作
+        <span class="mono">f(x, y)</span>（8 比特图像取 0–255），那么
+        <span class="term" data-def="2-D Fourier transform，中文含义：二维傅里叶变换。把图像从"空间域"变到"空间频率域"。u、v 是空间频率，单位是"周期/像素"，越大代表该方向上灰度变化越快（细节越细）。">二维傅里叶变换</span>
+        （2-D Fourier transform）就是在一维公式里把"时间"换成"两个方向的空间坐标"：
+      </p>
+
+      <div class="eq center-eq">
+        F(u, v) = <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        f(x, y) e<sup>−j(ux+vy)</sup> d<i>x</i> d<i>y</i>
+        <span class="lbl">(A-1)</span>
+      </div>
+      <div class="eq center-eq">
+        f(x, y) = <span class="frac"><span class="num">1</span><span class="den">4π<sup>2</sup></span></span>
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        <span class="integral"><span class="sym">∫</span><span class="lim"><span>+∞</span><span>−∞</span></span></span>
+        F(u, v) e<sup>j(ux+vy)</sup> d<i>u</i> d<i>v</i>
+        <span class="lbl">(A-2)</span>
+      </div>
+
+      <div class="box warn">
+        <span class="tag">为什么反变换的系数是 1/4π²，而不是 1/2π</span>
+        <p style="margin-bottom:0">
+          一维反变换带 <span class="mono">1/2π</span>；二维是两个独立方向各带一份，所以是
+          <span class="mono">(1/2π)·(1/2π) = 1/4π²</span>。这不是新规定，只是把一维公式用了两遍。
+          同理，可分离信号 <span class="mono">f(x,y)=f<sub>1</sub>(x)f<sub>2</sub>(y)</span> 的变换等于
+          <span class="mono">F<sub>1</sub>(u)F<sub>2</sub>(v)</span>——这就是"行列分离"能成立的原因。
+        </p>
+      </div>
+
+      <p>
+        图像是离散的，计算机里用的是它的离散版本（N×N 的二维 DFT）：
+      </p>
+      <div class="eq center-eq">
+        F[u, v] = <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">x=0</span></span>
+        <span class="sum"><span class="top">N−1</span><span class="sym">Σ</span><span class="bot">y=0</span></span>
+        f[x, y] e<sup>−j2π(ux+vy)/N</sup>
+      </div>
+      <p class="small muted">
+        它和一维 DFT（<a href="ch08-dft.html">第 8 章</a>）没有本质区别，只是下标多了一个。
+        直接算要 <span class="mono">N<sup>4</sup></span> 次运算，但按<b>行列分离</b>先对每行做一维 DFT、再对每列做一维 DFT，
+        就降到 <span class="mono">2N<sup>3</sup></span>；再套 FFT，还能降到 <span class="mono">2N<sup>2</sup>log<sub>2</sub>N</span>。
+        <b>下面这个实验台用的就是行列分离。</b>
+      </p>
+
+      <div id="lab-image"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          ① <b>低频中心化</b>：右边那张"频谱图"里，最亮的地方在正中间，那是 <span class="mono">(u,v)=(0,0)</span> 的
+          <span class="term" data-def="DC component，中文含义：直流分量。频率为 0 的那一项，等于整幅图像灰度的平均值（乘 N²）。它决定图像的整体明暗。">直流分量</span>（DC，等于灰度平均值）。
+          越往外圈，对应的空间频率越高。程序为了让中间亮、外面暗，画的是 <span class="mono">log(1+|F|)</span>——
+          因为 <span class="mono">|F[0,0]|</span> 往往比别处大好几个数量级，不取对数就只能看见一个亮点。
+        </p>
+        <p>
+          ② <b>低通 = 模糊</b>：把截止半径调小，条纹和方块的边都被抹平，文字糊成一团；
+          <b>高通 = 只剩轮廓</b>：调大截止半径、改用高通，大片平坦区域变成灰色（它的低频被拿掉了），
+          只有边缘还留着亮暗。
+        </p>
+        <p style="margin-bottom:0">
+          ③ <b>"年轮效应"</b>：注意看理想低通（<span class="mono">n→∞</span> 那一档，或者把理想阶数调大）的结果，
+          在强边缘（黑方块的角）附近会冒出一圈一圈的波纹。这不是程序算错了，而是
+          <b>理想低通 = 时域 sinc</b> 的必然结果（第 10 章）：sinc 会上下振荡，卷积到突变的边缘上，就把振荡"印"了出来。
+          课件里管这叫理想低通滤波器的"年轮效应"。
+        </p>
+      </div>
+
+      <h2 id="s3">3. 幅度谱与相位谱：谁更重要</h2>
+
+      <p>
+        和连续时间一样，<span class="mono">F(u,v)</span> 是复数，可以拆成两部分：
+      </p>
+      <div class="eq center-eq">
+        |F(u, v)| = √( Re{F(u,v)}<sup>2</sup> + Im{F(u,v)}<sup>2</sup> ) ,
+        &nbsp;&nbsp;
+        θ(u, v) = arctan<span class="frac"><span class="num">Im{F(u,v)}</span><span class="den">Re{F(u,v)}</span></span>
+      </div>
+      <p>
+        前者是<span class="term" data-def="magnitude spectrum，中文含义：幅度谱。每个空间频率成分的强弱。它决定"图像里有哪几种粗细的纹理、各有多强"。">幅度谱</span>（magnitude spectrum），
+        后者是<span class="term" data-def="phase spectrum，中文含义：相位谱。每个空间频率成分相对于原点的位置偏移。它决定"这些纹理各自在图像的哪个位置"。">相位谱</span>（phase spectrum）。
+      </p>
+
+      <div class="box trap">
+        <span class="tag">一个反直觉但极其重要的实验（经典结论）</span>
+        <p>
+          如果我们把照片 A 的<b>幅度谱</b>和照片 B 的<b>相位谱</b>拼在一起再做反变换，人眼看到的是——
+          <b>B 的轮廓</b>。
+        </p>
+        <p style="margin-bottom:0">
+          道理：幅度谱只说"有哪些粗细的条纹、各多强"，但<b>条纹放在画面的哪个位置</b>完全由相位谱决定。
+          抹掉相位，你得到一张纹理对但位置全错的图。所以在图像处理里，
+          <b>粗量化幅度谱通常没问题，粗量化相位谱会立刻毁掉图像</b>。
+          这也回应了第 6 章的坑 4：只看幅度谱不足以描述一个信号。
+        </p>
+      </div>
+
+      <h2 id="s4">4. 声音信号与多频成分滤波（实验 2）</h2>
+
+      <p>
+        声音是 <span class="mono">f(t)</span>：一维随时间变化的信号，采样后变成一串数。
+        课件里给过两个真实声音信号的时域波形和频谱——你会发现
+        <b>声音的时域波形完全看不出内容，但幅度谱一眼就能看出"音高"（谱峰位置）和"音色"（谱峰高低比例）</b>。
+        这就是频域分析最实用的地方：<b>换成频率轴，规律就自己跳出来了</b>。
+      </p>
+
+      <p>
+        下面这个实验台把这件事压缩到几根谱线上：合成一个含 5 个频率成分的信号（你可以理解成"一个音 + 若干泛音 + 一点高频噪声"），
+        用几种不同的低通滤波器去滤它，同时看时域和频域。
+      </p>
+
+      <div id="lab-audio"></div>
+
+      <div class="box intuition">
+        <span class="tag">看懂了什么</span>
+        <p>
+          <b>频域一眼看穿</b>：右边两张图里，输入频谱是几根线；滤波器曲线的值 <span class="mono">|H|</span> 就是每条线会被乘上的倍数；
+          输出频谱就是两者逐点相乘的结果。想让哪根线消失，只要把截止频率压到它下面。
+        </p>
+        <p style="margin-bottom:0">
+          <b>时域看不出来</b>：左边图上，被滤掉的成分在时域里只是让波形"毛糙一点"。
+          把截止频率一路压到最低那根谱线以下，输出也不会变成一条平线——因为<b>低通保留直流</b>，
+          低频那根线仍然通过，只是幅度被削弱。想彻底归零，需要的不是低通而是<b>带通</b>（把低频也挡掉）。
+          总之：<b>滤波干得对不对，在频域里一眼就看得清，在时域里往往看不出门道。</b>
+        </p>
+      </div>
+
+      <h2 id="s5">5. 理想滤波器做不到，于是有了巴特沃斯（实验 3）</h2>
+
+      <p>
+        回忆第 10 章的两条结论：<b>理想低通在频域是一堵墙，在时域是 sinc，非因果、不可实时实现</b>；
+        而任何实际滤波器都有过渡带。工程上要回答的就是一个新问题：
+      </p>
+
+      <div class="box">
+        <span class="tag">新问题：怎么用可实现的函数去"逼近"那堵墙？</span>
+        <p style="margin-bottom:0">
+          最常用的答案是
+          <span class="term" data-def="Butterworth filter，中文含义：巴特沃斯滤波器。一种"最大平坦"的低通逼近：在 ω=0 处幅度响应尽可能平坦（前 2n−1 阶导数都为 0），没有通带波纹，代价是过渡带不够陡。">巴特沃斯滤波器</span>
+          （Butterworth filter）。它的幅度平方响应是：
+        </p>
+      </div>
+
+      <div class="eq center-eq">
+        |H(jω)|<sup>2</sup> = <span class="frac"><span class="num">1</span><span class="den">1 + (ω/ω<sub>c</sub>)<sup>2n</sup></span></span>
+        <span class="lbl">(A-4)</span>
+      </div>
+
+      <details class="deriv" open>
+        <summary>推导（点开/收起）：从式 (A-4) 能读出什么</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：ω = 0 处，|H| = 1。</b></p>
+            <div class="eq">|H(j0)|<sup>2</sup> = 1/(1+0) = 1</div>
+            <p class="why">为什么：低频原样通过，直流不被衰减。这是低通滤波器必须满足的第一条。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：ω = ω<sub>c</sub> 处，|H| = 1/√2，也就是 −3 dB。</b></p>
+            <div class="eq">|H(jω<sub>c</sub>)|<sup>2</sup> = 1/(1 + 1<sup>2n</sup>) = 1/2 &nbsp;⇒&nbsp; |H(jω<sub>c</sub>)| = 1/√2 ≈ 0.707</div>
+            <p class="why">为什么：<span class="mono">1<sup>2n</sup> = 1</span> 对任何 n 都成立，所以<b>所有阶数的巴特沃斯曲线都在 ω<sub>c</sub> 处交于同一点</b>，这就是"截止频率"的定义方式。
+              用 dB 表示：<span class="mono">20log<sub>10</sub>(0.707) ≈ −3.01 dB</span>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：看高频尾巴。ω ≫ ω<sub>c</sub> 时，分母里的 1 可以忽略。</b></p>
+            <div class="eq">|H(jω)|<sup>2</sup> ≈ (ω<sub>c</sub>/ω)<sup>2n</sup> &nbsp;⇒&nbsp; |H(jω)| ≈ (ω<sub>c</sub>/ω)<sup>n</sup></div>
+            <p class="why">为什么重要：频率每翻一倍（一个倍频程），幅度就乘 <span class="mono">(1/2)<sup>n</sup></span>。
+              n=1 时是 −6 dB/倍频程；n=5 时是 −30 dB/倍频程。<b>阶数 n 就是"墙能砌多陡"的旋钮。</b></p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：为什么叫"最大平坦"？</b></p>
+            <p>在 <span class="mono">ω=0</span> 附近把式 (A-4) 展开：</p>
+            <div class="eq">|H|<sup>2</sup> = 1 − (ω/ω<sub>c</sub>)<sup>2n</sup> + …</div>
+            <p class="why">第 1 项是常数 1，后面的项从 <span class="mono">2n</span> 次幂才出现。
+              所以 1,2,…,2n−1 阶导数在原点全为 0——<b>通带内没有任何波纹</b>。代价是同阶数下过渡带比切比雪夫一类的逼近更宽。
+              这就是"平坦度"与"陡峭度"之间的交易。</p>
+          </div>
+          <div class="step">
+            <p><b>第 5 步：阶数 n 和极点的关系。</b></p>
+            <p>把 <span class="mono">1 + (s/jω<sub>c</sub>)<sup>2n</sup> = 0</span> 解出来，得到 2n 个极点，均匀分布在半径 <span class="mono">ω<sub>c</sub></span> 的圆上、彼此相隔 <span class="mono">π/n</span>。
+              取左半平面的 n 个（保证因果稳定），就得到 <span class="mono">H(s)</span>。</p>
+            <p class="why">为什么必须是左半平面：<b>因果 + 稳定 ⇔ 全部极点位于左半平面</b>（第 12 章）。右半平面那 n 个极点属于 <span class="mono">H(−s)</span>，不能要。
+              课件里那个 3 阶巴特沃斯电路，对应的就是 <span class="mono">H(jω) = 1/((jω)<sup>3</sup> + 2(jω)<sup>2</sup> + 2(jω) + 1)</span>，三个极点在单位圆上相隔 120°。</p>
+          </div>
+        </div>
+      </details>
+
+      <div id="lab-butter"></div>
+
+      <div class="box warn">
+        <span class="tag">为什么图像滤波里"巴特沃斯"比"理想"更受欢迎</span>
+        <p style="margin-bottom:0">
+          课件把同一张图分别用理想低通和巴特沃斯低通（半径都取 5, 15, 30, 80, 230 像素）处理，比较两点：
+          <b>① 巴特沃斯没有年轮效应</b>——因为它的 <span class="mono">H(u,v)</span> 是光滑过渡的，不是一刀切，时域冲激响应衰减快、振荡小；
+          <b>② 巴特沃斯保留的能量比例更平滑地随半径变化</b>，不会出现"半径只差一点、结果突变"的情况。
+          理想低通保留能量的那组数据（半径 5/15/30/80/230 像素 → 保留 92% / 94.6% / 96.4% / 98% / 99.5%）
+          说明<b>图像绝大部分能量都集中在极小的低频区域</b>，这也是 JPEG 之类方法敢大胆丢高频的底气。
+        </p>
+      </div>
+
+      <h2 id="s6">6. FIR 设计初步：窗函数法（实验 4）</h2>
+
+      <p>
+        理想低通的冲激响应是 <span class="mono">h<sub>ideal</sub>(t) = (sin ω<sub>c</sub>t)/(πt)</span>，
+        两边无限延伸、还对称（非因果）。想把它变成能用的数字滤波器，只有一招：
+      </p>
+
+      <div class="box ok">
+        <span class="tag">窗函数法（window method）三句话</span>
+        <p style="margin:6px 0 0">
+          ① <b>截断</b>：把 <span class="mono">h<sub>ideal</sub>[n]</span> 只取 <span class="mono">−M ≤ n ≤ M</span> 这 2M+1 个点，得到长度为奇数的 FIR；
+          ② <b>加窗</b>：乘上一个两头平滑收敛到 0 的窗函数（汉明窗、汉宁窗、布莱克曼窗），而不是硬生生砍断；
+          ③ <b>延时</b>：把截断后的序列整体右移 M 个样点，得到 <span class="mono">h[n] = h<sub>ideal</sub>[n−M]w[n]</span>。
+        </p>
+        <p style="margin-bottom:0">
+          代价：<b>①</b> 频响出现过渡带，宽度约等于窗函数主瓣宽度（窗越长主瓣越窄、过渡带越陡）；
+          <b>②</b> 阻带出现旁瓣波纹，最坏旁瓣高度只取决于窗的<b>形状</b>（下一节会给准确数字：矩形 21 dB、汉宁 44 dB、汉明 53 dB、布莱克曼 74 dB）。
+          <b>这就是"理想滤波器做不到"的量化版本：过渡带宽度与阻带衰减互相拉扯。</b>
+        </p>
+      </div>
+
+      <p>
+        别忘了第 4 章就学过的吉布斯现象：<b>矩形窗截断 = 直接砍</b>，一定产生约 9% 的过冲，而且
+        <b>和取多少项无关</b>——多取项只会让过冲变窄，不会变矮。汉明窗的作用就是让这个过冲矮下去。
+        实验 4 里你可以把窗长从 401 拖到 17，看过渡带是怎么变宽的。
+      </p>
+
+      <div id="lab-fir"></div>
+
+      <h2 id="s7">7. PCA / K-L 变换：换一组基来做降维（实验 5）</h2>
+
+      <p>
+        这一节把第 3 章"正交分解"的思想推到一个新层次。傅里叶用的是<b>固定的</b>基
+        <span class="mono">e<sup>jωt</sup></span>。但如果你有一堆数据（比如 300 张人脸图，每张拉成 10 万维的向量），
+        能不能找到<b>专门为这批数据定制</b>的那组基，让能量集中在最少的几个方向上？
+      </p>
+
+      <p>
+        能。这就是
+        <span class="term" data-def="principal component analysis / Karhunen-Loève transform，中文含义：主成分分析 / K-L 变换。一种"最优"的正交线性变换：在给定保留维数下，使截断均方误差最小。基向量是数据协方差矩阵的特征向量。">主成分分析 / K-L 变换</span>
+        （PCA / Karhunen-Loève transform）。定义并不复杂：
+      </p>
+
+      <div class="eq center-eq">
+        y<sub>j</sub> = u<sub>j</sub><sup>T</sup>x ,
+        &nbsp;&nbsp;&nbsp;
+        x = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">j=1</span></span> y<sub>j</sub>u<sub>j</sub> ,
+        &nbsp;&nbsp;&nbsp;
+        u<sub>i</sub><sup>T</sup>u<sub>j</sub> = δ<sub>ij</sub>
+        <span class="lbl">(A-5)</span>
+      </div>
+
+      <p>
+        第一式叫<b>正变换</b>（拿基向量 <span class="mono">u<sub>j</sub></span> 去"量"数据 x，得到一个系数），
+        第二式叫<b>反合成</b>（把系数乘回基向量再加起来，还原 x）。
+        只要基是<b>完备正交归一系</b>，两式互为逆运算、没有任何信息损失。
+        "降维"发生在中间那一步：<b>只保留前 d 项</b>，得到估计
+      </p>
+
+      <div class="eq center-eq">
+        x&#770; = <span class="sum"><span class="top">d</span><span class="sym">Σ</span><span class="bot">j=1</span></span> y<sub>j</sub>u<sub>j</sub>
+        &nbsp;&nbsp;⇒&nbsp;&nbsp;
+        误差 ε<sup>2</sup> = E<span style="font-size:20px">[</span>(x − x&#770;)<sup>T</sup>(x − x&#770;)<span style="font-size:20px">]</span>
+        <span class="lbl">(A-6)</span>
+      </div>
+
+      <details class="deriv">
+        <summary>推导（点开/收起）：为什么"取最大特征值对应的特征向量"就是最优</summary>
+        <div class="body">
+          <div class="step">
+            <p><b>第 1 步：把均方误差写成"被丢掉的那些分量"。</b></p>
+            <p>定义相关矩阵（second-order statistics）<span class="mono">R = E[xx<sup>T</sup>]</span>。因为用完备基展开，</p>
+            <div class="eq">
+              E<span style="font-size:20px">[</span>‖x‖<sup>2</sup><span style="font-size:20px">]</span>
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">j=1</span></span> E[y<sub>j</sub><sup>2</sup>]
+              = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">j=1</span></span> u<sub>j</sub><sup>T</sup> R u<sub>j</sub>
+            </div>
+            <p class="why">为什么第一个等号成立：正交归一基下能量可加——这就是第 3 章的 Parseval 关系在有限维向量上的样子。
+              第二个等号把 <span class="mono">y<sub>j</sub>=u<sub>j</sub><sup>T</sup>x</span> 代进去：
+              <span class="mono">E[y<sub>j</sub><sup>2</sup>] = u<sub>j</sub><sup>T</sup>E[xx<sup>T</sup>]u<sub>j</sub></span>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 2 步：截断误差 = 被丢掉的那部分能量。</b></p>
+            <div class="eq">
+              ε<sup>2</sup> = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">j=d+1</span></span> u<sub>j</sub><sup>T</sup>Ru<sub>j</sub>
+            </div>
+            <p class="why">为什么：保留的 d 项还原了它们自己的分量，误差只剩下 j&gt;d 那些分量的能量和。</p>
+          </div>
+          <div class="step">
+            <p><b>第 3 步：用拉格朗日乘子法求极值。</b></p>
+            <p>在约束 <span class="mono">u<sub>j</sub><sup>T</sup>u<sub>j</sub>=1</span> 下求 <span class="mono">u<sub>j</sub><sup>T</sup>Ru<sub>j</sub></span> 的极值，令导数为 0：</p>
+            <div class="eq">Ru<sub>j</sub> = λ<sub>j</sub>u<sub>j</sub></div>
+            <p class="why">为什么这就是答案：这正是<b>特征值方程</b>。也就是说，"使二次型 <span class="mono">u<sup>T</sup>Ru</span> 取极值的单位向量"就是 R 的特征向量；
+              极值本身等于对应的特征值 <span class="mono">λ<sub>j</sub></span>。</p>
+          </div>
+          <div class="step">
+            <p><b>第 4 步：结论。</b></p>
+            <div class="eq center-eq">ε<sup>2</sup> = <span class="sum"><span class="top">∞</span><span class="sym">Σ</span><span class="bot">j=d+1</span></span> λ<sub>j</sub></div>
+            <p class="why">要让这个和最小，只需把<b>最大的 d 个特征值</b>对应的方向保留下来，把小的丢掉。
+              这 d 个特征向量张成的坐标系就是 <b>d 维 K-L 变换坐标系</b>，系数向量 y 就是 x 的 K-L 变换。
+              一句话：<b>K-L 变换把 R 对角化了（<span class="mono">R<sub>yy</sub>=U<sup>T</sup>R<sub>xx</sub>U=Λ</span>），</b>
+              于是各分量之间不再相关，能量按 λ 从大到小排好队，从队尾开始丢最不心疼。</p>
+          </div>
+          <div class="step">
+            <p><b>第 5 步：产生矩阵可以换。</b></p>
+            <p>课件特别指出，K-L 变换的"产生矩阵"可以取 <span class="mono">R = E[xx<sup>T</sup>]</span>（相关矩阵）、
+              <span class="mono">C = E[(x−μ)(x−μ)<sup>T</sup>]</span>（协方差矩阵），甚至样本总类内离散度矩阵
+              <span class="mono">S<sub>w</sub></span>。选哪个，取决于你想让"能量"在哪一种意义下最集中。</p>
+            <p class="why">工程含义：如果数据的均值 <span class="mono">μ</span> 很大（比如人脸图整体都很亮），
+              用相关矩阵 R 算出来的第一主成分往往只是"平均脸"方向，而不是"人与人之间的差异"方向。
+              所以人脸识别里通常先减掉均值再用协方差矩阵 C。</p>
+          </div>
+        </div>
+      </details>
+
+      <p>
+        课件给了一个可以手算的完整例子：样本协方差矩阵
+        <span class="mono">C = [[19.5, 9.5], [9.5, 7.5]]</span>。
+        它的特征值是 <span class="mono">λ<sub>1</sub> = 24.736</span>、<span class="mono">λ<sub>2</sub> = 2.263</span>
+        （验证：<span class="mono">λ<sub>1</sub>+λ<sub>2</sub> = 26.999 = trace C</span>，
+        <span class="mono">λ<sub>1</sub>λ<sub>2</sub> = 55.98 = det C</span>，都对得上）。
+        最大特征值对应的特征向量是 <span class="mono">u<sub>1</sub> = [0.875, 0.482]<sup>T</sup></span>，
+        于是最优的 2×1 特征提取器就是 <span class="mono">y = u<sub>1</sub><sup>T</sup>x</span>：
+        把二维数据压成一维，只丢掉 <span class="mono">λ<sub>2</sub>/(λ<sub>1</sub>+λ<sub>2</sub>) ≈ 8.4%</span> 的能量。
+      </p>
+
+      <div id="lab-pca"></div>
+
+      <div class="box ok">
+        <span class="tag">"特征脸"就是一组基向量</span>
+        <p style="margin-bottom:0">
+          课件里的 <span class="mono">(3559, 351, −256, …)</span> 是一张人脸图在正交基上的展开系数——
+          跟前 14 章的 <span class="mono">a<sub>k</sub></span>、<span class="mono">X[k]</span> 是一回事，
+          只不过基函数不是余弦，而是<b>从人脸库算出来的特征向量</b>。把这些特征向量按图像尺寸摆回成一个方阵，
+          画出来就是所谓的<span class="term" data-def="eigenface，中文含义：特征脸。把 PCA 得到的特征向量按图像尺寸重新排成一张图，看起来像一张"幽灵人脸"，是描述人脸差异的基图像。">特征脸</span>（Eigenface）。
+          工程效果（课件数据）：XM2VTS 人脸库（295 人 × 8 张），取<b>前 100 维</b> PCA 特征，
+          最近邻法识别率 76.02%、SVM 80.25%——<b>用 100 个数代表一张人脸图，还能有八成识别率</b>，
+          这就是"能量集中"的威力。
+        </p>
+      </div>
+
+      <p>
+        同样的技术也用在做手型模型上：每个手型由 72 个点构成，也就是 144 维向量；
+        用人工标注的一批手型做 PCA，前几个主成分就能刻画"张开/握拳/旋转"这些主要变化模式，
+        于是 144 维被压成几维，<b>既省存储，又让"相似度"变得可算</b>。
+      </p>
+
+      <h2 id="s8">8. 调制、解调与频分复用：复习 + 工程细节</h2>
+
+      <p>
+        第 11 章已经推导过核心结论。这里只把工程上真正需要记住的三件事拎出来：
+      </p>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">① 调制就是把频谱搬家</h4>
+          <div class="eq">y(t) = x(t)cos ω<sub>c</sub>t</div>
+          <div class="eq">Y(jω) = <span class="frac"><span class="num">1</span><span class="den">2</span></span>[X(j(ω−ω<sub>c</sub>)) + X(j(ω+ω<sub>c</sub>))]</div>
+          <p class="small" style="margin-bottom:0">
+            这叫双边带抑制载波调制（DSB-SC）。工程条件：<b>载频 ω<sub>c</sub> 必须大于基带最高频率 ω<sub>M</sub></b>，
+            通常还要求 <span class="mono">ω<sub>c</sub> ≫ ω<sub>M</sub></span>，否则两个搬移后的副本会重叠、无法分开。
+          </p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">② 同步解调：再乘一次、再低通</h4>
+          <div class="eq">y(t)cos ω<sub>c</sub>t = <span class="frac"><span class="num">1</span><span class="den">2</span></span>x(t) + <span class="frac"><span class="num">1</span><span class="den">2</span></span>x(t)cos 2ω<sub>c</sub>t</div>
+          <p class="small" style="margin-bottom:0">
+            第一项是我们要的基带（幅度是原来的一半），第二项在 <span class="mono">2ω<sub>c</sub></span> 附近，
+            用低通滤掉即可。所以接收端的低通截止频率要<b>大于 ω<sub>M</sub> 且小于 2ω<sub>c</sub>−ω<sub>M</sub></b>。
+            接收端本地载波<b>必须与发送端同频同相</b>，否则会引入衰减与失真。
+          </p>
+        </div>
+      </div>
+
+      <div class="box warn">
+        <span class="tag">③ 频分复用（FDM）：把调制用到极致</span>
+        <p style="margin-bottom:0">
+          把不同信号搬到不同载频 <span class="mono">ω<sub>c1</sub>, ω<sub>c2</sub>, …</span> 上，
+          只要搬完之后的频谱互不重叠，就能在同一根信道里同时传。接收端先用<b>带通滤波器</b>把属于自己那一路"捞"出来，
+          再乘本地载波 + 低通完成解调。这就是"滤波 + 调制"这对组合在通信系统里的标准姿势，
+          也是调幅广播、电视、以及课件里提到的 GPS 信号（以及被干扰时会发生什么）的底层机制。
+        </p>
+      </div>
+
+      <h2 id="s9">9. 常见坑</h2>
+
+      <div class="grid g2">
+        <div class="card">
+          <h4 style="margin-top:0">坑 1：以为"低通滤波能去掉一切噪声"</h4>
+          <p class="small">低通只能去掉<b>高频</b>噪声。像椒盐噪声（随机撒的黑白点）是全频带的，低通会把它们糊成一片灰斑，反而更难看。
+            这类噪声要用<b>中值滤波</b>（非线性滤波）。课件里专门把"低通滤波后的图像"和"中值滤波后的图像"并排对比。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 2：以为中值滤波也是 LTI</h4>
+          <p class="small">中值滤波取的是邻域<b>排序后的中间值</b>，不是加权平均，所以<b>不是线性系统</b>，
+            不能用 <span class="mono">H(jω)</span> 描述，也就没有"频响"。它强在能干净地除掉脉冲噪声、同时保住边缘；
+            而线性滤波器的局限正是"要么糊边、要么留噪"。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 3：频谱图忘了中心化，把低频看成在四个角</h4>
+          <p class="small">DFT 的自然排列把 <span class="mono">(u,v)=(0,0)</span> 放在左上角，直接画会看到"四角亮、中间暗"。
+            必须做<b>象限搬移</b>（把四个象限对调，等价于乘 <span class="mono">(−1)<sup>x+y</sup></span>）才能得到以中心为低频的频谱图。
+            本页的实验台已经内建了这一步。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 4：把"理想低通"当成工程目标</h4>
+          <p class="small">理想低通在时域是双边无限的 sinc，<b>非因果</b>，实时系统里造不出来。
+            更要命的是它的突变的频响带来"年轮效应"。工程上要的是巴特沃斯这类<b>平滑逼近</b>：牺牲一点陡峭度，换取可实现的因果系统与更小的时域振荡。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 5：拿循环卷积当线性卷积用（图像滤波尤其严重）</h4>
+          <p class="small">用 FFT 做滤波时，如果长度不够，卷积是<b>循环</b>的，图像右边的内容会"绕回来"污染左边（空间混叠）。
+            正确做法：把图像和滤波器都补零到 <span class="mono">≥ N<sub>1</sub>+N<sub>2</sub>−1</span>（第 8 章）。
+            "零相位滤波"还要先把滤波器搬到图像中心再加窗，否则图像会整体平移。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 6：零相位 vs 线性相位，傻傻分不清</h4>
+          <p class="small">课件里"直接对时域求导"<span class="mono">y(t)=dx/dt</span> 是一种高通：
+            由第 6 章的微分性质，它对应 <span class="mono">H(jω)=jω</span>，<b>幅度随频率线性增长、相位恒为 90°</b>——
+            这不是"线性相位"，它<b>会改变波形形状</b>。线性相位指的是 <span class="mono">∠H = −ωt<sub>0</sub></span>（纯延时），那才是"不失真"。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 7：PCA 之前忘记减均值</h4>
+          <p class="small">不减均值就用相关矩阵 <span class="mono">R=E[xx<sup>T</sup>]</span>，第一主成分通常正好是"平均方向"（平均脸），
+            它携带的是"大家共有的东西"而不是"个体差异"。做人脸识别/PCA 降维时，
+            <b>先减均值、再用协方差矩阵 C</b> 才是常规做法。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 8：把 PCA 当万能降维</h4>
+          <p class="small">PCA 只保留<b>方差大</b>的方向，但方差大 ≠ 有判别力。
+            如果用于分类，可能有大方差的干扰方向（光照、姿态）盖过真正区分两类的小方差方向——
+            这时要用类内离散度 <span class="mono">S<sub>w</sub></span> 做产生矩阵（LDA），或者换 SVM 之类的判别方法。
+            课件里 PCA 用最近邻法只有 76.02%，换 SVM 提到 80.25%，说的正是这件事。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 9：滤波后能量"凭空少了"，以为程序错了</h4>
+          <p class="small">低通砍掉高频，就是扔掉了那部分能量。由 Parseval，
+            <span class="mono">Σ|y[n]|<sup>2</sup> &lt; Σ|x[n]|<sup>2</sup></span> 是<b>应该</b>发生的。
+            实验台里"保留能量"那个读数会随截止频率单调上升，正好对应课件"半径 5→230 像素、保留能量 92%→99.5%"的那行数据。</p>
+        </div>
+        <div class="card">
+          <h4 style="margin-top:0">坑 10：忘了做谱的对称/共轭处理，反变换出来是复数</h4>
+          <p class="small">对实图像做低通时，如果只处理了 <span class="mono">u≥0</span> 那一半，或者把共轭位置改得不一致，
+            反变换的结果会带虚部（出现莫名其妙的黑白反相）。<b>实输入 → 频域必须共轭对称 → 输出才是实</b>。
+            在本页实验台里，只要滤波器关于中心对称，结果自然满足。</p>
+        </div>
+      </div>
+
+      <h2 id="s10">10. 自测</h2>
+      <p class="small muted">先自己算，再点选项。每题都写了"为什么"。</p>
+      <div id="quiz15"></div>
+
+      <div id="pager" class="pager"></div>
+    </div>
+
+    <footer class="site"><div class="wrap">
+      《信号与系统》交互图谱 · 附 A 应用串讲 · <span id="year"></span>
+    </div></footer>
+  </div>
+</div>
+
+<script src="assets/ssc.js"></script>
+<script>
+SSC.onReady(function () {
+  SSC.initTheme();
+  SSC.initNav();
+
+  /* =====================================================================
+     共用小工具（页面内实现，不改内核）
+     ===================================================================== */
+
+  /* 把 Float 灰度数组写进 canvas —— 桩 DOM（smoke.js）里 ImageData 不可用，
+     所以整段用 try/catch 包住，且先探测 createImageData 是否存在。 */
+  function paintGray(cv, img, N) {
+    try {
+      var ctx = cv.getContext('2d');
+      if (!ctx || typeof ctx.createImageData !== 'function' || typeof ctx.putImageData !== 'function') return false;
+      var data = ctx.createImageData(N, N);
+      for (var i = 0; i < N * N; i++) {
+        var g = Math.round(SSC.clamp(img[i], 0, 1) * 255);
+        data.data[4 * i] = g; data.data[4 * i + 1] = g; data.data[4 * i + 2] = g; data.data[4 * i + 3] = 255;
+      }
+      putFit(ctx, cv, data, N);
+      return true;
+    } catch (e) { return false; }
+  }
+  function putFit(ctx, cv, data, N) {
+    // 在 canvas 里居中放大，避免非整数缩放造成的摩尔纹。
+    // 注意：某些环境下 canvas.width/height 还没被设成数值，一律兜底，绝不能算出 NaN 坐标。
+    try {
+      var cw = +cv.width, ch = +cv.height;
+      if (!isFinite(cw) || cw <= 0) cw = 300;
+      if (!isFinite(ch) || ch <= 0) ch = 150;
+      var s = Math.max(1, Math.floor(Math.min(cw / N, ch / N)));
+      if (!isFinite(s) || s < 1) s = 1;
+      var w = N * s, h = N * s;
+      var ox = Math.floor((cw - w) / 2), oy = Math.floor((ch - h) / 2);
+      if (!isFinite(ox)) ox = 0;
+      if (!isFinite(oy)) oy = 0;
+      ctx.save();
+      ctx.imageSmoothingEnabled = false;
+      ctx.fillStyle = 'rgba(120,140,180,.14)';
+      ctx.fillRect(0, 0, cw, ch);
+      ctx.clearRect(ox, oy, w, h);
+      ctx.putImageData(data, ox, oy);
+      ctx.restore();
+    } catch (e) { /* 桩环境下忽略 */ }
+  }
+
+  /* ---------------------------------------------------------------------
+     行列分离的二维 DFT / 逆 DFT（图像是 N×N 实矩阵）。
+     记号：矩阵用 M[i][j] 表示，i = 行（对应图像纵坐标 y），j = 列（对应横坐标 x）。
+     定义：F[u][v] = Σ_i Σ_j M[i][j] e^{−j2π(ui+vj)/N}   —— 【不居中】，(0,0) 在左上角。
+     居中只影响"怎么画"和"怎么算距离"，不影响变换本身，所以这里不折腾搬移：
+       · 画频谱时用 (u+N/2)%N 做象限对调；
+       · 算截止距离时用 du = min(u, N−u)、dv = min(v, N−v)（绕回）。
+
+     两个实现要点：
+       (1) 沿第二维做完一维 DFT 之后，结果是【复数】。SSC.fft 支持复数输入
+           （读 x[i].re / x[i].im），所以第二次必须把复数对象原样喂进去，
+           绝不能只取实部——那样会悄悄丢掉虚部，结果完全错。
+       (2) SSC.fft 只实现了负指数（正变换）那一半。逆变换用共轭技巧：
+              idft(X)[n] = conj( fft( conj(X) ) ) / N
+           （因为 fft(conj X)[n] = Σ conj(X[k])e^{−j2πkn/N}，取共轭就变成 e^{+j2πkn/N}）。
+           它对复数数组同样成立，而且仍然是 O(N log N)。
+     --------------------------------------------------------------------- */
+  function dft2(M) {
+    var N = M.length, A = [], C = [], F = [], i, k;
+    for (i = 0; i < N; i++) A.push(SSC.fft(M[i]));                 /* 沿第二维 j：实数输入 */
+    for (k = 0; k < N; k++) {
+      var col = new Array(N);
+      for (i = 0; i < N; i++) col[i] = A[i][k];                    /* 复数对象直接传 */
+      C.push(SSC.fft(col));                                        /* 沿第一维 i */
+    }
+    for (i = 0; i < N; i++) { F.push(new Array(N)); for (k = 0; k < N; k++) F[i][k] = C[k][i]; }
+    return F;                                                      /* F[u][v] = C[v][u] */
+  }
+  function cifft(X) {                                             /* 逆 DFT（正指数），支持复数 */
+    var N = X.length, a = X.map(function (p) { return { re: p.re, im: -p.im }; });
+    var F = SSC.fft(a);
+    return F.map(function (p) { return { re: p.re / N, im: -p.im / N }; });
+  }
+  function idft2(F) {
+    var N = F.length, B = [], out = [], i, k;
+    for (k = 0; k < N; k++) {
+      var col = new Array(N);
+      for (i = 0; i < N; i++) col[i] = F[i][k];
+      B.push(cifft(col));                                          /* 沿 u 逆变换 → B[v][x] */
+    }
+    for (i = 0; i < N; i++) {
+      var row = new Array(N);
+      for (k = 0; k < N; k++) row[k] = B[k][i];
+      out.push(cifft(row).map(function (p) { return p.re; }));     /* 沿 v 逆变换 → 实矩阵 */
+    }
+    return out;                                                    /* out[i][j]（i=行=y, j=列=x） */
+  }
+  /* 幅度谱 + 中心化（只用于画图）：返回 disp[u][v]，低频落在正中间 */
+  function spectrumCentered(M, N) {
+    var F = dft2(M), H = N / 2, disp = [], u, v;
+    for (u = 0; u < N; u++) {
+      disp.push(new Array(N));
+      for (v = 0; v < N; v++) {
+        var p = F[(u + H) % N][(v + H) % N];
+        disp[u][v] = { re: p.re, im: p.im, mag: Math.hypot(p.re, p.im) };
+      }
+    }
+    return disp;
+  }
+
+  /* 巴特沃斯低通 / 高通（二维，D 为到频谱中心的距离） */
+  function bwLP(D, D0, n) { return 1 / Math.sqrt(1 + Math.pow(D / (D0 + 1e-9), 2 * n)); }
+  function bwHP(D, D0, n) { return D < 1e-9 ? 0 : 1 / Math.sqrt(1 + Math.pow(D0 / (D + 1e-9), 2 * n)); }
+
+  /* ---------- 测试图案：现场用 JS 生成，不引用任何图片文件 ---------- */
+  function makeImage(N) {
+    var g = new Float64Array(N * N), x, y, X, Y;
+    var S = 64, u = N / S;                       /* 以 64×64 为基准设计，再按比例采样 */
+    var x1 = Math.round(8 * u), x2 = Math.round(14 * u);
+    var y1 = Math.round(46 * u), y2 = Math.round(49 * u);
+    var bars = [[6, 17], [20, 24], [27, 31]];
+    for (y = 0; y < N; y++) {
+      for (x = 0; x < N; x++) {
+        X = (x + 0.5) / u; Y = (y + 0.5) / u;     /* 回到 64 格坐标 */
+        var v = 0.82;
+        bars.forEach(function (b) { if (X >= b[0] && X < b[1]) v = (x % 2 === 0) ? 0.95 : 0.06; });
+        if (X >= 34 && X < 58 && Y >= 6 && Y < 30) v = 0.24;                       /* 方块 */
+        if (Math.hypot(X - 48, Y - 46) < 10) v = 0.97;                             /* 圆斑 */
+        if (Y >= 46 && Y < 49 && ((X >= x1 && X < x2) || (X >= 27 * u && X < 31 * u))) v = 0.02;  /* "文字" */
+        g[y * N + x] = v;
+      }
+    }
+    return g;
+  }
+
+  /* =====================================================================
+     实验 1 · 图像低通 / 高通（现场生成图像 → 二维 DFT → 滤波 → 反变换）
+     ===================================================================== */
+  var IMG_CACHE = { N: 0, img: null };
+  function getImage(N) {
+    if (IMG_CACHE.N !== N) { IMG_CACHE = { N: N, img: makeImage(N) }; }
+    return IMG_CACHE.img;
+  }
+
+  SSC.lab({
+    mount: '#lab-image',
+    title: '实验 1 · 现场生成的测试图 → 二维 DFT → 低通/高通 → 反变换',
+    hint: '拖「截止半径」滑块看图像模糊/锐化；切换滤波器类型看「年轮效应」',
+    columns: 2,
+    canvases: [
+      { id: 'src', label: '① 原图（JS 现场生成：条纹 + 方块 + 圆斑 + "文字"）', height: 200 },
+      { id: 'dst', label: '② 滤波结果（逐像素写回 canvas）', height: 200 },
+      { id: 'spec', label: '③ 二维幅度谱 log(1+|F|)，虚线圆 = 截止半径', height: 200 },
+      { id: 'prof', label: '④ 过圆心的剖线 |F(0,v)|（对数纵轴）与 |H| 曲线', height: 200 }
+    ],
+    controls: [
+      { id: 'N', label: '图像边长 N（DFT 点数）', options: [{ v: '32', t: '32（快）' }, { v: '64', t: '64（细）' }], value: '32' },
+      { id: 'r', label: '截止半径 r（相对低频中心的像素）', min: 1, max: 16, step: 0.5, value: 5, unit: ' px' },
+      { id: 'type', label: '滤波类型', options: [{ v: 'lp', t: '低通（保留中心 = 模糊）' }, { v: 'hp', t: '高通（保留外围 = 轮廓）' }], value: 'lp' },
+      { id: 'kind', label: '滤波器形状', options: [{ v: 'ideal', t: '理想（一刀切 → 年轮）' }, { v: 'bw2', t: '2 阶巴特沃斯（平滑）' }, { v: 'bw5', t: '5 阶巴特沃斯（更陡）' }], value: 'ideal' }
+    ],
+    buttons: [{
+      label: '换一张更"干净"的测试图（纯条纹）',
+      onClick: function (vals, api) {
+        IMG_CACHE = { N: 0, img: null };
+        var N = +vals.N, g = new Float64Array(N * N), x, y;
+        var S = 64, u = N / S;
+        for (y = 0; y < N; y++) for (x = 0; x < N; x++) {
+          var X = (x + 0.5) / u;
+          g[y * N + x] = (X < 16 || (X >= 22 && X < 34) || (X >= 40 && X < 52)) ? 0.9 : 0.12;
+        }
+        IMG_CACHE = { N: N, img: g };
+        api.redraw();
+      }
+    }],
+    draw: function (cv, v, api) {
+      var N = +v.N, img = getImage(N);
+      var r = v.r, isLP = (v.type === 'lp'), kind = v.kind;
+      var half = N / 2;
+
+      /* --- 把 1×N² 的图像排成矩阵 M[i][j]（i=行，j=列） --- */
+      var M = [], i, j;
+      for (i = 0; i < N; i++) { M.push(new Array(N)); for (j = 0; j < N; j++) M[i][j] = img[i * N + j]; }
+
+      /* --- 二维 DFT（不居中），再算总能量 --- */
+      var F = dft2(M);
+      var total = 0, kept = 0;
+      for (i = 0; i < N; i++) for (j = 0; j < N; j++) total += F[i][j].re * F[i][j].re + F[i][j].im * F[i][j].im;
+
+      /* --- 频域滤波：距离用"绕回"的索引，所以不需要搬移频谱 --- */
+      function H(u, v) {
+        var du = Math.min(u, N - u), dv = Math.min(v, N - v);
+        var D = Math.hypot(du, dv);
+        if (kind === 'ideal') return isLP ? (D <= r ? 1 : 0) : (D <= r ? 0 : 1);
+        return isLP ? bwLP(D, r, kind === 'bw2' ? 2 : 5) : bwHP(D, r, kind === 'bw2' ? 2 : 5);
+      }
+      var G = [];
+      for (i = 0; i < N; i++) {
+        G.push(new Array(N));
+        for (j = 0; j < N; j++) {
+          var h = H(i, j);
+          G[i][j] = { re: F[i][j].re * h, im: F[i][j].im * h };
+          kept += (F[i][j].re * F[i][j].re + F[i][j].im * F[i][j].im) * h * h;
+        }
+      }
+      var out = idft2(G);
+
+      /* --- 像素：原图直接显示；结果做一次线性拉伸再显示 --- */
+      var srcF = new Float64Array(N * N), dstF = new Float64Array(N * N);
+      var mn = Infinity, mx = -Infinity;
+      for (i = 0; i < N; i++) for (j = 0; j < N; j++) {
+        var q = i * N + j;
+        srcF[q] = M[i][j];
+        dstF[q] = isFinite(out[i][j]) ? out[i][j] : 0;
+        if (dstF[q] < mn) mn = dstF[q];
+        if (dstF[q] > mx) mx = dstF[q];
+      }
+      var span = mx - mn;
+      if (!(span > 1e-9) || !isFinite(span)) { mn = 0; span = 1; }
+      var dstShow = new Float64Array(N * N);
+      for (i = 0; i < N * N; i++) dstShow[i] = (dstF[i] - mn) / span;
+
+      paintGray(cv.src, srcF, N);
+      paintGray(cv.dst, dstShow, N);
+
+      /* --- 频谱图：中心化的 log 幅度，逐格画成方块（与像素一一对应） --- */
+      var disp = spectrumCentered(M, N);
+      try {
+        var cvs = cv.spec;
+        var ct = cvs && cvs.getContext ? cvs.getContext('2d') : null;
+        if (ct && typeof ct.fillRect === 'function') {
+          /* 画布的 width/height 在某些环境下可能还没被设置成数值，一律兜底，避免 NaN 坐标 */
+          var W = +cvs.width, Hh = +cvs.height;
+          if (!isFinite(W) || W <= 0) W = 300;
+          if (!isFinite(Hh) || Hh <= 0) Hh = 150;
+          var s = Math.max(1, Math.floor(Math.min(W / N, Hh / N)));
+          if (!isFinite(s) || s < 1) s = 1;
+          var ox = Math.floor((W - N * s) / 2), oy = Math.floor((Hh - N * s) / 2);
+          if (!isFinite(ox)) ox = 0;
+          if (!isFinite(oy)) oy = 0;
+          ct.clearRect(0, 0, W, Hh);
+          var lmax = Math.log(1 + disp[half][half].mag);
+          if (!isFinite(lmax) || lmax <= 0) lmax = 1;
+          for (i = 0; i < N; i++) for (j = 0; j < N; j++) {
+            var mag = disp[i][j].mag;
+            if (!isFinite(mag) || mag < 0) mag = 0;
+            var t = Math.log(1 + mag) / lmax;                   /* log(1+|F|) 恒 ≥ 0，不会出现 −∞ */
+            if (!isFinite(t)) t = 0;
+            var g2 = Math.round(255 * Math.pow(SSC.clamp(t, 0, 1), 0.55));
+            if (!isFinite(g2)) g2 = 0;
+            ct.fillStyle = 'rgb(' + g2 + ',' + g2 + ',' + g2 + ')';
+            ct.fillRect(ox + j * s, oy + i * s, s, s);
+          }
+          /* 截止半径圆 */
+          ct.save();
+          ct.strokeStyle = '#dc2626'; ct.setLineDash([4, 4]); ct.lineWidth = 1.6;
+          ct.beginPath(); ct.arc(ox + half * s, oy + half * s, Math.max(0.5, r * s), 0, 7); ct.stroke();
+          ct.restore();
+        }
+      } catch (e) { /* 桩/异常环境下忽略，不影响其余画布 */ }
+
+      /* --- 剖线：沿 v 轴过 DC 的那一条（F[0][v]），横轴用带符号的频率 --- */
+      var xs = [], ys = [];
+      for (var q2 = 0; q2 < N; q2++) {
+        var sv = (q2 <= half) ? q2 : q2 - N;                  /* 0,1,…,N/2,−N/2+1,… */
+        xs.push(sv);
+        var mm = F[0][q2];
+        var magv = Math.hypot(mm.re, mm.im);
+        ys.push(isFinite(magv) ? Math.log(1 + magv) : 0);
+      }
+      SSC.plot(cv.prof, {
+        xmin: -half, xmax: half, ymin: -0.3,
+        xlabel: '空间频率 v（相对 DC，单位 1/N）', ylabel: 'log(1+|F|) 与 6|H|',
+        stems: [{ xs: xs, ys: ys, color: '#0e7490', label: 'log(1+|F(0,v)|)' }],
+        curves: [{
+          f: function (t) {
+            var idx = Math.round(t) % N; if (idx < 0) idx += N;
+            return H(0, idx) * 6;                              /* 把 |H| 放大 6 倍画在同一坐标系 */
+          }, color: '#dc2626', width: 2, samples: 400, label: '滤波器 |H|（×6）'
+        }],
+        vlines: [{ x: -r, color: '#b45309', dash: [3, 3] }, { x: r, color: '#b45309', dash: [3, 3], label: '±r' }],
+        legend: true
+      });
+
+      api.readout(
+        '<div class="stat"><div class="k">保留能量（Parseval）</div><div class="v">' + SSC.fmt(100 * kept / (total || 1), 1) + '%</div></div>' +
+        '<div class="stat"><div class="k">DFT 总点数</div><div class="v">' + (N * N) + '</div></div>' +
+        '<div class="stat"><div class="k">直流 |F(0,0)|</div><div class="v">' + SSC.fmt(Math.hypot(F[0][0].re, F[0][0].im), 1) + '</div></div>' +
+        '<div class="stat"><div class="k">算法</div><div class="v" style="font-size:13px">行列分离 + 基 2 FFT</div></div>'
+      );
+    },
+    note: function (v) {
+      var base = '频谱图里越靠中心 = 空间频率越低（灰度变化越慢）。' +
+        '直流分量 |F(0,0)| 正好是 N²×平均灰度，所以永远是最亮的那一点。';
+      if (v.kind === 'ideal') {
+        return base + '<br>当前是<b>理想滤波器（一刀切）</b>：注意强边缘（黑方块的角）附近那一圈一圈的波纹，' +
+          '这就是"年轮效应"。它是理想频响在时域等于 sinc 的必然结果，不是算错了。' +
+          '<br>把「滤波器形状」换成巴特沃斯，同样的截止半径，波纹立刻小很多——这就是工程上偏爱巴特沃斯的原因。';
+      }
+      return base + '<br>当前是<b>巴特沃斯（n=' + (v.kind === 'bw2' ? 2 : 5) + '）</b>：频响平滑过渡，' +
+        '所以图像上几乎没有年轮效应。阶数越高越接近理想低通（越陡），年轮也会慢慢回来。' +
+        '<br>把类型切成高通试试：大片平坦区域会变成灰色（低频被拿走），只留下边缘和纹理。';
+    }
+  });
+
+  /* =====================================================================
+     实验 2 · 多频成分信号的滤波（时域 + 频域）
+     ===================================================================== */
+  var Fs = 8000;                       /* 采样率 8 kHz */
+  var TONES = [[200, 1.0], [700, 0.85], [1500, 0.6], [2700, 0.42], [3600, 0.3]];
+
+  function buildSignal(M) {
+    var x = new Array(M), i, k;
+    for (i = 0; i < M; i++) {
+      var t = i / Fs, s = 0;
+      for (k = 0; k < TONES.length; k++) s += TONES[k][1] * Math.sin(2 * Math.PI * TONES[k][0] * t);
+      x[i] = s;
+    }
+    return x;
+  }
+  /* 理想低通：截断 sinc 核（奇数长度，居中，线性相位） */
+  function idealFIR(fc, M, L) {
+    var h = new Array(L), c = (L - 1) / 2, i;
+    for (i = 0; i < L; i++) {
+      var n = i - c, w = (i >= M && i < L - M) ? 1 : 0;     /* 矩形窗 */
+      h[i] = (n === 0 ? 2 * fc / Fs : Math.sin(2 * Math.PI * fc * n / Fs) / (Math.PI * n)) * w;
+    }
+    return h;
+  }
+  function movingAvg(h, M) {
+    var L = h.length, out = new Array(L).fill(0), i, k, s;
+    for (i = 0; i < L; i++) {
+      s = 0;
+      for (k = i; k < Math.min(L, i + M); k++) s += h[k];
+      out[i] = s / M;
+    }
+    return out;
+  }
+  function convolve(x, h) {
+    var y = new Array(x.length), n, k;
+    for (n = 0; n < x.length; n++) {
+      var s = 0;
+      for (k = 0; k < h.length; k++) if (n - k >= 0) s += h[k] * x[n - k];
+      y[n] = s;
+    }
+    return y;
+  }
+  /* 第一类巴特沃斯（IIR 一阶）：y[n]=a x[n]+(1−a)y[n−1] */
+  function bw1(x, fc) {
+    var a = 1 - Math.exp(-2 * Math.PI * fc / Fs), y = new Array(x.length), i;
+    var acc = 0;
+    for (i = 0; i < x.length; i++) { acc = a * x[i] + (1 - a) * acc; y[i] = acc; }
+    return y;
+  }
+  function magOf(kind, f, fc, M) {
+    if (kind === 'ideal') return f <= fc ? 1 : 0;
+    if (kind === 'mov') { var r = f / Fs; return r < 1e-6 ? 1 : Math.abs(Math.sin(Math.PI * r * M) / (M * Math.sin(Math.PI * r))); }
+    var w = f / fc; return 1 / Math.sqrt(1 + w * w);      /* 一阶巴特沃斯 */
+  }
+
+  SSC.lab({
+    mount: '#lab-audio',
+    title: '实验 2 · 含 5 个频率成分的信号：低通滤波的时域与频域',
+    hint: '拖截止频率，看哪几根谱线被按下去；右侧滤波器曲线就是"每根线被乘的倍数"',
+    columns: 2,
+    canvases: [
+      { id: 'time', label: '时域：输入（灰虚线）与输出（蓝）', height: 200 },
+      { id: 'spec', label: '频域：输入谱（灰 stem）、输出谱（蓝 stem）、|H(f)|（红虚线）', height: 200 }
+    ],
+    controls: [
+      { id: 'fc', label: '截止频率 f_c', min: 100, max: 4000, step: 20, value: 2000, unit: ' Hz' },
+      { id: 'kind', label: '滤波器', options: [{ v: 'ideal', t: '理想（矩形窗 sinc，201 抽头）' }, { v: 'bw1', t: '一阶巴特沃斯（IIR）' }, { v: 'mov', t: '滑动平均（M=9）' }], value: 'ideal' }
+    ],
+    draw: function (cv, v, api) {
+      var M = 512, x = buildSignal(M), y, h;
+      if (v.kind === 'ideal') { h = idealFIR(v.fc, 300, 601); y = convolve(x, h); }
+      else if (v.kind === 'bw1') { y = bw1(x, v.fc); }
+      else { y = convolve(x, movingAvg(idealFIR(Fs / 2 * 0.999, 0, 9), 9)); }
+
+      /* 输入谱：只在音调频率上取值（连续时间视角） */
+      var xs = [], xsIn = [], ysIn = [], ysOut = [];
+      for (var k = 0; k < TONES.length; k++) {
+        var f = TONES[k][0];
+        xs.push(f); xsIn.push(f);
+        ysIn.push(TONES[k][1]);
+        ysOut.push(TONES[k][1] * magOf(v.kind, f, v.fc, 9));
+      }
+      /* 先归一化输出，避免理想 sinc 核的增益（≈1）与滑动平均的衰减混在一起看不清 */
+      var mx = 0, i;
+      for (i = 0; i < M; i++) mx = Math.max(mx, Math.abs(x[i]));
+      var my = 0;
+      for (i = 0; i < M; i++) my = Math.max(my, Math.abs(y[i]));
+      var gy = my > 1e-9 ? mx / my * 0.85 : 1;     /* 归一化到与输入同量级（含 0.85 便于分辨两条曲线） */
+
+      var t0 = 0.022;                                /* 只画 22 ms，免得密成一团 */
+      SSC.plot(cv.time, {
+        xmin: 0, xmax: t0 * 1000, ymin: -mx * 1.25, ymax: mx * 1.45,
+        xlabel: 't (ms)', ylabel: '幅度',
+        curves: [
+          { f: function (t) { var n = Math.round(t / 1000 * Fs); return n < 0 || n >= M ? NaN : x[n]; }, color: '#c3ccdd', width: 1.4, dash: [5, 4], label: '输入 x(t)' },
+          { f: function (t) { var n = Math.round(t / 1000 * Fs); return n < 0 || n >= M ? NaN : y[n] * gy; }, color: '#4338ca', width: 2, label: '输出 y(t)（已归一化幅度）' }
+        ],
+        legend: true
+      });
+
+      SSC.plot(cv.spec, {
+        xmin: 0, xmax: 4200, ymin: 0, ymax: 1.25,
+        xlabel: 'f (Hz)', ylabel: '幅度',
+        stems: [
+          { xs: xsIn, ys: ysIn, color: '#c3ccdd', label: '输入谱（5 根线）' },
+          { xs: xs, ys: ysOut, color: '#0e7490', label: '输出谱 = 输入 × |H|' }
+        ],
+        curves: [{
+          f: function (f) { return magOf(v.kind, f, v.fc, 9); },
+          color: '#dc2626', width: 2, dash: [6, 4], samples: 700, label: '|H(f)|'
+        }],
+        vlines: [{ x: v.fc, color: '#b45309', label: 'f_c=' + SSC.fmt(v.fc, 0) + ' Hz' }],
+        legend: true
+      });
+
+      var gone = [];
+      /* 判定"被压掉"用 0.55 作阈值（−5 dB 左右），而不是 0.5——
+         正好落在截止频率上的成分 |H|=0.5，说它"被压掉"会误导（巴特沃斯的过渡带很缓）。 */
+      for (var q = 0; q < TONES.length; q++) if (magOf(v.kind, TONES[q][0], v.fc, 9) < 0.55) gone.push(TONES[q][0] + ' Hz');
+      api.readout(
+        '<div class="stat"><div class="k">被压掉的成分</div><div class="v" style="font-size:13px">' + (gone.length ? gone.join('、') : '（一个都没）') + '</div></div>' +
+        '<div class="stat"><div class="k">采样率 f_s</div><div class="v">' + (Fs / 1000) + ' kHz</div></div>' +
+        '<div class="stat"><div class="k">最高成分 / f_s</div><div class="v">' + SSC.fmt(3600 / Fs, 3) + '（远低于 0.5，无混叠）</div></div>' +
+        '<div class="stat"><div class="k">输出峰值</div><div class="v">' + SSC.fmt(my, 2) + '</div></div>'
+      );
+    },
+    note: function (v) {
+      var s = '频域里，"滤波"就是<b>逐点相乘</b>：输出谱 = 输入谱 × |H(f)|。' +
+        '红线 |H(f)| 在每根谱线处的高度，就是那根线被放大的倍数（这里都是 ≤1，即衰减）。';
+      if (v.kind === 'ideal') {
+        s += '<br>现在用的是<b>理想低通</b>（201/601 抽头截断 sinc）。它几乎是一堵竖直的墙，' +
+          '所以谱线的"存活"非常干脆，但时域输出在跳变处会有小振荡——和图像里的年轮效应同一个来源。';
+      } else if (v.kind === 'bw1') {
+        s += '<br>一阶巴特沃斯是<b>可实现</b>的（一阶差分方程 y[n]=a·x[n]+(1−a)·y[n−1]），代价是过渡带很缓：' +
+          '截止频率附近的成分只是被削弱，并没有被彻底拿掉。<b>这正是"理想 vs 可实现"的取舍。</b>';
+      } else {
+        s += '<br>滑动平均就是"矩形窗 FIR"，它的频响有周期性的零点（不是单调下降），' +
+          '所以某些高频成分可能<b>意外地没被压掉多少</b>。这说明"低通"不只有一种形状，选哪种要看具体指标。';
+      }
+      return s;
+    }
+  });
+
+  /* =====================================================================
+     实验 3 · 巴特沃斯：阶数与截止频率（配合第 5 节）
+     ===================================================================== */
+  SSC.lab({
+    mount: '#lab-butter',
+    title: '实验 3 · 巴特沃斯逼近：阶数 n 与截止频率 ω_c',
+    hint: '所有曲线都交于 (ω_c, 0.707)——这就是"截止频率"的定义',
+    columns: 1,
+    canvases: [{ id: 'resp', label: '幅度响应 |H(jω)|（线性 + −3dB 参考线）', height: 230 }],
+    controls: [
+      { id: 'n', label: '阶数 n', min: 1, max: 8, step: 1, value: 3 },
+      { id: 'wc', label: '截止频率 ω_c', min: 0.2, max: 5, step: 0.05, value: 1, unit: ' rad/s' },
+      { id: 'wmax', label: '频率轴范围', min: 2, max: 20, step: 0.5, value: 6, unit: ' rad/s' }
+    ],
+    draw: function (cv, v, api) {
+      var n = Math.round(v.n), wc = v.wc;
+      SSC.plot(cv.resp, {
+        xmin: 0, xmax: v.wmax, ymin: 0, ymax: 1.15,
+        xlabel: 'ω (rad/s)', ylabel: '|H(jω)|',
+        curves: [
+          { f: function (w) { return 1 / Math.sqrt(1 + Math.pow(w / wc, 2 * n)); }, color: '#4338ca', width: 2.4, samples: 900, label: 'n=' + n },
+          { f: function (w) { return 1 / Math.sqrt(1 + Math.pow(w / wc, 2)); }, color: '#c3ccdd', width: 1.4, dash: [5, 4], label: 'n=1（对比）' },
+          { f: function (w) { return 1 / Math.sqrt(1 + Math.pow(w / wc, 16)); }, color: '#c3ccdd', width: 1.4, dash: [2, 3], label: 'n=8（对比）' }
+        ],
+        hlines: [{ y: 1 / Math.SQRT2, color: '#dc2626', label: '−3 dB = 0.707' },
+          { y: 1, color: 'rgba(21,128,61,.5)', dash: [3, 3] }],
+        vlines: [{ x: wc, color: '#b45309', label: 'ω_c=' + SSC.fmt(wc, 2) }],
+        legend: true
+      });
+      /* 高频衰减斜率：用 ω=2ω_c 与 ω=4ω_c 处的 dB 差算 */
+      function db(w) { return 20 * Math.log10(1 / Math.sqrt(1 + Math.pow(w / wc, 2 * n))); }
+      var slope = db(4 * wc) - db(2 * wc);
+      api.readout(
+        '<div class="stat"><div class="k">|H(jω_c)|</div><div class="v">0.707（−3.01 dB）</div></div>' +
+        '<div class="stat"><div class="k">倍频程斜率</div><div class="v">' + SSC.fmt(slope, 1) + ' dB/oct</div></div>' +
+        '<div class="stat"><div class="k">ω=2ω_c 处</div><div class="v">' + SSC.fmt(db(2 * wc), 1) + ' dB</div></div>' +
+        '<div class="stat"><div class="k">ω=4ω_c 处</div><div class="v">' + SSC.fmt(db(4 * wc), 1) + ' dB</div></div>'
+      );
+      return void api;
+    },
+    note: function (v) {
+      var n = Math.round(v.n);
+      return '巴特沃斯：<b>|H(jω)|² = 1/(1+(ω/ω_c)<sup>2n</sup>)</b>。' +
+        '<br>① 不管 n 是多少，曲线都<b>穿过 (ω_c, 0.707)</b>——这就是截止频率的定义（−3 dB 点）。' +
+        '<br>② 高频尾巴按 <b>(ω_c/ω)<sup>n</sup></b> 衰减：n 每加 1，就是多 6 dB/倍频程。当前 n=' + n +
+        '，理论斜率 ≈ ' + SSC.fmt(-6 * n, 0) + ' dB/oct。' +
+        '<br>③ 通带内<b>完全没有波纹</b>（最大平坦），代价是同阶数下过渡带比切比雪夫型更宽——这是"平坦度换陡峭度"的经典交易。';
+    }
+  });
+
+  /* =====================================================================
+     实验 4 · FIR 窗长：过渡带宽度 vs 过冲
+     ===================================================================== */
+  SSC.lab({
+    mount: '#lab-fir',
+    title: '实验 4 · 窗函数法：抽头数 M 决定过渡带宽度，窗形状决定旁瓣',
+    hint: '把 M 调小 → 过渡带变宽；把窗换成汉明窗 → 过冲（旁瓣）明显变小',
+    columns: 2,
+    canvases: [
+      { id: 'h', label: '冲激响应 h[n] = h_ideal[n] × 窗（已右移成因果）', height: 200 },
+      { id: 'mag', label: '幅度响应 |H(e^{jω})|（dB）', height: 200 }
+    ],
+    controls: [
+      { id: 'fc', label: '归一化截止频率 f_c/f_s', min: 0.05, max: 0.45, step: 0.01, value: 0.2 },
+      { id: 'M', label: '每侧抽头数 M（长度 2M+1）', min: 8, max: 100, step: 1, value: 40 },
+      { id: 'win', label: '窗函数', options: [{ v: 'rect', t: '矩形窗（最陡，过冲大）' }, { v: 'hann', t: '汉宁窗' }, { v: 'hamming', t: '汉明窗（旁瓣最低之一）' }], value: 'rect' }
+    ],
+    draw: function (cv, v, api) {
+      var M = Math.round(v.M), L = 2 * M + 1, fc = v.fc, i;
+      function win(i) {
+        var n = i, N = L - 1;
+        if (v.win === 'rect') return 1;
+        if (v.win === 'hann') return 0.5 - 0.5 * Math.cos(2 * Math.PI * n / N);
+        return 0.54 - 0.46 * Math.cos(2 * Math.PI * n / N);
+      }
+      var h = [], xs = [];
+      for (i = 0; i < L; i++) {
+        var n2 = i - M;
+        h.push((n2 === 0 ? 2 * fc : Math.sin(2 * Math.PI * fc * n2) / (Math.PI * n2)) * win(i));
+        xs.push(i);
+      }
+      /* 归一化到通带增益为 1 */
+      var sum = 0;
+      for (i = 0; i < L; i++) sum += h[i];
+      var hn = h.map(function (q) { return q / (sum || 1); });
+
+      SSC.plot(cv.h, {
+        xmin: 0, xmax: L - 1, symmetric: true,
+        xlabel: 'n（抽头序号）', ylabel: 'h[n]',
+        stems: [{ xs: xs, ys: hn, color: '#4338ca', r: Math.max(1, Math.min(3, 140 / L)) }]
+      });
+
+      function magAt(w) {
+        var re = 0, im = 0;
+        for (i = 0; i < L; i++) { re += hn[i] * Math.cos(-w * i); im += hn[i] * Math.sin(-w * i); }
+        return Math.hypot(re, im);
+      }
+      SSC.plot(cv.mag, {
+        xmin: 0, xmax: Math.PI, ymin: -80, ymax: 3,
+        xlabel: 'ω (rad/样本)', ylabel: '20log|H| (dB)',
+        curves: [{ f: function (w) { return Math.max(-80, 20 * Math.log10(magAt(w) + 1e-12)); }, color: '#0e7490', width: 2.2, samples: 900 }],
+        hlines: [{ y: -3, color: '#dc2626', label: '−3 dB' }],
+        tickFmt: function (z) { return SSC.fmt(z, 2); }
+      });
+
+      /* 找 −3 dB 频率；再在它之后找第一个局部极大（= 第一旁瓣峰值）。
+         注意：不能笼统地"找第一个局部极大"——通带到阻带的过渡带里有一个
+         约 1.09 倍的过冲（吉布斯），那才是第一个极大，不是旁瓣。 */
+      var M2 = 1800, w3 = null, lobe = null, rising = false, cur = 0;
+      for (var k = 1; k <= M2; k++) {
+        var w = Math.PI * k / M2, m = magAt(w);
+        if (w3 === null) {
+          if (m < 1 / Math.SQRT2) { w3 = w; cur = m; rising = false; }
+        } else {
+          if (m > cur) { rising = true; }
+          else if (rising) { lobe = cur; break; }
+          cur = m;
+        }
+      }
+      api.readout(
+        '<div class="stat"><div class="k">抽头数</div><div class="v">' + L + '</div></div>' +
+        '<div class="stat"><div class="k">−3dB 频率 ω₃</div><div class="v">' + (w3 === null ? '—' : SSC.fmt(w3, 3)) + '</div></div>' +
+        '<div class="stat"><div class="k">目标 2πf_c</div><div class="v">' + SSC.fmt(2 * Math.PI * fc, 3) + '</div></div>' +
+        '<div class="stat"><div class="k">第一旁瓣（阻带）</div><div class="v">' + (lobe === null || lobe < 1e-9 ? '—' : SSC.fmt(20 * Math.log10(lobe), 1) + ' dB') + '</div></div>'
+      );
+    },
+    note: function (v) {
+      return '窗函数法的三条规律，在这个实验台里都能亲手看到：' +
+        '<br>① <b>过渡带宽度 ∝ 1/M</b>：把 M 从 40 拖到 8，−3dB 点会明显偏离 2πf_c 目标，曲线变得很"软"。' +
+        '<br>② <b>阻带第一旁瓣的高度只取决于窗的形状，和 M 无关</b>（实测：矩形 ≈ −21 dB、汉宁 ≈ −44 dB、汉明 ≈ −54 dB）。' +
+        '多取抽头只会让旁瓣变<b>密</b>，不会变<b>矮</b>——这正是第 4 章吉布斯现象"过冲高度与项数无关"的同一个事实。' +
+        '<br>③ 所以设计 FIR 的标准流程是：<b>先用窗的形状定阻带衰减，再用 M 定过渡带宽度。</b>' +
+        '<br><span class="tiny muted">留意一个常见混淆：上面读到的 −21 / −44 / −54 dB 是"<b>用它设计出的滤波器</b>的阻带旁瓣"；' +
+        '而有些教材写的 −13 / −31 / −41 dB 是"<b>窗函数自身频谱</b>的旁瓣"。两者是不同对象的数字，别对错表。</span>';
+    }
+  });
+
+  /* =====================================================================
+     实验 5 · PCA 降维：主成分个数与重建误差
+     ===================================================================== */
+  (function () {
+    /* 固定的伪随机点云（种子 12345，保证每次刷新一样，便于对照） */
+    var seed = 12345;
+    function rnd() { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; }
+    function gauss() { return Math.sqrt(-2 * Math.log(rnd() + 1e-12)) * Math.cos(2 * Math.PI * rnd()); }
+    var pts = [], i;
+    for (i = 0; i < 260; i++) {
+      var a = 3.0 * gauss(), b = 1.0 * gauss(), th = 28.9 * Math.PI / 180;
+      pts.push([a * Math.cos(th) - b * Math.sin(th), a * Math.sin(th) + b * Math.cos(th)]);
+    }
+    /* 协方差特征分解（2×2 解析解） */
+    var mx = 0, my = 0;
+    pts.forEach(function (p) { mx += p[0]; my += p[1]; });
+    mx /= pts.length; my /= pts.length;
+    var cxx = 0, cyy = 0, cxy = 0;
+    pts.forEach(function (p) { cxx += (p[0] - mx) * (p[0] - mx); cyy += (p[1] - my) * (p[1] - my); cxy += (p[0] - mx) * (p[1] - my); });
+    cxx /= pts.length; cyy /= pts.length; cxy /= pts.length;
+    var tr = cxx + cyy, det = cxx * cyy - cxy * cxy;
+    var l1 = (tr + Math.sqrt(Math.max(0, tr * tr - 4 * det))) / 2;
+    var l2 = (tr - Math.sqrt(Math.max(0, tr * tr - 4 * det))) / 2;
+    var v1 = [cxy, l1 - cxx];
+    var nv = Math.hypot(v1[0], v1[1]) || 1; v1 = [v1[0] / nv, v1[1] / nv];
+    var v2 = [-v1[1], v1[0]];
+
+    SSC.lab({
+      mount: '#lab-pca',
+      title: '实验 5 · PCA / K-L 变换：只保留 d 个主成分，重建点云',
+      hint: '把 d 从 2 调到 1：灰点是原始数据，蓝点是重建结果，竖线是误差',
+      columns: 2,
+      canvases: [
+        { id: 'cloud', label: '点云与主成分（红=u₁，紫=u₂；蓝点=重建）', height: 240 },
+        { id: 'err', label: '两个主成分的能量：λ₁ 与 λ₂', height: 240 }
+      ],
+      controls: [
+        { id: 'd', label: '保留主成分个数 d', options: [{ v: '1', t: '1 维（压掉一半维数）' }, { v: '2', t: '2 维（无损）' }], value: '2' },
+        { id: 'scale', label: '点云宽高比（数据"各向异性"程度）', min: 1, max: 6, step: 0.1, value: 1 }
+      ],
+      draw: function (cv, v, api) {
+        var d = +v.d;
+        /* scale 只影响显示比例，用来直观体会"各向异性越强、降维越划算" */
+        var sc = v.scale;
+        var P = pts.map(function (p) { return [p[0] * (p[0] >= 0 ? 1 : 1), p[1]]; });
+        var u1 = v1, u2 = v2;
+
+        var R = 10 / sc;
+        SSC.plot(cv.cloud, {
+          xmin: -R, xmax: R, ymin: -R, ymax: R, symmetric: true,
+          xlabel: 'x₁', ylabel: 'x₂',
+          points: P.slice(0, 260).map(function (p) { return { x: p[0], y: p[1], color: 'rgba(140,150,175,.55)', r: 2.2 }; })
+        });
+        /* 叠加重建点与残差（用曲线画直线段：n 很小时用 stems 更稳，这里用 points 叠加） */
+        try {
+          var ct = cv.cloud.getContext('2d');
+          if (ct && ct.beginPath) {
+            var cw = +cv.cloud.width, chh = +cv.cloud.height;
+            if (!isFinite(cw) || cw <= 0) cw = 300;
+            if (!isFinite(chh) || chh <= 0) chh = 150;
+            var W = cw, H = chh, pad = { l: 54, r: 16, t: 16, b: 34 };
+            var X = function (x) { return pad.l + (x + R) / (2 * R) * (W - pad.l - pad.r); };
+            var Y = function (y) { return H - pad.b - (y + R) / (2 * R) * (H - pad.t - pad.b); };
+            var k, p, y1, y2, rx, ry;
+            ct.lineWidth = 1;
+            for (k = 0; k < P.length; k++) {
+              p = P[k]; y1 = p[0] * u1[0] + p[1] * u1[1];
+              rx = y1 * u1[0]; ry = y1 * u1[1];
+              if (d === 2) { y2 = p[0] * u2[0] + p[1] * u2[1]; rx += y2 * u2[0]; ry += y2 * u2[1]; }
+              if (d === 1) { ct.strokeStyle = 'rgba(220,38,38,.28)'; ct.beginPath(); ct.moveTo(X(p[0]), Y(p[1])); ct.lineTo(X(rx), Y(ry)); ct.stroke(); }
+              ct.fillStyle = '#0e7490';
+              ct.beginPath(); ct.arc(X(rx), Y(ry), 2.1, 0, 7); ct.fill();
+            }
+            /* 主成分方向 */
+            function arrow(u, len, color, lab) {
+              ct.save(); ct.strokeStyle = color; ct.fillStyle = color; ct.lineWidth = 2.4;
+              ct.beginPath(); ct.moveTo(X(0), Y(0)); ct.lineTo(X(u[0] * len), Y(u[1] * len)); ct.stroke();
+              ct.beginPath(); ct.arc(X(u[0] * len), Y(u[1] * len), 4, 0, 7); ct.fill();
+              ct.font = '13px ui-monospace, monospace';
+              ct.fillText(lab, X(u[0] * len) + 6, Y(u[1] * len) - 6);
+              ct.restore();
+            }
+            arrow(u1, Math.sqrt(l1) * 2.2, '#dc2626', 'u₁');
+            arrow(u2, Math.sqrt(l2) * 2.2 + 0.6, '#7c3aed', 'u₂');
+          }
+        } catch (e) { /* 忽略 */ }
+
+        /* 用 stems 画两个特征值 */
+        SSC.plot(cv.err, {
+          xmin: -0.4, xmax: 1.4, ymin: 0, ymax: l1 * 1.2, symmetric: false,
+          xticks: [0, 1], tickFmt: function (z) { return z === 0 ? 'λ₁' : (z === 1 ? 'λ₂' : ''); },
+          ylabel: '特征值（= 该方向的方差）',
+          stems: [{ xs: [0, 1], ys: [l1, l2], color: '#4338ca', label: '特征值 λ' }],
+          hlines: [{ y: l1 + l2, color: '#15803d', dash: [5, 4], label: '总和 = 总方差' }],
+          legend: true
+        });
+
+        var energy = (d === 2) ? 100 : 100 * l1 / (l1 + l2);
+        var mse = (d === 2) ? 0 : l2;
+        api.readout(
+          '<div class="stat"><div class="k">λ₁</div><div class="v">' + SSC.fmt(l1, 3) + '</div></div>' +
+          '<div class="stat"><div class="k">λ₂</div><div class="v">' + SSC.fmt(l2, 3) + '</div></div>' +
+          '<div class="stat"><div class="k">保留能量</div><div class="v">' + SSC.fmt(energy, 1) + '%</div></div>' +
+          '<div class="stat"><div class="k">均方误差 ε²</div><div class="v">' + SSC.fmt(mse, 3) + '</div></div>' +
+          '<div class="stat"><div class="k">u₁</div><div class="v" style="font-size:13px">[' + SSC.fmt(u1[0], 3) + ', ' + SSC.fmt(u1[1], 3) + ']</div></div>'
+        );
+      },
+      note: function (v) {
+        var d = +v.d;
+        if (d === 2) {
+          return 'd=2：<b>没有任何信息损失</b>——用完备正交基展开，x = y₁u₁ + y₂u₂ 精确还原，误差为 0。' +
+            '蓝点与灰点完全重合。<br>PCA 的全部意义就在下一档：<b>只保留 d=1 会丢掉多少？</b>' +
+            ' 答案恰好是 λ₂（<b>ε² = Σ<sub>j&gt;d</sub>λ<sub>j</sub></b>），因为基向量正交归一、能量可加。' +
+            '<br>课件里那个 C = [[19.5, 9.5],[9.5, 7.5]] 的例子：λ₁=24.736、λ₂=2.263，取 u₁ 一维压缩只丢 ' +
+            SSC.fmt(100 * l2 / (l1 + l2), 1) + '% 的能量。';
+        }
+        return 'd=1：把二维数据投影到 λ 最大的那条轴 u₁ 上。<br>' +
+          '• 红色短线长了 = 那个点的重建误差大；<br>' +
+          '• 蓝点是重建结果 x&#770; = y₁u₁，全部落在 u₁ 这条直线上；<br>' +
+          '• 误差的平方平均就是 <b>λ₂ = ' + SSC.fmt(l2, 3) + '</b>，约占总方差的 ' + SSC.fmt(100 * l2 / (l1 + l2), 1) + '%。<br>' +
+          '把「点云宽高比」拉到 6 试试：数据越是沿一个方向拉长（各向异性越强），丢掉 λ₂ 就越不心疼——' +
+          '<b>这就是"能量集中"的直观含义，也是 PCA 能大幅降维的前提。</b>';
+      }
+    });
+  })();
+
+  /* ---------- 自测 ---------- */
+  SSC.quiz('#quiz15', [
+    {
+      q: '二维傅里叶反变换的系数是 1/4π²，这个 4π² 是怎么来的？',
+      opts: ['两个方向各带一个 1/2π，乘起来就是 1/4π²', '因为图像有两个空间坐标，所以系数平方',
+        '因为二维信号能量是四倍', '这是人为规定，和被变换的信号无关'],
+      a: 0,
+      why: '二维变换是把一维变换在两个独立方向上各做一遍（可分离）。一维反变换带 1/2π，做两次就是 (1/2π)² = 1/4π²。',
+      tag: '定义'
+    },
+    {
+      q: '一张灰度图做低通滤波后变得模糊。用本页的"保留能量"读数解释，为什么模糊的同时能量也在减少？',
+      opts: ['被清掉的高频成分带走了它们那部分能量，由 Parseval 能量必然减少',
+        '因为像素值被归一化了，所以能量数字变小',
+        '因为低通滤波是线性时不变的，线性系统不守恒能量',
+        '因为把图像转成了复数，能量分给了虚部'],
+      a: 0,
+      why: 'Parseval 说时域能量 = 频域能量之和。低通把 |ω| 大的那些 F(u,v) 直接清 0，就是把这些分量的能量扔掉了。课件里"半径 5→230 像素、保留能量 92%→99.5%"正是这个读数随截止半径单调上升。',
+      tag: 'Parseval'
+    },
+    {
+      q: '理想低通滤波后的图像在强边缘附近出现一圈圈波纹（年轮效应）。根本原因是？',
+      opts: ['理想低通在时域的冲激响应是 sinc，会上下振荡，与边缘卷积后把振荡印在图像上',
+        '因为滤波器的阶数不够高', '因为图像的像素太少', '因为反变换少乘了 N²'],
+      a: 0,
+      why: '频域一刀切 ↔ 时域 sinc（第 6 章变换对）。sinc 旁瓣衰减慢（1/n），卷积到灰度突变处就产生振荡。巴特沃斯用平滑过渡换取冲激响应快速衰减，所以几乎没有年轮效应。',
+      tag: '滤波器'
+    },
+    {
+      q: '对同一个截止频率，巴特沃斯低通与理想低通相比，工程上更受欢迎的主要原因是？',
+      opts: ['频响平滑过渡，时域冲激响应衰减快、没有明显年轮效应，且可用因果系统逼近',
+        '巴特沃斯能完全消除所有噪声', '巴特沃斯的截止频率可以任意高', '巴特沃斯是非线性滤波器，能保边缘'],
+      a: 0,
+      why: '理想低通的时域 sinc 是双边无限的（非因果、不可实时实现），还有年轮效应。巴特沃斯以"过渡带变宽"为代价，换来了可实现性与更小的时域振荡。注意：它仍然是线性滤波器，保边缘要靠中值滤波那类非线性方法。',
+      tag: '逼近'
+    },
+    {
+      q: '样本协方差矩阵 C 的特征值为 λ₁=24.736、λ₂=2.263。只保留最大特征值方向做一维压缩，损失的能量比例约为？',
+      opts: ['8.4%', '50%', '2.26%', '91.6%'],
+      a: 0,
+      why: '截断均方误差 ε² = Σ_{j>d} λⱼ = λ₂ = 2.263，占总能量 λ₁+λ₂ = 26.999 的 2.263/26.999 ≈ 8.4%（保留 91.6%）。这正是课件里那个 2×1 最优特征提取器的答案。',
+      tag: '计算'
+    },
+    {
+      q: '为什么用 K-L/PCA 做人脸识别时，通常先减去均值再用协方差矩阵，而不是直接用相关矩阵 R=E[xxᵀ]？',
+      opts: ['不减均值时第一主成分往往就是"平均脸"方向，描述的是大家共有的成分而不是个体差异',
+        '因为相关矩阵不可对角化', '因为减均值能提高 PCA 的阶数', '因为协方差矩阵一定是奇异的'],
+      a: 0,
+      why: 'R 与 C 的关系是 C = R − μμᵀ。当 μ 很大（整张脸都很亮）时，R 的最大特征向量会被 μ 的方向主导，压缩后保留的是"平均脸"，对区分不同的人帮助很小。减均值后留下的才是"人与人之间的变化"，这才是识别需要的方向。',
+      tag: '应用'
+    }
+  ], '附 A 自测 · 6 题');
+});
+</script>
+</body>
+</html>
